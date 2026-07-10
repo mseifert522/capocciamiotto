@@ -1,0 +1,35 @@
+<%- include('partials/header', { pageTitle: 'Request Family PIN' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Family access</p>
+      <h2 class="section-title">Request Family PIN</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        Enter your email and we will send you the Capoccia–Miotto family contribution PIN so you can add photos, your name, stories, and voice recordings.
+      </p>
+    </header>
+
+    <form class="form-card" method="post" action="/contribute/request-pin" style="max-width:480px;margin:0 auto">
+      <div class="form-row">
+        <label for="name">Your name *</label>
+        <input type="text" id="name" name="name" required maxlength="120" placeholder="Your full name" />
+      </div>
+      <div class="form-row">
+        <label for="email">Email address *</label>
+        <input type="email" id="email" name="email" required maxlength="160" placeholder="you@example.com" />
+        <p class="hint">We will send the family PIN to this email only.</p>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Email Me the Family PIN</button>
+    </form>
+
+    <p style="text-align:center;margin-top:1.5rem;color:var(--ink-muted);font-size:0.95rem">
+      Already have your PIN?
+      <a href="/contribute/pin" style="color:var(--burgundy);font-weight:600">Enter it here</a>
+      <br />
+      Questions?
+      <a href="mailto:info@capocciamiotto.com" style="color:var(--burgundy);font-weight:600">info@capocciamiotto.com</a>
+    </p>
+  </div>
+</section>
+<%- include('partials/footer') %>

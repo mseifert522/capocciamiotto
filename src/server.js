@@ -16,6 +16,7 @@ const {
   lineageFromMember,
   generationFromParent,
 } = require("./familyTree");
+const { sendFamilyPinEmail, CONTACT_EMAIL } = require("./mail");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -98,6 +99,7 @@ function localsBase(req) {
     matriarchName: matriarchName(),
     contributeCta: "Please help us preserve the history of the Capoccia and Miotto families. We are asking every family member to look through old photo albums, boxes, phones, computers, and family collections for photographs from past reunions. Even if you do not know the exact year or everyone shown in the photograph, please share it. Other family members may be able to help identify the people, place, or occasion.",
     contributeCta2: "Every photograph, name, story, recipe, invitation, and memory helps complete our family history.",
+    contactEmail: CONTACT_EMAIL || "info@capocciamiotto.com",
   };
 }
 
@@ -412,6 +414,84 @@ app.get("/contribute/pin", (req, res) => {
     next: req.query.next || "photos",
     prefillMember: req.query.member || "",
   });
+});
+
+app.get("/contribute/request-pin", (req, res) => {
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("request-pin", data);
+});
+
+const pinRequestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many PIN requests from this device. Please try again later.",
+});
+
+app.post("/contribute/request-pin", pinRequestLimiter, async (req, res) => {
+  const name = (req.body.name || "").trim();
+  const email = (req.body.email || "").trim().toLowerCase();
+
+  if (!name || !email) {
+    setFlash(req, "error", "Please enter your name and email address.");
+    return res.redirect("/contribute/request-pin");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setFlash(req, "error", "Please enter a valid email address.");
+    return res.redirect("/contribute/request-pin");
+  }
+
+  // Light throttle: same email at most once every 10 minutes
+  try {
+    const recent = db.prepare(`
+      SELECT id FROM pin_email_requests
+      WHERE requester_email = ?
+        AND created_at >= datetime('now', '-10 minutes')
+        AND status = 'sent'
+      LIMIT 1
+    `).get(email);
+    if (recent) {
+      setFlash(req, "success", "If that email is correct, the family PIN was already sent recently. Please check your inbox and spam folder.");
+      return res.redirect("/contribute/pin");
+    }
+  } catch (_) { /* table may not exist on first boot race */ }
+
+  try {
+    const result = await sendFamilyPinEmail({ toEmail: email, requesterName: name });
+    db.prepare(`
+      INSERT INTO pin_email_requests (requester_name, requester_email, status, method, details)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      name,
+      email,
+      result.ok ? "sent" : "failed",
+      result.method || null,
+      result.ok ? (result.id || "ok") : (result.error || "failed")
+    );
+
+    if (!result.ok) {
+      console.error("PIN email failed:", result);
+      setFlash(
+        req,
+        "error",
+        `We could not send the PIN email right now. Please email ${CONTACT_EMAIL} and we will help you.`
+      );
+      return res.redirect("/contribute/request-pin");
+    }
+
+    setFlash(
+      req,
+      "success",
+      `Your family PIN was emailed to ${email}. Please check your inbox (and spam folder), then enter the PIN below.`
+    );
+    return res.redirect("/contribute/pin");
+  } catch (err) {
+    console.error(err);
+    setFlash(req, "error", `We could not send the PIN email. Please contact ${CONTACT_EMAIL}.`);
+    return res.redirect("/contribute/request-pin");
+  }
 });
 
 app.post("/contribute/pin", contributeLimiter, (req, res) => {

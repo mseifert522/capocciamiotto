@@ -290,6 +290,40 @@ function migrate() {
     console.warn("family tree migration note:", e.message);
   }
 
+  // Shared family contribution PIN (emailed to family members who request it)
+  try {
+    const familyPin = process.env.FAMILY_PIN || "29765240";
+    const existingPin = db.prepare("SELECT id FROM family_pins WHERE pin_code = ?").get(familyPin);
+    if (!existingPin) {
+      db.prepare(`
+        INSERT INTO family_pins (pin_code, assigned_name, notes, active)
+        VALUES (?, 'Capoccia–Miotto Family', 'Shared family contribution PIN — emailed via Request Family PIN', 1)
+      `).run(familyPin);
+    } else {
+      db.prepare("UPDATE family_pins SET active = 1, assigned_name = COALESCE(assigned_name, 'Capoccia–Miotto Family') WHERE pin_code = ?").run(familyPin);
+    }
+  } catch (e) {
+    console.warn("family pin seed note:", e.message);
+  }
+
+  // Log PIN email requests
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS pin_email_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        requester_name TEXT,
+        requester_email TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'sent',
+        method TEXT,
+        details TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_pin_email_requests_email ON pin_email_requests(requester_email);
+    `);
+  } catch (e) {
+    console.warn("pin email requests table note:", e.message);
+  }
+
   // Super admin
   const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
   const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!";

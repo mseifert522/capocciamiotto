@@ -1,10 +1,10 @@
-# Capocia–Miotto Family Reunion Tribute
+# Capoccia–Miotto Family Reunion Tribute
 
 **Domain:** https://capocciamiotto.com  
 **Since:** 1977  
 **VM:** infra-prod-01
 
-A living digital family archive for the Capocia and Miotto families—photographs, reunion years, stories, and community board with moderated contributions.
+A living digital family archive for the Capoccia and Miotto families—photographs, reunion years, stories, and community board with moderated contributions.
 
 ## Admin
 

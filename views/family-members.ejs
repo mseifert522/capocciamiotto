@@ -16,7 +16,7 @@
             <% } %>
           </div>
           <div class="card-body">
-            <span class="badge <%= m.family_branch === 'Capocia' ? 'badge-capocia' : (m.family_branch === 'Miotto' ? 'badge-Miotto' : '') %>"><%= m.family_branch %></span>
+            <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : '') %>"><%= m.family_branch %></span>
             <h3 style="margin-top:0.45rem"><%= m.display_name %></h3>
             <p class="meta"><%= m.role_in_family || 'Family member' %></p>
             <a class="btn btn-outline" href="/family-members/<%= m.id %>">Open profile</a>
@@ -26,7 +26,7 @@
     </div>
     <div class="empty" style="margin-top:2rem">
       <h3>More names will appear as the family contributes them.</h3>
-      <p>Submit family information so we can add Capocia and Miotto elders, parents, children, and cousins with care.</p>
+      <p>Submit family information so we can add Capoccia and Miotto elders, parents, children, and cousins with care.</p>
       <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
     </div>
   </div>

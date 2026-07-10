@@ -13,7 +13,7 @@ const { processUpload, isAllowedMime } = require("./photos");
 const app = express();
 const PORT = process.env.PORT || 3080;
 const CURRENT_YEAR = new Date().getFullYear();
-const SECRET = process.env.SESSION_SECRET || "capocia-Miotto-tribute-change-in-production";
+const SECRET = process.env.SESSION_SECRET || "Capoccia-Miotto-tribute-change-in-production";
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
@@ -68,19 +68,19 @@ function getSetting(key, fallback = "") {
 }
 
 function matriarchName() {
-  return getSetting("matriarch_name_capocia", "Christine Capocia");
+  return getSetting("matriarch_name_capoccia", "Christine Capoccia");
 }
 
 function localsBase(req) {
   return {
-    siteName: getSetting("site_name", "The Capocia–Miotto Family Reunion Tribute"),
+    siteName: getSetting("site_name", "The Capoccia–Miotto Family Reunion Tribute"),
     foundedYear: 1977,
     currentYear: CURRENT_YEAR,
     user: req.session.user || null,
     path: req.path,
     flash: req.session.flash || null,
     matriarchName: matriarchName(),
-    contributeCta: "Please help us preserve the history of the Capocia and Miotto families. We are asking every family member to look through old photo albums, boxes, phones, computers, and family collections for photographs from past reunions. Even if you do not know the exact year or everyone shown in the photograph, please share it. Other family members may be able to help identify the people, place, or occasion.",
+    contributeCta: "Please help us preserve the history of the Capoccia and Miotto families. We are asking every family member to look through old photo albums, boxes, phones, computers, and family collections for photographs from past reunions. Even if you do not know the exact year or everyone shown in the photograph, please share it. Other family members may be able to help identify the people, place, or occasion.",
     contributeCta2: "Every photograph, name, story, recipe, invitation, and memory helps complete our family history.",
   };
 }
@@ -122,7 +122,7 @@ app.get("/", (req, res) => {
   `).all();
   // Apply editable matriarch display name
   members.forEach((m) => {
-    if (m.is_matriarch && m.family_branch === "Capocia") {
+    if (m.is_matriarch && m.family_branch === "Capoccia") {
       m.display_name = matriarchName();
     } else {
       m.display_name = m.preferred_name || m.full_name;
@@ -165,7 +165,7 @@ app.get("/reunion/:year", (req, res) => {
   if (Number.isNaN(year) || year < 1977) return res.status(404).render("404", localsBase(req));
   let reunion = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   if (!reunion) {
-    db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(year, `${year} Capocia–Miotto Family Reunion`);
+    db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(year, `${year} Capoccia–Miotto Family Reunion`);
     reunion = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   }
   const photos = db.prepare(`
@@ -215,7 +215,7 @@ app.get("/family-members", (req, res) => {
     SELECT * FROM family_members ORDER BY family_branch ASC, sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
-    if (m.is_matriarch && m.family_branch === "Capocia") m.display_name = matriarchName();
+    if (m.is_matriarch && m.family_branch === "Capoccia") m.display_name = matriarchName();
     else m.display_name = m.preferred_name || m.full_name;
   });
   const data = localsBase(req);
@@ -226,7 +226,7 @@ app.get("/family-members", (req, res) => {
 app.get("/family-members/:id", (req, res) => {
   const member = db.prepare("SELECT * FROM family_members WHERE id = ?").get(req.params.id);
   if (!member) return res.status(404).render("404", localsBase(req));
-  if (member.is_matriarch && member.family_branch === "Capocia") {
+  if (member.is_matriarch && member.family_branch === "Capoccia") {
     member.display_name = matriarchName();
   } else {
     member.display_name = member.preferred_name || member.full_name;
@@ -332,7 +332,7 @@ app.post("/contribute/photos", contributeLimiter, upload.array("photos", 20), as
     if (reunion_year && !db.prepare("SELECT year FROM reunions WHERE year = ?").get(reunion_year)) {
       db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(
         reunion_year,
-        `${reunion_year} Capocia–Miotto Family Reunion`
+        `${reunion_year} Capoccia–Miotto Family Reunion`
       );
     }
 
@@ -628,11 +628,11 @@ app.post("/admin/members/:id", requireRole("super_admin", "family_admin"), (req,
     parseInt(req.body.sort_order || "50", 10),
     id
   );
-  // Editable Capocia matriarch display name
+  // Editable Capoccia matriarch display name
   if (req.body.update_matriarch_setting === "1") {
     const name = (req.body.preferred_name || req.body.full_name || "").trim();
     db.prepare(`
-      INSERT INTO site_settings (key, value) VALUES ('matriarch_name_capocia', ?)
+      INSERT INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `).run(name);
   }
@@ -655,7 +655,7 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
       no_reunion = ?, updated_at = datetime('now')
     WHERE year = ?
   `).run(
-    (req.body.title || "").trim() || `${year} Capocia–Miotto Family Reunion`,
+    (req.body.title || "").trim() || `${year} Capoccia–Miotto Family Reunion`,
     (req.body.date_text || "").trim() || null,
     (req.body.location || "").trim() || null,
     (req.body.host_family || "").trim() || null,
@@ -726,5 +726,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Capocia–Miotto tribute listening on :${PORT}`);
+  console.log(`Capoccia–Miotto tribute listening on :${PORT}`);
 });

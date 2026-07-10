@@ -11,7 +11,7 @@
     </aside>
     <div class="admin-main">
       <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Family members</h2>
-      <p style="margin-bottom:1rem">Edit Capocia matriarch display name carefully (Christine / Christina). Mioto patriarchs/matriarchs use placeholder names until confirmed.</p>
+      <p style="margin-bottom:1rem">Edit Capoccia matriarch display name carefully (Christine / Christina). Miotto patriarchs/matriarchs use placeholder names until confirmed.</p>
 
       <form class="form-card" method="post" action="/admin/members" style="margin-bottom:2rem">
         <h3 style="font-family:var(--font-display);margin-bottom:0.75rem">Add family member</h3>
@@ -23,7 +23,7 @@
           <div>
             <label>Branch</label>
             <select name="family_branch">
-              <option value="Capocia">Capocia</option>
+              <option value="Capoccia">Capoccia</option>
               <option value="Miotto">Miotto</option>
               <option value="both">Both</option>
             </select>
@@ -44,14 +44,14 @@
             <div><label>Full name</label><input name="full_name" value="<%= m.full_name %>" required /></div>
             <div><label>Preferred / display name</label><input name="preferred_name" value="<%= m.preferred_name || '' %>" /></div>
           </div>
-          <% if (m.is_matriarch && m.family_branch === 'Capocia') { %>
-            <label class="checkbox"><input type="checkbox" name="update_matriarch_setting" value="1" checked /> Update site-wide Capocia matriarch display name (Christine / Christina)</label>
+          <% if (m.is_matriarch && m.family_branch === 'Capoccia') { %>
+            <label class="checkbox"><input type="checkbox" name="update_matriarch_setting" value="1" checked /> Update site-wide Capoccia matriarch display name (Christine / Christina)</label>
           <% } %>
           <div class="form-row two">
             <div>
               <label>Branch</label>
               <select name="family_branch">
-                <option value="Capocia" <%= m.family_branch==='Capocia'?'selected':'' %>>Capocia</option>
+                <option value="Capoccia" <%= m.family_branch==='Capoccia'?'selected':'' %>>Capoccia</option>
                 <option value="Miotto" <%= m.family_branch==='Miotto'?'selected':'' %>>Miotto</option>
                 <option value="both" <%= m.family_branch==='both'?'selected':'' %>>Both</option>
               </select>

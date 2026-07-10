@@ -199,7 +199,7 @@ function migrate() {
   `);
   const seedReunions = db.transaction(() => {
     for (let y = 1977; y <= currentYear + 1; y++) {
-      insertReunion.run(y, `${y} Capocia–Miotto Family Reunion`);
+      insertReunion.run(y, `${y} Capoccia–Miotto Family Reunion`);
     }
   });
   seedReunions();
@@ -211,8 +211,8 @@ function migrate() {
       INSERT INTO family_members
         (full_name, preferred_name, family_branch, is_patriarch, is_matriarch, role_in_family, biography, is_placeholder, sort_order)
       VALUES
-        ('George Capocia', 'George Capocia', 'Capocia', 1, 0, 'Capocia patriarch', NULL, 1, 1),
-        ('Christine Capocia', 'Christine Capocia', 'Capocia', 0, 1, 'Capocia matriarch', NULL, 1, 2),
+        ('George Capoccia', 'George Capoccia', 'Capoccia', 1, 0, 'Capoccia patriarch', NULL, 1, 1),
+        ('Christine Capoccia', 'Christine Capoccia', 'Capoccia', 0, 1, 'Capoccia matriarch', NULL, 1, 2),
         ('Miotto Patriarch (placeholder)', NULL, 'Miotto', 1, 0, 'Miotto patriarch — name to be confirmed by family', NULL, 1, 10),
         ('Miotto Matriarch (placeholder)', NULL, 'Miotto', 0, 1, 'Miotto matriarch — name to be confirmed by family', NULL, 1, 11)
     `).run();
@@ -220,7 +220,7 @@ function migrate() {
 
   // Super admin
   const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
-  const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capocia2026!";
+  const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!";
   const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(adminEmail);
   if (!existing) {
     const hash = bcrypt.hashSync(adminPass, 12);
@@ -238,15 +238,44 @@ function migrate() {
       VALUES (?, ?, 'announcement', 'Family Administrators', 1, 'approved')
     `).run(
       "Welcome to Our Family Community Board",
-      "This is a safe gathering place for Capocia and Miotto family news, reunion planning, photo requests, and messages. Posts are moderated so our tribute remains respectful for every generation. Please help us collect photographs and memories from reunions since 1977."
+      "This is a safe gathering place for Capoccia and Miotto family news, reunion planning, photo requests, and messages. Posts are moderated so our tribute remains respectful for every generation. Please help us collect photographs and memories from reunions since 1977."
     );
   }
 
   // Settings
   const set = db.prepare("INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)");
-  set.run("site_name", "The Capocia–Miotto Family Reunion Tribute");
+  set.run("site_name", "The Capoccia–Miotto Family Reunion Tribute");
   set.run("founded_year", "1977");
-  set.run("matriarch_name_capocia", "Christine Capocia");
+  set.run("matriarch_name_capoccia", "Christine Capoccia");
+
+  // Spelling corrections (Capocia → Capoccia) for existing data
+  try {
+    db.prepare(`UPDATE family_members SET full_name = REPLACE(full_name, 'Capocia', 'Capoccia') WHERE full_name LIKE '%Capocia%'`).run();
+    db.prepare(`UPDATE family_members SET preferred_name = REPLACE(preferred_name, 'Capocia', 'Capoccia') WHERE preferred_name LIKE '%Capocia%'`).run();
+    db.prepare(`UPDATE family_members SET family_branch = 'Capoccia' WHERE family_branch = 'Capocia'`).run();
+    db.prepare(`UPDATE family_members SET role_in_family = REPLACE(role_in_family, 'Capocia', 'Capoccia') WHERE role_in_family LIKE '%Capocia%'`).run();
+    db.prepare(`UPDATE reunions SET title = REPLACE(title, 'Capocia', 'Capoccia') WHERE title LIKE '%Capocia%'`).run();
+    db.prepare(`UPDATE photos SET family_branch = 'Capoccia' WHERE family_branch = 'Capocia'`).run();
+    db.prepare(`UPDATE board_posts SET body = REPLACE(body, 'Capocia', 'Capoccia') WHERE body LIKE '%Capocia%'`).run();
+    db.prepare(`UPDATE site_settings SET value = REPLACE(value, 'Capocia', 'Capoccia') WHERE value LIKE '%Capocia%'`).run();
+    // migrate old setting key
+    const oldKey = db.prepare("SELECT value FROM site_settings WHERE key = 'matriarch_name_capocia'").get();
+    const midKey = db.prepare("SELECT value FROM site_settings WHERE key = 'matriarch_name_Capoccia'").get();
+    if (oldKey && !db.prepare("SELECT 1 FROM site_settings WHERE key = 'matriarch_name_capoccia'").get()) {
+      db.prepare("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', ?)").run(
+        String(oldKey.value).replace(/Capocia/g, "Capoccia")
+      );
+    }
+    if (midKey) {
+      db.prepare("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', ?)").run(
+        String(midKey.value).replace(/Capocia/g, "Capoccia")
+      );
+      db.prepare("DELETE FROM site_settings WHERE key = 'matriarch_name_Capoccia'").run();
+    }
+    db.prepare("UPDATE site_settings SET key = 'matriarch_name_capoccia' WHERE key = 'matriarch_name_capocia'").run();
+  } catch (e) {
+    console.warn("spelling migration note:", e.message);
+  }
 }
 
 migrate();

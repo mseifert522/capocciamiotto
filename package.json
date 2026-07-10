@@ -1,7 +1,7 @@
 {
   "name": "capocciamiotto",
   "version": "1.0.0",
-  "description": "The Capocia–Miotto Family Reunion Tribute",
+  "description": "The Capoccia–Miotto Family Reunion Tribute",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

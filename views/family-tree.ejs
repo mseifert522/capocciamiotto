@@ -2,12 +2,16 @@
 <section class="section">
   <div class="container narrow">
     <header class="section-header">
+      <p class="section-eyebrow">Capoccia · Miotto</p>
       <h2 class="section-title">Capoccia–Miotto Family Tree</h2>
       <div class="section-rule"></div>
     </header>
-    <div class="empty">
-      <h3>Family tree coming soon.</h3>
-      <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
+
+    <%- include('partials/family-tree-snippet') %>
+
+    <div style="text-align:center;margin-top:2rem">
+      <a class="btn btn-primary" href="/family-members">View Family Tributes</a>
+      <a class="btn btn-outline" href="/contribute/story" style="margin-left:0.5rem">Submit Family Information</a>
     </div>
   </div>
 </section>

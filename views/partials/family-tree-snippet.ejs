@@ -1,0 +1,68 @@
+<%
+  /* Resolve member profile links when available */
+  function findMemberId(list, tests) {
+    const members = list || [];
+    for (let i = 0; i < members.length; i++) {
+      const m = members[i];
+      const blob = ((m.full_name || "") + " " + (m.preferred_name || "")).toLowerCase();
+      if (tests.every((t) => t.test(blob))) return m.id;
+    }
+    return null;
+  }
+  const all = typeof members !== "undefined" ? members : [];
+  const idTony = findMemberId(all, [/tony|anthony/, /capoccia/]);
+  const idFran = findMemberId(all, [/fran|frances/, /capoccia/]);
+  const idGeorge = findMemberId(all, [/george/, /capoccia/]);
+  const idChristine = findMemberId(all, [/christine/, /capoccia/]);
+  const idAnna = findMemberId(all, [/anna/, /miotto/]);
+  const idMickey = findMemberId(all, [/mickey|amerigo/, /miotto/]);
+
+  function personLink(id, label) {
+    if (id) return '<a class="tree-link" href="/family-members/' + id + '">' + label + '</a>';
+    return '<span class="tree-name">' + label + '</span>';
+  }
+%>
+
+<div class="family-tree-snippet">
+  <h3 class="family-tree-snippet-title">Family Tree Snippet</h3>
+
+  <div class="tree-root">
+    <div class="tree-node tree-node--parents">
+      <p class="tree-node-label">Capoccia Parents</p>
+      <p class="tree-node-names">Costanzo &amp; Madeline</p>
+    </div>
+  </div>
+
+  <div class="tree-connector" aria-hidden="true"></div>
+
+  <div class="tree-children">
+    <div class="tree-branch">
+      <div class="tree-node">
+        <p class="tree-node-names">
+          <%- personLink(idTony, "Tony") %>
+          <span class="tree-with">(m. <%- personLink(idFran, "Fran Babich") %>)</span>
+        </p>
+        <p class="tree-node-role">Honored Elder</p>
+      </div>
+    </div>
+    <div class="tree-branch">
+      <div class="tree-node">
+        <p class="tree-node-names">
+          <%- personLink(idGeorge, "George") %>
+          <span class="tree-with">(m. <%- personLink(idChristine, "Christine") %>)</span>
+        </p>
+        <p class="tree-node-role">Capoccia Patriarch &amp; Matriarch</p>
+      </div>
+    </div>
+    <div class="tree-branch">
+      <div class="tree-node">
+        <p class="tree-node-names">
+          <%- personLink(idAnna, "Anna") %>
+          <span class="tree-with">(m. <%- personLink(idMickey, "Mickey Miotto") %>)</span>
+        </p>
+        <p class="tree-node-role">Miotto Matriarch</p>
+        <p class="tree-node-note">Capoccia · Miotto branch</p>
+      </div>
+    </div>
+  </div>
+</div>

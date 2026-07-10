@@ -159,9 +159,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/our-family-story", (req, res) => {
+  const members = db.prepare("SELECT id, full_name, preferred_name FROM family_members").all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-story", data);
+  res.render("family-story", { ...data, members });
 });
 
 app.get("/reunion-timeline", (req, res) => {
@@ -296,9 +297,10 @@ app.get("/in-loving-memory", (req, res) => {
 });
 
 app.get("/family-tree", (req, res) => {
+  const members = db.prepare("SELECT id, full_name, preferred_name FROM family_members").all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-tree", data);
+  res.render("family-tree", { ...data, members });
 });
 
 app.get("/upcoming-reunion", (req, res) => {

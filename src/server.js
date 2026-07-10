@@ -630,13 +630,14 @@ app.get("/", (req, res) => {
   members.forEach((m) => {
     m.display_name = m.preferred_name || m.full_name;
   });
-  // Home gallery: only photos the admin explicitly placed on the homepage
+  // Home gallery: only photos you (admin) have explicitly approved for the home page
   ensureHomePhotoColumns();
   const recentPhotos = db.prepare(`
     SELECT * FROM photos
     WHERE status = 'approved'
       AND may_display_public = 1
       AND COALESCE(show_on_home, 0) = 1
+      AND COALESCE(home_status, '') = 'approved'
     ORDER BY home_sort ASC, submitted_at DESC
     LIMIT 24
   `).all();
@@ -657,6 +658,36 @@ function ensureHomePhotoColumns() {
     }
     if (!cols.includes("home_sort")) {
       db.exec("ALTER TABLE photos ADD COLUMN home_sort INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("home_status")) {
+      db.exec("ALTER TABLE photos ADD COLUMN home_status TEXT");
+    }
+    // One-time: anything previously live without status → treat as pending (requires your approval)
+    // Only run migration flag once via site_settings
+    const migrated = db.prepare("SELECT value FROM site_settings WHERE key = 'home_photo_approval_v1'").get();
+    if (!migrated) {
+      db.prepare(`
+        UPDATE photos
+        SET show_on_home = 0,
+            home_status = CASE
+              WHEN COALESCE(show_on_home, 0) = 1 THEN 'pending'
+              ELSE home_status
+            END
+        WHERE COALESCE(show_on_home, 0) = 1
+           OR home_status = 'approved'
+      `).run();
+      // Force all off home until approved
+      db.prepare(`
+        UPDATE photos SET show_on_home = 0, home_status = 'pending'
+        WHERE COALESCE(home_status, '') = 'pending'
+           OR title LIKE '%Miotto Patriarch%'
+           OR title LIKE '%Miotto Matriarch%'
+           OR title LIKE '%Home gallery%'
+      `).run();
+      db.prepare(`
+        INSERT INTO site_settings (key, value) VALUES ('home_photo_approval_v1', '1')
+        ON CONFLICT(key) DO UPDATE SET value = '1'
+      `).run();
     }
   } catch (_) { /* ignore */ }
 }
@@ -2048,10 +2079,24 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
   ensureHomePhotoColumns();
   const year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
   const homeSort = parseInt(req.body.home_sort || "0", 10);
+  const wantHome = req.body.show_on_home === "1";
+  const existing = db.prepare("SELECT home_status, show_on_home FROM photos WHERE id = ?").get(req.params.id);
+  // Nominating for home does NOT publish until you Approve on Home Photos
+  let homeStatus = existing && existing.home_status ? existing.home_status : null;
+  let showOnHome = existing && existing.show_on_home ? 1 : 0;
+  if (wantHome) {
+    if (homeStatus !== "approved") {
+      homeStatus = "pending";
+      showOnHome = 0;
+    }
+  } else {
+    homeStatus = null;
+    showOnHome = 0;
+  }
   db.prepare(`
     UPDATE photos SET
       title = ?, description = ?, reunion_year = ?, family_branch = ?, location = ?,
-      admin_notes = ?, featured = ?, show_on_home = ?, home_sort = ?, visibility = ?
+      admin_notes = ?, featured = ?, show_on_home = ?, home_sort = ?, home_status = ?, visibility = ?
     WHERE id = ?
   `).run(
     (req.body.title || "").trim() || null,
@@ -2061,29 +2106,42 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
     (req.body.location || "").trim() || null,
     (req.body.admin_notes || "").trim() || null,
     req.body.featured === "1" ? 1 : 0,
-    req.body.show_on_home === "1" ? 1 : 0,
+    showOnHome,
     Number.isFinite(homeSort) ? homeSort : 0,
+    homeStatus,
     (req.body.visibility || "public").trim(),
     req.params.id
   );
-  setFlash(req, "success", "Photograph updated.");
+  setFlash(
+    req,
+    "success",
+    wantHome && homeStatus === "pending"
+      ? "Saved. Photo is waiting for home-page approval (Admin → Home Photos)."
+      : "Photograph updated."
+  );
   const back = req.body.return_to === "home"
     ? "/admin/home-photos"
     : `/admin/photos?status=${req.body.return_status || "pending"}`;
   res.redirect(back);
 });
 
-/** Admin-only homepage photo gallery management */
+/** Admin-only homepage photo gallery — uploads wait for your approval before going live */
 app.get("/admin/home-photos", requireRole(...ADMIN_ROLES), (req, res) => {
   ensureHomePhotoColumns();
-  const homePhotos = db.prepare(`
+  const pendingPhotos = db.prepare(`
+    SELECT * FROM photos
+    WHERE COALESCE(home_status, '') = 'pending'
+    ORDER BY home_sort ASC, submitted_at DESC
+  `).all();
+  const livePhotos = db.prepare(`
     SELECT * FROM photos
     WHERE COALESCE(show_on_home, 0) = 1
+      AND COALESCE(home_status, '') = 'approved'
     ORDER BY home_sort ASC, submitted_at DESC
   `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("admin/home-photos", { ...data, homePhotos });
+  res.render("admin/home-photos", { ...data, pendingPhotos, livePhotos });
 });
 
 app.post(
@@ -2099,7 +2157,8 @@ app.post(
     }
     const titleBase = (req.body.title || "").trim() || "Home gallery";
     const maxSort = db.prepare(`
-      SELECT COALESCE(MAX(home_sort), 0) AS m FROM photos WHERE COALESCE(show_on_home, 0) = 1
+      SELECT COALESCE(MAX(home_sort), 0) AS m FROM photos
+      WHERE COALESCE(home_status, '') IN ('pending', 'approved')
     `).get().m;
     let sort = maxSort + 10;
     let count = 0;
@@ -2111,16 +2170,16 @@ app.post(
             original_filename, original_path, web_path, thumb_path,
             title, description, reunion_year, family_branch,
             contributor_name, permission_confirmed, may_display_public,
-            status, featured, show_on_home, home_sort,
+            status, featured, show_on_home, home_sort, home_status,
             file_size, mime_type, width, height, reviewed_at, reviewed_by
-          ) VALUES (?, ?, ?, ?, ?, ?, NULL, 'both', ?, 1, 1, 'approved', 0, 1, ?, ?, ?, ?, ?, datetime('now'), ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, NULL, 'both', ?, 1, 1, 'approved', 0, 0, ?, 'pending', ?, ?, ?, ?, datetime('now'), ?)
         `).run(
           processed.original_filename,
           processed.original_path,
           processed.web_path,
           processed.thumb_path,
           files.length === 1 ? titleBase : `${titleBase} (${count + 1})`,
-          (req.body.description || "").trim() || "Homepage gallery photograph (admin curated).",
+          (req.body.description || "").trim() || "Homepage gallery photograph (awaiting approval).",
           req.session.user.name || req.session.user.email || "Administrator",
           sort,
           processed.file_size,
@@ -2132,8 +2191,12 @@ app.post(
         sort += 10;
         count += 1;
       }
-      logActivity(req.session.user.id, "home_photo_upload", `${count} homepage photo(s)`);
-      setFlash(req, "success", `${count} photograph${count === 1 ? "" : "s"} added to the home page gallery.`);
+      logActivity(req.session.user.id, "home_photo_upload", `${count} home photo(s) pending approval`);
+      setFlash(
+        req,
+        "success",
+        `${count} photograph${count === 1 ? "" : "s"} uploaded and waiting for your approval. Nothing is live on the home page until you click Approve.`
+      );
     } catch (err) {
       console.error(err);
       setFlash(req, "error", err.message || "Could not upload homepage photographs.");
@@ -2142,11 +2205,25 @@ app.post(
   }
 );
 
+app.post("/admin/home-photos/:id/approve", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureHomePhotoColumns();
+  db.prepare(`
+    UPDATE photos
+    SET home_status = 'approved', show_on_home = 1, status = 'approved', may_display_public = 1
+    WHERE id = ?
+  `).run(req.params.id);
+  logActivity(req.session.user.id, "home_photo_approve", `photo ${req.params.id}`);
+  setFlash(req, "success", "Photograph approved and now live on the home page.");
+  res.redirect("/admin/home-photos");
+});
+
 app.post("/admin/home-photos/:id/remove", requireRole(...ADMIN_ROLES), (req, res) => {
   ensureHomePhotoColumns();
-  db.prepare("UPDATE photos SET show_on_home = 0, home_sort = 0 WHERE id = ?").run(req.params.id);
+  db.prepare(`
+    UPDATE photos SET show_on_home = 0, home_status = NULL, home_sort = 0 WHERE id = ?
+  `).run(req.params.id);
   logActivity(req.session.user.id, "home_photo_remove", `photo ${req.params.id}`);
-  setFlash(req, "success", "Photograph removed from the home page (it remains in the archive if approved).");
+  setFlash(req, "success", "Photograph removed from the home page queue (file stays in archive if needed).");
   res.redirect("/admin/home-photos");
 });
 

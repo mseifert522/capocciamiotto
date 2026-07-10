@@ -18,8 +18,9 @@
     <div class="admin-main">
       <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Home page photographs</h2>
       <p style="margin-bottom:1.25rem;color:var(--ink-muted)">
-        Only administrators can place photos on the home page. Family contributions go to the archive and reunion years —
-        they do <strong>not</strong> appear on the home page unless you add them here.
+        <strong>Nothing appears on the public home page until you click Approve.</strong>
+        Upload candidates below, review them, then approve only the ones you want live.
+        Family contributions never go to the home page automatically.
       </p>
 
       <form
@@ -29,7 +30,7 @@
         enctype="multipart/form-data"
         style="margin-bottom:1.75rem"
       >
-        <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem;color:var(--burgundy)">Upload home gallery photos</h3>
+        <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem;color:var(--burgundy)">Upload candidates (not live yet)</h3>
         <div class="form-row">
           <label>Photographs *</label>
           <div
@@ -40,8 +41,8 @@
             data-bulk-required="1"
           >
             <div class="bulk-dropzone-main" data-bulk-trigger>
-              <strong>Drag &amp; drop home page photos here</strong>
-              <span class="hint">Admin only · bulk upload supported · up to 50 images</span>
+              <strong>Drag &amp; drop photos here</strong>
+              <span class="hint">Admin only · bulk upload · up to 50 · saved as pending until you approve</span>
             </div>
             <input
               type="file"
@@ -70,12 +71,68 @@
             <input id="description" name="description" type="text" maxlength="400" />
           </div>
         </div>
-        <button class="btn btn-primary" type="submit">Publish to home page</button>
+        <button class="btn btn-primary" type="submit">Upload for my approval</button>
       </form>
 
-      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem">Currently on the home page</h3>
-      <% if (!homePhotos.length) { %>
-        <p style="color:var(--ink-muted)">No photographs are on the home page yet. Upload above to add some.</p>
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--burgundy)">
+        Waiting for your approval
+        <% if (pendingPhotos && pendingPhotos.length) { %><span style="font-size:1rem;color:var(--ink-muted)">(<%= pendingPhotos.length %>)</span><% } %>
+      </h3>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">These are not visible on the public home page.</p>
+      <% if (!pendingPhotos || !pendingPhotos.length) { %>
+        <p style="color:var(--ink-muted);margin-bottom:1.5rem">No photos waiting for approval.</p>
+      <% } else { %>
+        <div class="table-wrap" style="margin-bottom:2rem">
+          <table>
+            <thead>
+              <tr>
+                <th>Photo</th>
+                <th>Details</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pendingPhotos.forEach(function(p) { %>
+                <tr>
+                  <td>
+                    <% if (p.thumb_path || p.web_path) { %>
+                      <img class="thumb-sm" src="<%= p.thumb_path || p.web_path %>" alt="" />
+                    <% } %>
+                  </td>
+                  <td>
+                    <strong><%= p.title || p.original_filename %></strong><br />
+                    <span class="badge badge-both">Pending approval</span><br />
+                    <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.submitted_at %></span>
+                  </td>
+                  <td>
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/sort" class="inline-actions">
+                      <input type="number" name="home_sort" value="<%= p.home_sort || 0 %>" style="width:5rem" />
+                      <button class="btn btn-outline" type="submit">Save order</button>
+                    </form>
+                  </td>
+                  <td class="inline-actions">
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/approve">
+                      <button class="btn btn-secondary" type="submit">Approve → home page</button>
+                    </form>
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Discard this home-page candidate?');">
+                      <button class="btn btn-outline" type="submit">Discard</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--green)">
+        Live on the home page
+        <% if (livePhotos && livePhotos.length) { %><span style="font-size:1rem;color:var(--ink-muted)">(<%= livePhotos.length %>)</span><% } %>
+      </h3>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">Public visitors only see this list.</p>
+      <% if (!livePhotos || !livePhotos.length) { %>
+        <p style="color:var(--ink-muted)">No photographs are live on the home page right now.</p>
       <% } else { %>
         <div class="table-wrap">
           <table>
@@ -88,7 +145,7 @@
               </tr>
             </thead>
             <tbody>
-              <% homePhotos.forEach(function(p) { %>
+              <% livePhotos.forEach(function(p) { %>
                 <tr>
                   <td>
                     <% if (p.thumb_path || p.web_path) { %>
@@ -97,6 +154,7 @@
                   </td>
                   <td>
                     <strong><%= p.title || p.original_filename %></strong><br />
+                    <span class="badge badge-capoccia" style="background:rgba(47,93,58,0.12);color:var(--green)">Live</span><br />
                     <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.submitted_at %></span>
                   </td>
                   <td>
@@ -106,7 +164,7 @@
                     </form>
                   </td>
                   <td class="inline-actions">
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Remove this photo from the home page?');">
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Remove this photo from the live home page?');">
                       <button class="btn btn-outline" type="submit">Remove from home</button>
                     </form>
                   </td>
@@ -116,11 +174,6 @@
           </table>
         </div>
       <% } %>
-
-      <p style="margin-top:1.25rem">
-        Tip: you can also open any photo under <a href="/admin/photos?status=approved">Photos</a> and check
-        <strong>Show on home page</strong> to add an existing archive photo to the home gallery.
-      </p>
     </div>
   </div>
 </section>

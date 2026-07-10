@@ -372,7 +372,7 @@ function migrate() {
     console.warn("reunion details schema note:", e.message);
   }
 
-  // Homepage photos: admin-curated only (not auto-filled from family uploads)
+  // Homepage photos: admin-curated + require explicit approval before live
   try {
     const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
     if (!cols.includes("show_on_home")) {
@@ -380,6 +380,9 @@ function migrate() {
     }
     if (!cols.includes("home_sort")) {
       db.exec("ALTER TABLE photos ADD COLUMN home_sort INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("home_status")) {
+      db.exec("ALTER TABLE photos ADD COLUMN home_status TEXT");
     }
     db.exec("CREATE INDEX IF NOT EXISTS idx_photos_home ON photos(show_on_home, home_sort)");
   } catch (e) {

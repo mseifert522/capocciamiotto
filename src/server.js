@@ -13,6 +13,12 @@ const db = require("./db");
 const { processUpload, isAllowedMime } = require("./photos");
 const { saveAudioUpload, isAllowedAudioMime } = require("./audio");
 const {
+  processBoardFile,
+  isBoardMediaMime,
+  ensureBoardMediaTable,
+  mediaForPosts,
+} = require("./boardMedia");
+const {
   listTreeAnchors,
   buildLivingTree,
   lineageFromMember,
@@ -83,6 +89,16 @@ const audioUpload = multer({
   fileFilter: (_req, file, cb) => {
     if (isAllowedAudioMime(file.mimetype)) cb(null, true);
     else cb(new Error("Only audio recordings are allowed (MP3, M4A, WAV, OGG, WebM)."));
+  },
+});
+
+/** Community board: photos + videos with a message */
+const boardUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024, files: 12 },
+  fileFilter: (_req, file, cb) => {
+    if (isBoardMediaMime(file.mimetype)) cb(null, true);
+    else cb(new Error("Only photo and video files are allowed on the community board."));
   },
 });
 
@@ -546,10 +562,15 @@ app.get("/voice-recordings", (req, res) => {
 });
 
 app.get("/community-board", requireContributorPin, (req, res) => {
+  ensureBoardMediaTable(db);
   const posts = db.prepare(`
     SELECT * FROM board_posts WHERE status = 'approved'
     ORDER BY is_pinned DESC, created_at DESC LIMIT 100
   `).all();
+  const mediaMap = mediaForPosts(db, posts.map((p) => p.id));
+  posts.forEach((p) => {
+    p.media = mediaMap[p.id] || [];
+  });
   const data = localsBase(req);
   clearFlash(req);
   res.render("community-board", {
@@ -559,31 +580,83 @@ app.get("/community-board", requireContributorPin, (req, res) => {
   });
 });
 
-app.post("/community-board", contributeLimiter, requireContributorPin, (req, res) => {
-  const title = (req.body.title || "").trim();
-  const body = (req.body.body || "").trim();
-  const author_name = (req.body.author_name || "").trim()
-    || (req.session.contributorPin && req.session.contributorPin.assignedName)
-    || "";
-  const author_email = (req.body.author_email || "").trim();
-  const category = (req.body.category || "general").trim();
-  if (!title || !body || !author_name) {
-    setFlash(req, "error", "Please include your name, a title, and a message.");
-    return res.redirect("/community-board");
+app.post(
+  "/community-board",
+  contributeLimiter,
+  requireContributorPin,
+  boardUpload.fields([
+    { name: "photos", maxCount: 8 },
+    { name: "videos", maxCount: 3 },
+  ]),
+  async (req, res) => {
+    try {
+      ensureBoardMediaTable(db);
+      const title = (req.body.title || "").trim();
+      const body = (req.body.body || "").trim();
+      const author_name = (req.body.author_name || "").trim()
+        || (req.session.contributorPin && req.session.contributorPin.assignedName)
+        || "";
+      const author_email = (req.body.author_email || "").trim();
+      const category = (req.body.category || "general").trim();
+      const photoFiles = (req.files && req.files.photos) || [];
+      const videoFiles = (req.files && req.files.videos) || [];
+      const allFiles = photoFiles.concat(videoFiles);
+
+      if (!title || !author_name) {
+        setFlash(req, "error", "Please include a title and your name.");
+        return res.redirect("/community-board");
+      }
+      if (!body && !allFiles.length) {
+        setFlash(req, "error", "Please write a message and/or attach at least one photo or video.");
+        return res.redirect("/community-board");
+      }
+
+      const info = db.prepare(`
+        INSERT INTO board_posts (title, body, category, author_name, author_email, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(title, body || "", category, author_name, author_email || null, CONTENT_STATUS);
+      const postId = info.lastInsertRowid;
+
+      const insertMedia = db.prepare(`
+        INSERT INTO board_post_media (
+          board_post_id, media_type, original_filename, file_path, thumb_path, mime_type, file_size, sort_order
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      let sort = 0;
+      for (const file of allFiles) {
+        const processed = await processBoardFile(file);
+        insertMedia.run(
+          postId,
+          processed.media_type,
+          processed.original_filename,
+          processed.file_path,
+          processed.thumb_path,
+          processed.mime_type,
+          processed.file_size,
+          sort++
+        );
+      }
+
+      const mediaNote = allFiles.length
+        ? ` with ${photoFiles.length ? `${photoFiles.length} photo${photoFiles.length === 1 ? "" : "s"}` : ""}${photoFiles.length && videoFiles.length ? " and " : ""}${videoFiles.length ? `${videoFiles.length} video${videoFiles.length === 1 ? "" : "s"}` : ""}`
+        : "";
+
+      setFlash(
+        req,
+        "success",
+        MODERATION_ENABLED
+          ? "Thank you. Your message was submitted for family administrator review."
+          : `Thank you. Your message${mediaNote} is now live on the community board.`
+      );
+      res.redirect("/community-board");
+    } catch (err) {
+      console.error("Board post failed:", err);
+      setFlash(req, "error", err.message || "Could not publish your message. Please try again.");
+      res.redirect("/community-board");
+    }
   }
-  db.prepare(`
-    INSERT INTO board_posts (title, body, category, author_name, author_email, status)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(title, body, category, author_name, author_email || null, CONTENT_STATUS);
-  setFlash(
-    req,
-    "success",
-    MODERATION_ENABLED
-      ? "Thank you. Your message was submitted for family administrator review."
-      : "Thank you. Your message is now live on the community board."
-  );
-  res.redirect("/community-board");
-});
+);
 
 app.get("/in-loving-memory", (req, res) => {
   // Deceased family members — same equal tribute cards as living leaders
@@ -1641,11 +1714,15 @@ app.use((err, req, res, _next) => {
   console.error(err);
   if (err instanceof multer.MulterError) {
     setFlash(req, "error", "Upload error: " + err.message);
+    if ((req.originalUrl || "").includes("community-board")) return res.redirect("/community-board");
     const dest = (req.originalUrl || "").includes("recording") ? "/contribute/recording" : "/contribute";
     return res.redirect(dest);
   }
-  if (err && /audio|image files are allowed/i.test(err.message || "")) {
+  if (err && /audio|image files are allowed|photo and video/i.test(err.message || "")) {
     setFlash(req, "error", err.message);
+    if (/photo and video|community/i.test(err.message || "") || (req.originalUrl || "").includes("community-board")) {
+      return res.redirect("/community-board");
+    }
     const dest = /audio/i.test(err.message) ? "/contribute/recording" : "/contribute";
     return res.redirect(dest);
   }

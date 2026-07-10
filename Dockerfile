@@ -12,6 +12,7 @@ RUN npm install --omit=dev
 COPY . .
 
 RUN mkdir -p /app/data /app/public/uploads/originals /app/public/uploads/web /app/public/uploads/thumbs /app/public/uploads/audio \
+    /app/public/uploads/board/images /app/public/uploads/board/thumbs /app/public/uploads/board/videos \
     && chown -R node:node /app
 
 ENV NODE_ENV=production

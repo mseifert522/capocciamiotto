@@ -324,6 +324,28 @@ function migrate() {
     console.warn("pin email requests table note:", e.message);
   }
 
+  // Community board photo/video attachments
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS board_post_media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        board_post_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL DEFAULT 'image',
+        original_filename TEXT,
+        file_path TEXT NOT NULL,
+        thumb_path TEXT,
+        mime_type TEXT,
+        file_size INTEGER,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (board_post_id) REFERENCES board_posts(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_board_media_post ON board_post_media(board_post_id);
+    `);
+  } catch (e) {
+    console.warn("board media table note:", e.message);
+  }
+
   // Super admin
   const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
   const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!";

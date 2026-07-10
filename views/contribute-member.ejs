@@ -1,0 +1,87 @@
+<%- include('partials/header', { pageTitle: 'Add Your Name' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Family Members</p>
+      <h2 class="section-title">Add Your Name to This Tribute</h2>
+      <div class="section-rule"></div>
+    </header>
+
+    <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
+      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+        Contributing as: <%= pinHolder.assignedName %>
+      </p>
+    <% } %>
+
+    <form class="form-card" method="post" action="/contribute/member">
+      <div class="form-row">
+        <label for="full_name">Full name *</label>
+        <input type="text" id="full_name" name="full_name" required maxlength="160"
+          value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="preferred_name">Preferred name on the tribute</label>
+          <input type="text" id="preferred_name" name="preferred_name" maxlength="160" placeholder="How your name should appear" />
+        </div>
+        <div>
+          <label for="maiden_name">Maiden name (if applicable)</label>
+          <input type="text" id="maiden_name" name="maiden_name" maxlength="120" />
+        </div>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="family_branch">Family branch *</label>
+          <select id="family_branch" name="family_branch" required>
+            <option value="both">Both Capoccia &amp; Miotto</option>
+            <option value="Capoccia">Capoccia</option>
+            <option value="Miotto">Miotto</option>
+          </select>
+        </div>
+        <div>
+          <label for="role_in_family">Your place in the family</label>
+          <input type="text" id="role_in_family" name="role_in_family" maxlength="200" placeholder="Example: Grandchild of Anna &amp; Mickey" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="relation_to_family">How are you related? *</label>
+        <input type="text" id="relation_to_family" name="relation_to_family" required maxlength="300"
+          placeholder="Example: Daughter of … / Cousin of …" />
+      </div>
+
+      <div class="form-row">
+        <label for="short_bio">A short note about you (optional)</label>
+        <textarea id="short_bio" name="short_bio" maxlength="2000" rows="4" placeholder="A sentence or two for your family tribute card."></textarea>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="contributor_name">Your name for the submission *</label>
+          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120"
+            value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
+        </div>
+        <div>
+          <label for="contributor_email">Email (private)</label>
+          <input type="email" id="contributor_email" name="contributor_email" maxlength="160" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="contributor_phone">Telephone (private, optional)</label>
+        <input type="tel" id="contributor_phone" name="contributor_phone" maxlength="40" />
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit">Submit My Name for Review</button>
+    </form>
+
+    <div class="btn-row" style="margin-top:1.5rem;justify-content:center">
+      <a class="btn btn-outline" href="/contribute">Contribute Photos</a>
+      <a class="btn btn-outline" href="/contribute/story">Share a Story</a>
+      <a class="btn btn-outline" href="/family-members">View Family Members</a>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

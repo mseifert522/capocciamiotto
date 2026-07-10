@@ -9,9 +9,49 @@
 
     <%- include('partials/family-tribute-grid') %>
 
-    <div class="empty" style="margin-top:2.5rem">
-      <h3>Add a family member</h3>
-      <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
+    <header class="section-header" style="margin-top:3rem">
+      <p class="section-eyebrow">Our growing family</p>
+      <h2 class="section-title">Family Members</h2>
+      <div class="section-rule"></div>
+    </header>
+
+    <% if (communityMembers && communityMembers.length) { %>
+      <div class="member-grid" role="list">
+        <% communityMembers.forEach(function(m) { %>
+          <article class="member-card" role="listitem">
+            <div class="member-card-photo">
+              <% if (m.portrait_path) { %>
+                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+              <% } else { %>
+                <div class="member-card-placeholder" aria-hidden="true">
+                  <span><%= (m.display_name || "?").charAt(0) %></span>
+                </div>
+              <% } %>
+            </div>
+            <div class="member-card-body">
+              <h3><%= m.display_name %></h3>
+              <% if (m.role_in_family) { %>
+                <p class="member-card-role"><%= m.role_in_family %></p>
+              <% } %>
+              <% if (m.family_branch) { %>
+                <p class="member-card-branch"><%= m.family_branch === 'both' ? 'Capoccia · Miotto' : m.family_branch %></p>
+              <% } %>
+              <a class="btn btn-outline member-card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty" style="margin-top:0.5rem">
+        <h3>Add your name to our family tribute</h3>
+        <a class="btn btn-primary" href="/contribute/member">Add My Name</a>
+      </div>
+    <% } %>
+
+    <div class="empty" style="margin-top:2rem">
+      <h3>Are you part of the Capoccia or Miotto family?</h3>
+      <p>Add your name so you appear with our family members.</p>
+      <a class="btn btn-primary" href="/contribute/member">Add My Name</a>
     </div>
   </div>
 </section>

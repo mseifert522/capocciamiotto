@@ -204,6 +204,32 @@ function migrate() {
     CREATE INDEX IF NOT EXISTS idx_photos_year ON photos(reunion_year);
     CREATE INDEX IF NOT EXISTS idx_reunions_year ON reunions(year);
     CREATE INDEX IF NOT EXISTS idx_board_status ON board_posts(status);
+
+    CREATE TABLE IF NOT EXISTS family_member_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT NOT NULL,
+      preferred_name TEXT,
+      maiden_name TEXT,
+      family_branch TEXT NOT NULL DEFAULT 'both',
+      role_in_family TEXT,
+      relation_to_family TEXT,
+      generation_note TEXT,
+      short_bio TEXT,
+      contributor_name TEXT,
+      contributor_email TEXT,
+      contributor_phone TEXT,
+      pin_id INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending',
+      family_member_id INTEGER,
+      admin_notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed_at TEXT,
+      reviewed_by INTEGER,
+      FOREIGN KEY (pin_id) REFERENCES family_pins(id),
+      FOREIGN KEY (family_member_id) REFERENCES family_members(id),
+      FOREIGN KEY (reviewed_by) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_member_submissions_status ON family_member_submissions(status);
   `);
 
   // Seed reunions 1977 → current year only (no future years)

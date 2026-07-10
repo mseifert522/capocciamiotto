@@ -12,7 +12,55 @@
     </aside>
     <div class="admin-main">
       <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Family members</h2>
-      <p style="margin-bottom:1rem">Edit Capoccia matriarch display name carefully (Christine / Christina). Miotto patriarchs/matriarchs use placeholder names until confirmed.</p>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem">Name submissions</h3>
+      <% if (!submissions || !submissions.length) { %>
+        <p style="margin-bottom:1.5rem;color:var(--ink-muted)">No name submissions yet.</p>
+      <% } else { %>
+        <div class="table-wrap" style="margin-bottom:2rem">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Relation / branch</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% submissions.forEach(function(s) { %>
+                <tr>
+                  <td>
+                    <strong><%= s.preferred_name || s.full_name %></strong>
+                    <% if (s.preferred_name && s.preferred_name !== s.full_name) { %><br /><span style="color:var(--ink-muted)"><%= s.full_name %></span><% } %>
+                    <br /><span style="font-size:0.85rem;color:var(--ink-muted)">Submitted by <%= s.contributor_name || 'Family' %><% if (s.contributor_email) { %> · <%= s.contributor_email %><% } %></span>
+                    <% if (s.short_bio) { %><br /><span style="font-size:0.88rem"><%= s.short_bio.slice(0, 160) %></span><% } %>
+                  </td>
+                  <td>
+                    <%= s.relation_to_family || '—' %><br />
+                    <span style="color:var(--ink-muted)"><%= s.family_branch %> · <%= s.role_in_family || '' %></span>
+                  </td>
+                  <td><%= s.status %></td>
+                  <td class="inline-actions">
+                    <% if (s.status !== 'approved') { %>
+                      <form method="post" action="/admin/member-submissions/<%= s.id %>/approve">
+                        <button class="btn btn-secondary" type="submit">Approve &amp; publish</button>
+                      </form>
+                    <% } else if (s.family_member_id) { %>
+                      <a href="/family-members/<%= s.family_member_id %>">View</a>
+                    <% } %>
+                    <% if (s.status !== 'rejected') { %>
+                      <form method="post" action="/admin/member-submissions/<%= s.id %>/reject">
+                        <button class="btn btn-outline" type="submit">Reject</button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
 
       <form class="form-card" method="post" action="/admin/members" style="margin-bottom:2rem">
         <h3 style="font-family:var(--font-display);margin-bottom:0.75rem">Add family member</h3>

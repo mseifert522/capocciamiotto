@@ -119,7 +119,14 @@ function requireContributorPin(req, res, next) {
   if (nextUrl.startsWith("/contribute/pin")) return next();
   const qs = nextUrl.includes("?") ? nextUrl.slice(nextUrl.indexOf("?")) : "";
   const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : qs.includes("year=") ? qs : "";
-  return res.redirect(`/contribute/pin${year || (nextUrl.includes("story") ? "?next=story" : "")}`);
+  let pinQs = year;
+  if (!pinQs) {
+    if (nextUrl.includes("/contribute/member") || nextUrl.includes("next=member")) pinQs = "?next=member";
+    else if (nextUrl.includes("/contribute/story") || nextUrl.includes("next=story")) pinQs = "?next=story";
+  } else if (nextUrl.includes("/contribute/member")) {
+    pinQs = year.includes("?") ? `${year}&next=member` : `?year=${encodeURIComponent(req.query.year)}&next=member`;
+  }
+  return res.redirect(`/contribute/pin${pinQs}`);
 }
 
 function normalizePin(raw) {
@@ -230,14 +237,29 @@ app.get("/photo-archive", (req, res) => {
 
 app.get("/family-members", (req, res) => {
   const members = db.prepare(`
-    SELECT * FROM family_members ORDER BY sort_order ASC, full_name ASC
+    SELECT * FROM family_members
+    WHERE visibility = 'public' OR visibility IS NULL
+    ORDER BY sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
     m.display_name = m.preferred_name || m.full_name;
   });
+  // Community family members = everyone not in the six patriarch/matriarch leader set
+  function isLeader(m) {
+    const full = m.full_name || "";
+    const n = (full + " " + (m.preferred_name || "")).trim();
+    if (/George/i.test(n) && /Capoccia/i.test(n)) return true;
+    if (/Christine/i.test(n) && /Capoccia/i.test(n)) return true;
+    if (/Tony|Anthony/i.test(full) && /Capoccia/i.test(full)) return true;
+    if (/Frances|^Fran\b/i.test(full) && /Capoccia/i.test(full)) return true;
+    if (/Mickey|Amerigo/i.test(n)) return true;
+    if (/Anna/i.test(n) && /Miotto/i.test(n)) return true;
+    return false;
+  }
+  const communityMembers = members.filter((m) => !isLeader(m));
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-members", { ...data, members });
+  res.render("family-members", { ...data, members, communityMembers });
 });
 
 app.get("/family-members/:id", (req, res) => {
@@ -325,7 +347,13 @@ app.get("/guidelines", (req, res) => {
 
 app.get("/contribute/pin", (req, res) => {
   if (hasValidContributorPin(req) || (req.session.user && ADMIN_ROLES.includes(req.session.user.role))) {
-    const next = req.query.next === "story" ? "/contribute/story" : "/contribute";
+    const nextMap = {
+      story: "/contribute/story",
+      member: "/contribute/member",
+      photos: "/contribute",
+    };
+    const nextKey = req.query.next || "photos";
+    const next = nextMap[nextKey] || "/contribute";
     const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : "";
     return res.redirect(next === "/contribute" ? `${next}${year}` : next);
   }
@@ -344,7 +372,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   const next = (req.body.next || "photos").trim();
   const backQs = [];
   if (year) backQs.push(`year=${encodeURIComponent(year)}`);
-  if (next === "story") backQs.push("next=story");
+  if (next === "story" || next === "member") backQs.push(`next=${encodeURIComponent(next)}`);
   const back = `/contribute/pin${backQs.length ? "?" + backQs.join("&") : ""}`;
 
   if (!pin || pin.length < 4) {
@@ -373,6 +401,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
 
   setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted. You may now contribute.`);
   if (next === "story") return res.redirect("/contribute/story");
+  if (next === "member") return res.redirect("/contribute/member");
   return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
 
@@ -495,6 +524,74 @@ app.get("/contribute/thanks", (req, res) => {
   res.render("contribute-thanks", data);
 });
 
+app.get("/contribute/member", requireContributorPin, (req, res) => {
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("contribute-member", {
+    ...data,
+    pinHolder: req.session.contributorPin || null,
+  });
+});
+
+app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, res) => {
+  const full_name = (req.body.full_name || "").trim();
+  const preferred_name = (req.body.preferred_name || "").trim() || null;
+  const maiden_name = (req.body.maiden_name || "").trim() || null;
+  const family_branch = (req.body.family_branch || "both").trim();
+  const role_in_family = (req.body.role_in_family || "").trim() || null;
+  const relation_to_family = (req.body.relation_to_family || "").trim();
+  const short_bio = (req.body.short_bio || "").trim() || null;
+  const contributor_name = (req.body.contributor_name || "").trim()
+    || (req.session.contributorPin && req.session.contributorPin.assignedName)
+    || "";
+  const contributor_email = (req.body.contributor_email || "").trim() || null;
+  const contributor_phone = (req.body.contributor_phone || "").trim() || null;
+  const pinId = req.session.contributorPin && req.session.contributorPin.pinId
+    ? req.session.contributorPin.pinId
+    : null;
+
+  if (!full_name || !relation_to_family || !contributor_name) {
+    setFlash(req, "error", "Please include your full name, how you are related, and your name for the submission.");
+    return res.redirect("/contribute/member");
+  }
+
+  const allowedBranches = ["Capoccia", "Miotto", "both"];
+  const branch = allowedBranches.includes(family_branch) ? family_branch : "both";
+
+  const info = db.prepare(`
+    INSERT INTO family_member_submissions (
+      full_name, preferred_name, maiden_name, family_branch, role_in_family,
+      relation_to_family, short_bio, contributor_name, contributor_email, contributor_phone,
+      pin_id, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+  `).run(
+    full_name,
+    preferred_name,
+    maiden_name,
+    branch,
+    role_in_family,
+    relation_to_family,
+    short_bio,
+    contributor_name,
+    contributor_email,
+    contributor_phone,
+    pinId
+  );
+
+  db.prepare(`
+    INSERT INTO contributions_log (kind, ref_id, payload_json, contributor_name, contributor_email, status)
+    VALUES ('family_member', ?, ?, ?, ?, 'pending')
+  `).run(
+    info.lastInsertRowid,
+    JSON.stringify({ full_name, family_branch: branch, relation_to_family }),
+    contributor_name,
+    contributor_email
+  );
+
+  setFlash(req, "success", "Thank you. Your name was submitted and will appear under Family Members after a family administrator reviews it.");
+  res.redirect("/contribute/thanks");
+});
+
 app.get("/contribute/story", requireContributorPin, (req, res) => {
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
@@ -611,6 +708,7 @@ app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {
     pendingPhotos: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'pending'").get().c,
     pendingStories: db.prepare("SELECT COUNT(*) AS c FROM stories WHERE status = 'pending'").get().c,
     pendingBoard: db.prepare("SELECT COUNT(*) AS c FROM board_posts WHERE status = 'pending'").get().c,
+    pendingMembers: db.prepare("SELECT COUNT(*) AS c FROM family_member_submissions WHERE status = 'pending'").get().c,
     approvedPhotos: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'approved'").get().c,
     members: db.prepare("SELECT COUNT(*) AS c FROM family_members").get().c,
     reunions: db.prepare("SELECT COUNT(*) AS c FROM reunions").get().c,
@@ -680,9 +778,89 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
 
 app.get("/admin/members", requireRole(...ADMIN_ROLES), (req, res) => {
   const members = db.prepare("SELECT * FROM family_members ORDER BY sort_order, full_name").all();
+  const submissions = db.prepare(`
+    SELECT * FROM family_member_submissions
+    ORDER BY
+      CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+      created_at DESC
+    LIMIT 100
+  `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("admin/members", { ...data, members });
+  res.render("admin/members", { ...data, members, submissions });
+});
+
+app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "family_admin", "content_moderator"), (req, res) => {
+  const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(req.params.id);
+  if (!sub) {
+    setFlash(req, "error", "Submission not found.");
+    return res.redirect("/admin/members");
+  }
+  if (sub.status === "approved" && sub.family_member_id) {
+    setFlash(req, "success", "This name was already approved.");
+    return res.redirect("/admin/members");
+  }
+
+  const role = [sub.role_in_family, sub.relation_to_family].filter(Boolean).join(" · ") || null;
+  const bio = sub.short_bio || null;
+  const maxSort = db.prepare("SELECT COALESCE(MAX(sort_order), 50) AS m FROM family_members").get().m;
+  const sortOrder = Math.max(100, (maxSort || 50) + 1);
+
+  const insert = db.prepare(`
+    INSERT INTO family_members (
+      full_name, preferred_name, maiden_name, family_branch,
+      is_patriarch, is_matriarch, is_memorial, is_placeholder,
+      role_in_family, biography, visibility, sort_order
+    ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?)
+  `).run(
+    sub.full_name,
+    sub.preferred_name || sub.full_name,
+    sub.maiden_name || null,
+    sub.family_branch || "both",
+    role,
+    bio,
+    sortOrder
+  );
+
+  db.prepare(`
+    UPDATE family_member_submissions
+    SET status = 'approved',
+        family_member_id = ?,
+        reviewed_at = datetime('now'),
+        reviewed_by = ?
+    WHERE id = ?
+  `).run(insert.lastInsertRowid, req.session.user.id, sub.id);
+
+  db.prepare(`
+    UPDATE contributions_log SET status = 'approved'
+    WHERE kind = 'family_member' AND ref_id = ?
+  `).run(sub.id);
+
+  logActivity(req.session.user.id, "approve_member_submission", `Approved family member submission #${sub.id}: ${sub.full_name}`);
+  setFlash(req, "success", `${sub.full_name} was approved and added to Family Members.`);
+  res.redirect("/admin/members");
+});
+
+app.post("/admin/member-submissions/:id/reject", requireRole("super_admin", "family_admin", "content_moderator"), (req, res) => {
+  const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(req.params.id);
+  if (!sub) {
+    setFlash(req, "error", "Submission not found.");
+    return res.redirect("/admin/members");
+  }
+  db.prepare(`
+    UPDATE family_member_submissions
+    SET status = 'rejected',
+        reviewed_at = datetime('now'),
+        reviewed_by = ?
+    WHERE id = ?
+  `).run(req.session.user.id, sub.id);
+  db.prepare(`
+    UPDATE contributions_log SET status = 'rejected'
+    WHERE kind = 'family_member' AND ref_id = ?
+  `).run(sub.id);
+  logActivity(req.session.user.id, "reject_member_submission", `Rejected family member submission #${sub.id}: ${sub.full_name}`);
+  setFlash(req, "success", "Submission rejected.");
+  res.redirect("/admin/members");
 });
 
 app.post("/admin/members", requireRole("super_admin", "family_admin"), (req, res) => {

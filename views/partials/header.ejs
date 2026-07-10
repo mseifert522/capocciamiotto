@@ -24,17 +24,17 @@
         <span></span><span></span><span></span>
       </button>
       <nav class="nav-links" id="main-nav" aria-label="Main">
-        <a href="/" class="<%= path === '/' ? 'active' : '' %>">Home</a>
-        <a href="/our-family-story" class="<%= path.startsWith('/our-family') ? 'active' : '' %>">Our Family Story</a>
-        <a href="/reunion-timeline" class="<%= path.startsWith('/reunion') ? 'active' : '' %>">Reunion Timeline</a>
-        <a href="/photo-archive" class="<%= path.startsWith('/photo') ? 'active' : '' %>">Photo Archive</a>
-        <a href="/family-members" class="<%= path.startsWith('/family-members') ? 'active' : '' %>">Family Members</a>
-        <a href="/family-tree" class="<%= path.startsWith('/family-tree') ? 'active' : '' %>">Family Tree</a>
-        <a href="/community-board" class="<%= path.startsWith('/community') ? 'active' : '' %>">Community Board</a>
-        <a href="/in-loving-memory" class="<%= path.startsWith('/in-loving') ? 'active' : '' %>">In Loving Memory</a>
-        <a href="/upcoming-reunion" class="<%= path.startsWith('/upcoming') ? 'active' : '' %>">Upcoming Reunion</a>
-        <a href="/about" class="<%= path.startsWith('/about') ? 'active' : '' %>">About</a>
-        <a href="/contribute" class="nav-cta">Contribute</a>
+        <a href="/" class="<%= path === '/' ? 'active' : '' %>"<%= path === '/' ? ' aria-current="page"' : '' %>>Home</a>
+        <a href="/our-family-story" class="<%= path.startsWith('/our-family') ? 'active' : '' %>"<%= path.startsWith('/our-family') ? ' aria-current="page"' : '' %>>Our Family Story</a>
+        <a href="/reunion-timeline" class="<%= (path.startsWith('/reunion') || path === '/reunion-timeline') ? 'active' : '' %>"<%= (path.startsWith('/reunion') || path === '/reunion-timeline') ? ' aria-current="page"' : '' %>>Reunion Timeline</a>
+        <a href="/photo-archive" class="<%= path.startsWith('/photo') ? 'active' : '' %>"<%= path.startsWith('/photo') ? ' aria-current="page"' : '' %>>Photo Archive</a>
+        <a href="/family-members" class="<%= path.startsWith('/family-members') ? 'active' : '' %>"<%= path.startsWith('/family-members') ? ' aria-current="page"' : '' %>>Family Members</a>
+        <a href="/family-tree" class="<%= path.startsWith('/family-tree') ? 'active' : '' %>"<%= path.startsWith('/family-tree') ? ' aria-current="page"' : '' %>>Family Tree</a>
+        <a href="/community-board" class="<%= path.startsWith('/community') ? 'active' : '' %>"<%= path.startsWith('/community') ? ' aria-current="page"' : '' %>>Community Board</a>
+        <a href="/in-loving-memory" class="<%= path.startsWith('/in-loving') ? 'active' : '' %>"<%= path.startsWith('/in-loving') ? ' aria-current="page"' : '' %>>In Loving Memory</a>
+        <a href="/upcoming-reunion" class="<%= path.startsWith('/upcoming') ? 'active' : '' %>"<%= path.startsWith('/upcoming') ? ' aria-current="page"' : '' %>>Upcoming Reunion</a>
+        <a href="/about" class="<%= path.startsWith('/about') ? 'active' : '' %>"<%= path.startsWith('/about') ? ' aria-current="page"' : '' %>>About</a>
+        <a href="/contribute" class="nav-cta<%= path.startsWith('/contribute') ? ' active' : '' %>"<%= path.startsWith('/contribute') ? ' aria-current="page"' : '' %>>Contribute</a>
       </nav>
     </div>
   </header>

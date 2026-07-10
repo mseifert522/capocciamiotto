@@ -115,16 +115,43 @@ main { overflow-x: clip; }
   min-height: var(--touch);
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.15rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
-.nav-links a:hover { color: var(--burgundy); }
-.nav-links a.active { color: var(--burgundy); }
+.nav-links a:hover {
+  color: var(--burgundy);
+  background: rgba(107, 31, 42, 0.06);
+}
+/* Current page highlight */
+.nav-links a.active {
+  color: #fff;
+  background: var(--burgundy);
+  border-color: var(--burgundy);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(107, 31, 42, 0.2);
+}
+.nav-links a.active:hover {
+  color: #fff;
+  background: #5a1a24;
+}
 .nav-cta {
-  background: var(--burgundy) !important;
+  background: var(--green) !important;
   color: #fff !important;
   padding: 0.55rem 1.05rem !important;
   border-radius: 999px;
-  box-shadow: 0 6px 16px rgba(107, 31, 42, 0.22);
+  border: 1px solid transparent !important;
+  box-shadow: 0 6px 16px rgba(47, 93, 58, 0.22);
+}
+.nav-cta:hover {
+  background: #274f31 !important;
+  color: #fff !important;
+}
+.nav-cta.active {
+  background: var(--burgundy) !important;
+  border-color: var(--gold) !important;
+  box-shadow: 0 4px 14px rgba(107, 31, 42, 0.28), 0 0 0 2px rgba(196, 163, 90, 0.45);
 }
 .nav-toggle {
   display: none;
@@ -1384,15 +1411,32 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   }
   .nav-links a {
     min-height: 52px;
-    padding: 0.85rem 0.35rem;
+    padding: 0.85rem 0.85rem;
     font-size: 1.05rem;
-    border-bottom: 1px solid rgba(43, 33, 28, 0.07);
+    border-radius: 12px;
+    border-bottom: none;
+    margin-bottom: 0.25rem;
+  }
+  .nav-links a.active {
+    background: var(--burgundy);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(107, 31, 42, 0.18);
+  }
+  .nav-links a.active::after {
+    content: " · You are here";
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.85;
+    letter-spacing: 0.02em;
   }
   .nav-cta {
     text-align: center;
     margin-top: 0.85rem;
     justify-content: center;
     border-bottom: 0 !important;
+  }
+  .nav-cta.active::after {
+    content: "";
   }
 
   .tribute-grid {

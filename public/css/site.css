@@ -420,13 +420,13 @@ input, select, textarea { font-size: 16px; }
 .badge-both { background: rgba(196, 163, 90, 0.2); color: #7a5c20; }
 .badge-memory { background: rgba(43, 33, 28, 0.08); color: var(--ink-soft); }
 
-/* Six equal family tribute cards */
+/* Equal patriarch / matriarch tribute cards */
 .tribute-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   align-items: stretch;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 .tribute-card {
   background: var(--parchment);
@@ -444,98 +444,108 @@ input, select, textarea { font-size: 16px; }
   box-shadow: 0 14px 36px var(--shadow-md);
   transform: translateY(-2px);
 }
-/* Fixed small portrait — same size on every card */
+/* Fixed equal portrait band on every card */
 .tribute-card-photo {
   flex-shrink: 0;
   width: 100%;
-  height: auto;
-  min-height: 0;
-  max-height: none;
-  aspect-ratio: auto;
-  padding: 1.15rem 1rem 0.35rem;
-  background: linear-gradient(180deg, var(--cream-deep) 0%, var(--parchment) 100%);
+  height: 168px;
+  background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
+  position: relative;
 }
 .tribute-card-photo img {
-  width: 112px;
-  height: 112px;
-  max-width: 112px;
-  max-height: 112px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  object-position: center 15%;
-  border: 3px solid rgba(255, 253, 248, 0.95);
-  box-shadow: 0 4px 14px rgba(43, 33, 28, 0.12);
+  object-position: center 18%;
   display: block;
 }
 .tribute-card-photo-placeholder {
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(155deg, #f3ebe0, #e4d4c2);
-  border: 3px solid rgba(255, 253, 248, 0.95);
-  box-shadow: 0 4px 14px rgba(43, 33, 28, 0.1);
 }
 .tribute-card-photo-placeholder span {
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.85rem;
   color: var(--burgundy);
+  background: rgba(255, 253, 248, 0.9);
+  border: 1px solid rgba(196, 163, 90, 0.35);
 }
 .tribute-card-body {
-  padding: 0.65rem 1.1rem 1.2rem;
+  padding: 1.05rem 1.1rem 1.2rem;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
+.tribute-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 1.5rem;
+  margin-bottom: 0.35rem;
+}
 .tribute-card-name {
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
   color: var(--burgundy);
   margin: 0 0 0.3rem;
   line-height: 1.25;
-  min-height: 2.5em;
+  min-height: 2.55em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .tribute-card-role {
   font-family: var(--font-ui);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--green);
-  margin: 0 0 0.4rem;
-  min-height: 1.35em;
+  margin: 0 0 0.65rem;
+  min-height: 2.4em;
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .tribute-card-dates {
   font-family: var(--font-ui);
   font-size: 0.8rem;
   color: var(--ink-muted);
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.65rem;
   line-height: 1.35;
-  min-height: 1.2em;
 }
-.tribute-card-bio {
+.tribute-card-excerpt {
   flex: 1;
-  margin: 0 0 1rem;
-}
-.tribute-card-bio p {
   color: var(--ink-soft);
-  font-size: 0.9rem;
-  line-height: 1.55;
-  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+  min-height: 6.75em;
+  max-height: 6.75em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
 }
-.tribute-card-bio p:last-child { margin-bottom: 0; }
+.tribute-card-excerpt--empty {
+  visibility: hidden;
+}
 .tribute-card-cta {
   margin-top: auto !important;
   width: 100%;
@@ -918,13 +928,7 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
-  .tribute-card-photo img,
-  .tribute-card-photo-placeholder {
-    width: 100px;
-    height: 100px;
-    max-width: 100px;
-    max-height: 100px;
-  }
+  .tribute-card-photo { height: 150px; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -979,19 +983,15 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
-  .tribute-card-photo {
-    padding: 0.9rem 0.75rem 0.25rem;
+  .tribute-card-photo { height: 130px; }
+  .tribute-card-body { padding: 0.85rem 0.8rem 1rem; }
+  .tribute-card-name { font-size: 1.05rem; min-height: 2.4em; }
+  .tribute-card-excerpt {
+    font-size: 0.84rem;
+    min-height: 5.5em;
+    max-height: 5.5em;
+    -webkit-line-clamp: 4;
   }
-  .tribute-card-photo img,
-  .tribute-card-photo-placeholder {
-    width: 88px;
-    height: 88px;
-    max-width: 88px;
-    max-height: 88px;
-  }
-  .tribute-card-body { padding: 0.5rem 0.8rem 1rem; }
-  .tribute-card-name { font-size: 1.05rem; min-height: 2.3em; }
-  .tribute-card-bio p { font-size: 0.84rem; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
@@ -1008,13 +1008,7 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  .tribute-card-photo img,
-  .tribute-card-photo-placeholder {
-    width: 104px;
-    height: 104px;
-    max-width: 104px;
-    max-height: 104px;
-  }
+  .tribute-card-photo { height: 180px; }
   .card-grid-uniform {
     grid-template-columns: 1fr;
   }

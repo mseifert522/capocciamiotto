@@ -1,5 +1,5 @@
 <%
-  /* Six equal tribute cards — living and deceased honored the same */
+  /* Six equal patriarch / matriarch / honored-elder cards */
   function tributeLeaders(list) {
     const rank = (m) => {
       const full = m.full_name || "";
@@ -18,10 +18,25 @@
       .sort((a, b) => rank(a) - rank(b));
   }
   const leaders = tributeLeaders(typeof members !== "undefined" ? members : []);
+
+  function firstParagraph(bio) {
+    if (!bio) return "";
+    return String(bio).split(/\n\n+/)[0].trim();
+  }
+
+  function branchClass(m) {
+    const n = ((m.full_name || "") + " " + (m.preferred_name || "")).toLowerCase();
+    if (/anna/.test(n) && /miotto/.test(n)) return "both";
+    if ((m.family_branch || "").toLowerCase() === "miotto") return "miotto";
+    if ((m.family_branch || "").toLowerCase() === "capoccia") return "capoccia";
+    return "both";
+  }
 %>
 
 <div class="tribute-grid" role="list">
   <% leaders.forEach(function(m) { %>
+    <% const excerpt = firstParagraph(m.biography); %>
+    <% const branch = branchClass(m); %>
     <article class="tribute-card" role="listitem">
       <div class="tribute-card-photo">
         <% if (m.portrait_path) { %>
@@ -33,14 +48,22 @@
         <% } %>
       </div>
       <div class="tribute-card-body">
+        <div class="tribute-card-badges">
+          <% if (branch === "both") { %>
+            <span class="badge badge-capoccia">Capoccia</span>
+            <span class="badge badge-miotto">Miotto</span>
+          <% } else if (branch === "miotto") { %>
+            <span class="badge badge-miotto">Miotto</span>
+          <% } else { %>
+            <span class="badge badge-capoccia">Capoccia</span>
+          <% } %>
+        </div>
         <h3 class="tribute-card-name"><%= m.display_name %></h3>
         <p class="tribute-card-role"><%= m.role_in_family || "" %></p>
-        <% if (m.biography) { %>
-          <div class="tribute-card-bio">
-            <% m.biography.split(/\n\n+/).forEach(function(para) { %>
-              <p><%= para %></p>
-            <% }) %>
-          </div>
+        <% if (excerpt) { %>
+          <p class="tribute-card-excerpt"><%= excerpt %></p>
+        <% } else { %>
+          <p class="tribute-card-excerpt tribute-card-excerpt--empty">&nbsp;</p>
         <% } %>
         <a class="btn btn-outline tribute-card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
       </div>

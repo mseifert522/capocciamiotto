@@ -38,87 +38,59 @@
       <h2 class="section-title">Family Tribute</h2>
       <div class="section-rule"></div>
       <p class="section-lead">
-        Capoccia and Miotto are honored side by side—equal partners in the reunions that began in 1977.
+        The Capoccia siblings—Tony, George, and Anna—stand together as equals. With their spouses Christine, Fran, and Mickey, they form the heart of the Capoccia–Miotto reunions since 1977.
       </p>
     </header>
 
-    <div class="family-branches">
-      <div class="family-branch-col">
-        <div class="family-branch-heading branch-capoccia">
-          <span class="branch-flag" aria-hidden="true"></span>
-          <h3>Capoccia Family</h3>
-          <p>Patriarch, matriarch &amp; honored elders</p>
-        </div>
-        <div class="card-grid card-grid-equal">
-          <% (membersCapoccia || []).forEach(function(m) { %>
-            <article class="card card-equal">
-              <div class="card-portrait">
-                <% if (m.portrait_path) { %>
-                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-                <% } else { %>
-                  <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-                <% } %>
-              </div>
-              <div class="card-body">
-                <div class="card-badges">
-                  <span class="badge badge-capoccia">Capoccia</span>
-                  <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-                </div>
-                <h3><%= m.display_name %></h3>
-                <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-                <p class="card-excerpt">
-                  <% if (m.biography) { %><%= m.biography.split(/\n\n+/)[0] %><% } else { %>
-                    Biographical information will appear here when provided by the family.
-                  <% } %>
-                </p>
-                <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
-              </div>
-            </article>
-          <% }) %>
-        </div>
-      </div>
+    <% 
+      // Fixed equal order: Capoccia brothers & sister first, then spouses — same card size for everyone
+      function tributeOrder(list) {
+        const rank = (m) => {
+          const n = (m.full_name || '') + (m.preferred_name || '');
+          if (/George/i.test(n) && /Capoccia/i.test(n)) return 1;
+          if (/Tony|Anthony/i.test(n) && /Capoccia/i.test(n)) return 2;
+          if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3; // sister of Tony & George — equal with brothers
+          if (/Christine/i.test(n)) return 4;
+          if (/Fran|Frances/i.test(n)) return 5;
+          if (/Mickey|Amerigo/i.test(n)) return 6;
+          return 50 + (m.sort_order || 0);
+        };
+        return (list || []).slice().sort((a, b) => rank(a) - rank(b));
+      }
+      const tributeMembers = tributeOrder(members);
+    %>
 
-      <div class="family-branch-col">
-        <div class="family-branch-heading branch-miotto">
-          <span class="branch-flag" aria-hidden="true"></span>
-          <h3>Miotto Family</h3>
-          <p>Patriarch, matriarch &amp; family leaders</p>
-        </div>
-        <div class="card-grid card-grid-equal">
-          <% (membersMiotto || []).forEach(function(m) { %>
-            <article class="card card-equal">
-              <div class="card-portrait">
-                <% if (m.portrait_path) { %>
-                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-                <% } else { %>
-                  <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-                <% } %>
-              </div>
-              <div class="card-body">
-                <div class="card-badges">
-                  <span class="badge badge-miotto">Miotto</span>
-                  <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-                </div>
-                <h3><%= m.display_name %></h3>
-                <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-                <p class="card-excerpt">
-                  <% if (m.biography) { %><%= m.biography.split(/\n\n+/)[0] %><% } else { %>
-                    Biographical information will appear here when provided by the family.
-                  <% } %>
-                </p>
-                <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
-              </div>
-            </article>
-          <% }) %>
-          <% if (!(membersMiotto && membersMiotto.length)) { %>
-            <div class="empty" style="grid-column:1/-1">
-              <h3>Miotto family tributes are ready to grow.</h3>
-              <p>Share names, photographs, and memories to honor this side of the family equally.</p>
-              <a class="btn btn-primary" href="/contribute">Contribute</a>
+    <div class="card-grid card-grid-uniform">
+      <% tributeMembers.forEach(function(m) { %>
+        <article class="card card-equal">
+          <div class="card-portrait">
+            <% if (m.portrait_path) { %>
+              <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
+            <% } else { %>
+              <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <div class="card-badges">
+              <% if (/Anna/i.test(m.full_name || '') && /Miotto/i.test(m.full_name || '')) { %>
+                <span class="badge badge-capoccia">Capoccia</span>
+                <span class="badge badge-miotto">Miotto</span>
+              <% } else { %>
+                <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %></span>
+              <% } %>
+              <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
             </div>
-          <% } %>
-        </div>
-      </div>
+            <h3><%= m.display_name %></h3>
+            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
+            <p class="card-excerpt">
+              <% if (m.biography) { %><%= m.biography.split(/\n\n+/)[0] %><% } else { %>
+                Biographical information will appear here when provided by the family.
+              <% } %>
+            </p>
+            <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
+          </div>
+        </article>
+      <% }) %>
     </div>
   </div>
 </section>

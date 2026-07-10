@@ -6,79 +6,60 @@
       <h2 class="section-title">Family Members</h2>
       <div class="section-rule"></div>
       <p class="section-lead">
-        Capoccia and Miotto are displayed as equal partners. Both branches are honored with the same care and space.
+        Every tribute card is the same size. Anna Miotto is shown with her Capoccia brothers Tony and George—equal members of one generation—alongside the spouses who completed both families.
       </p>
     </header>
 
-    <div class="family-branches">
-      <div class="family-branch-col">
-        <div class="family-branch-heading branch-capoccia">
-          <span class="branch-flag" aria-hidden="true"></span>
-          <h3>Capoccia Family</h3>
-          <p><%= (membersCapoccia || []).length %> tribute<%= (membersCapoccia || []).length === 1 ? '' : 's' %></p>
-        </div>
-        <div class="card-grid card-grid-equal">
-          <% (membersCapoccia || []).forEach(function(m) { %>
-            <article class="card card-equal">
-              <div class="card-portrait">
-                <% if (m.portrait_path) { %>
-                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-                <% } else { %>
-                  <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-                <% } %>
-              </div>
-              <div class="card-body">
-                <div class="card-badges">
-                  <span class="badge badge-capoccia">Capoccia</span>
-                  <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-                  <% if (m.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
-                  <% if (m.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
-                </div>
-                <h3><%= m.display_name %></h3>
-                <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-                <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">Open profile</a>
-              </div>
-            </article>
-          <% }) %>
-        </div>
-      </div>
+    <% 
+      function memberOrder(list) {
+        const rank = (m) => {
+          const n = (m.full_name || '') + (m.preferred_name || '');
+          if (/George/i.test(n) && /Capoccia/i.test(n)) return 1;
+          if (/Tony|Anthony/i.test(n) && /Capoccia/i.test(n)) return 2;
+          if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3;
+          if (/Christine/i.test(n)) return 4;
+          if (/Fran|Frances/i.test(n)) return 5;
+          if (/Mickey|Amerigo/i.test(n)) return 6;
+          return 50 + (m.sort_order || 0);
+        };
+        return (list || []).slice().sort((a, b) => rank(a) - rank(b));
+      }
+      const ordered = memberOrder(members);
+    %>
 
-      <div class="family-branch-col">
-        <div class="family-branch-heading branch-miotto">
-          <span class="branch-flag" aria-hidden="true"></span>
-          <h3>Miotto Family</h3>
-          <p><%= (membersMiotto || []).length %> tribute<%= (membersMiotto || []).length === 1 ? '' : 's' %></p>
-        </div>
-        <div class="card-grid card-grid-equal">
-          <% (membersMiotto || []).forEach(function(m) { %>
-            <article class="card card-equal">
-              <div class="card-portrait">
-                <% if (m.portrait_path) { %>
-                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-                <% } else { %>
-                  <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-                <% } %>
-              </div>
-              <div class="card-body">
-                <div class="card-badges">
-                  <span class="badge badge-miotto">Miotto</span>
-                  <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-                  <% if (m.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
-                  <% if (m.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
-                </div>
-                <h3><%= m.display_name %></h3>
-                <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-                <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">Open profile</a>
-              </div>
-            </article>
-          <% }) %>
-        </div>
-      </div>
+    <div class="card-grid card-grid-uniform">
+      <% ordered.forEach(function(m) { %>
+        <article class="card card-equal">
+          <div class="card-portrait">
+            <% if (m.portrait_path) { %>
+              <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
+            <% } else { %>
+              <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <div class="card-badges">
+              <% if (/Anna/i.test(m.full_name || '') && /Miotto/i.test(m.full_name || '')) { %>
+                <span class="badge badge-capoccia">Capoccia</span>
+                <span class="badge badge-miotto">Miotto</span>
+              <% } else { %>
+                <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %></span>
+              <% } %>
+              <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
+              <% if (m.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
+              <% if (m.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
+            </div>
+            <h3><%= m.display_name %></h3>
+            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
+            <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">Open profile</a>
+          </div>
+        </article>
+      <% }) %>
     </div>
 
     <div class="empty" style="margin-top:2rem">
       <h3>More names will appear as the family contributes them.</h3>
-      <p>Submit family information so we can add Capoccia and Miotto elders, parents, children, and cousins with equal care on both sides.</p>
+      <p>Submit family information so we can add Capoccia and Miotto elders, parents, children, and cousins with equal care.</p>
       <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
     </div>
   </div>

@@ -367,9 +367,9 @@ function seedFamilyTributes() {
       birth_date_display: "circa 1929",
       death_date: "2017-01-08",
       death_date_display: "January 8, 2017",
-      role_in_family: "Miotto Matriarch (née Capoccia)",
+      role_in_family: "Sister of Tony & George Capoccia · Miotto Matriarch",
       biography:
-        "Anna M. Capoccia Miotto (born circa 1929; passed January 8, 2017, age 88) was the beloved matriarch of the Miotto family and the gentle soul who wove the Capoccia and Miotto families into one. Sister to Tony and George Capoccia, Anna married Amerigo “Mickey” Miotto and spent 65 joyful years creating a home filled with love, faith, and Italian warmth.\n\n" +
+        "Anna M. Capoccia Miotto (born circa 1929; passed January 8, 2017, age 88) was the beloved sister of Tony and George Capoccia, and the gentle matriarch of the Miotto family who wove the Capoccia and Miotto families into one. Anna married Amerigo “Mickey” Miotto and spent 65 joyful years creating a home filled with love, faith, and Italian warmth.\n\n" +
         "Her 2017 obituary captured the family’s closeness, naming her brothers “Tony (Fran) Capoccia and George (Christine) Capoccia.” Together with Mickey, Anna raised five children and left a legacy of 14 grandchildren and 14 great-grandchildren who keep the reunions alive and full of joy. Anna’s grace and devotion turned two families into one beautiful legacy — the very heart of capocciamiotto.com.\n\n" +
         "Her memory shines brightly at every reunion, reminding us that family is the greatest treasure of all.",
       favorite_memories:

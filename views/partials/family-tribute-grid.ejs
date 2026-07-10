@@ -1,85 +1,103 @@
 <%
-  /* Order: Capoccia siblings first (Tony, George, Anna), then spouses (Fran, Christine, Mickey) */
-  function tributeLeaders(list) {
-    const rank = (m) => {
+  /* Couple pairs in order: Tony+Fran, George+Christine, Anna+Mickey */
+  function findOne(list, tests) {
+    for (let i = 0; i < (list || []).length; i++) {
+      const m = list[i];
       const full = m.full_name || "";
-      const n = (full + " " + (m.preferred_name || "")).trim();
-      if (/Tony|Anthony/i.test(full) && /Capoccia/i.test(full)) return 1;
-      if (/George/i.test(n) && /Capoccia/i.test(n)) return 2;
-      if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3;
-      if (/Frances|^Fran\b/i.test(full) && /Capoccia/i.test(full)) return 4;
-      if (/Christine/i.test(n) && /Capoccia/i.test(n)) return 5;
-      if (/Mickey|Amerigo/i.test(n)) return 6;
-      return 0;
-    };
-    return (list || [])
-      .filter((m) => rank(m) > 0)
-      .slice()
-      .sort((a, b) => rank(a) - rank(b));
+      const blob = (full + " " + (m.preferred_name || "")).toLowerCase();
+      if (tests.every(function (t) { return t.test(blob); })) return m;
+    }
+    return null;
   }
-  const leaders = tributeLeaders(typeof members !== "undefined" ? members : []);
-  const siblings = leaders.filter(function (m, i) { return i < 3; });
-  const spouses = leaders.filter(function (m, i) { return i >= 3; });
+  const all = typeof members !== "undefined" ? members : [];
+  const tony = findOne(all, [/tony|anthony/, /capoccia/]);
+  const fran = findOne(all, [/fran|frances/, /capoccia/]);
+  const george = findOne(all, [/george/, /capoccia/]);
+  const christine = findOne(all, [/christine/, /capoccia/]);
+  const anna = findOne(all, [/anna/, /miotto/]);
+  const mickey = findOne(all, [/mickey|amerigo/]);
 
-  function shortName(m) {
-    const n = m.display_name || m.preferred_name || m.full_name || "";
-    // Prefer familiar first names for the compact home display
-    if (/Tony|Anthony/i.test(n)) return "Tony Capoccia";
-    if (/George/i.test(n)) return "George Capoccia";
-    if (/Anna/i.test(n)) return "Anna Miotto";
-    if (/Fran|Frances/i.test(n)) return "Fran Capoccia";
-    if (/Christine/i.test(n)) return "Christine Capoccia";
-    if (/Mickey|Amerigo/i.test(n)) return "Mickey Miotto";
-    return n;
+  const couples = [
+    {
+      key: "tony",
+      label: "Honored Elders",
+      person: tony,
+      spouse: fran,
+      personShort: "Tony Capoccia",
+      spouseShort: "Fran Capoccia",
+    },
+    {
+      key: "george",
+      label: "Capoccia Patriarch & Matriarch",
+      person: george,
+      spouse: christine,
+      personShort: "George Capoccia",
+      spouseShort: "Christine Capoccia",
+    },
+    {
+      key: "anna",
+      label: "Miotto Matriarch & Patriarch",
+      person: anna,
+      spouse: mickey,
+      personShort: "Anna Miotto",
+      spouseShort: "Mickey Miotto",
+    },
+  ];
+
+  function displayOf(m, fallback) {
+    if (!m) return fallback;
+    return m.display_name || m.preferred_name || m.full_name || fallback;
+  }
+  function initial(s) {
+    return String(s || "?").charAt(0).toUpperCase();
   }
 %>
 
-<div class="home-leaders" role="list">
-  <% if (siblings.length) { %>
-    <p class="home-leaders-label">The Capoccia siblings</p>
-    <div class="home-leaders-row home-leaders-row--siblings">
-      <% siblings.forEach(function(m) { %>
-        <article class="home-leader-card" role="listitem">
-          <a class="home-leader-link" href="/family-members/<%= m.id %>">
-            <div class="home-leader-photo">
-              <% if (m.portrait_path) { %>
-                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+<div class="couple-gallery" role="list">
+  <% couples.forEach(function(c, idx) { %>
+    <article class="couple-unit" role="listitem">
+      <p class="couple-unit-label"><%= c.label %></p>
+      <div class="couple-pair">
+        <% if (c.person) { %>
+          <a class="couple-person" href="/family-members/<%= c.person.id %>">
+            <div class="couple-photo">
+              <% if (c.person.portrait_path) { %>
+                <img src="<%= c.person.portrait_path %>" alt="<%= displayOf(c.person, c.personShort) %>" loading="lazy" />
               <% } else { %>
-                <div class="home-leader-ph" aria-hidden="true"><%= shortName(m).charAt(0) %></div>
+                <div class="couple-ph" aria-hidden="true"><%= initial(c.personShort) %></div>
               <% } %>
             </div>
-            <div class="home-leader-body">
-              <h3><%= shortName(m) %></h3>
-              <p><%= m.role_in_family || "Family leader" %></p>
-              <span class="home-leader-cta">View tribute →</span>
-            </div>
+            <h3><%= c.personShort %></h3>
+            <p><%= c.person.role_in_family || "Family leader" %></p>
           </a>
-        </article>
-      <% }) %>
-    </div>
-  <% } %>
+        <% } %>
 
-  <% if (spouses.length) { %>
-    <p class="home-leaders-label home-leaders-label--spouses">With their spouses</p>
-    <div class="home-leaders-row home-leaders-row--spouses">
-      <% spouses.forEach(function(m) { %>
-        <article class="home-leader-card home-leader-card--spouse" role="listitem">
-          <a class="home-leader-link" href="/family-members/<%= m.id %>">
-            <div class="home-leader-photo">
-              <% if (m.portrait_path) { %>
-                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+        <div class="couple-join" aria-hidden="true">
+          <span class="couple-heart">&amp;</span>
+        </div>
+
+        <% if (c.spouse) { %>
+          <a class="couple-person" href="/family-members/<%= c.spouse.id %>">
+            <div class="couple-photo">
+              <% if (c.spouse.portrait_path) { %>
+                <img src="<%= c.spouse.portrait_path %>" alt="<%= displayOf(c.spouse, c.spouseShort) %>" loading="lazy" />
               <% } else { %>
-                <div class="home-leader-ph" aria-hidden="true"><%= shortName(m).charAt(0) %></div>
+                <div class="couple-ph" aria-hidden="true"><%= initial(c.spouseShort) %></div>
               <% } %>
             </div>
-            <div class="home-leader-body">
-              <h3><%= shortName(m) %></h3>
-              <p><%= m.role_in_family || "Family leader" %></p>
-              <span class="home-leader-cta">View tribute →</span>
-            </div>
+            <h3><%= c.spouseShort %></h3>
+            <p><%= c.spouse.role_in_family || "Family leader" %></p>
           </a>
-        </article>
-      <% }) %>
-    </div>
-  <% } %>
+        <% } %>
+      </div>
+      <div class="couple-actions">
+        <% if (c.person) { %>
+          <a class="btn btn-outline couple-cta" href="/family-members/<%= c.person.id %>">View tribute</a>
+        <% } %>
+        <% if (c.spouse) { %>
+          <a class="btn btn-outline couple-cta" href="/family-members/<%= c.spouse.id %>">View tribute</a>
+        <% } %>
+      </div>
+    </article>
+  <% }) %>
 </div>

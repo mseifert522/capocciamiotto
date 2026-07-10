@@ -430,7 +430,130 @@ main { overflow-x: clip; }
 .badge-both { background: rgba(196, 163, 90, 0.2); color: #7a5c20; }
 .badge-memory { background: rgba(43, 33, 28, 0.08); color: var(--ink-soft); }
 
-/* Equal patriarch / matriarch tribute cards */
+/* Home leaders — smaller cards, full photos, siblings then spouses */
+.home-leaders {
+  margin-top: 0.5rem;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.home-leaders-label {
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 0.9rem;
+}
+.home-leaders-label--spouses {
+  margin-top: 1.75rem;
+  color: var(--ink-muted);
+}
+.home-leaders-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+.home-leader-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(196, 163, 90, 0.28);
+  box-shadow: 0 8px 22px rgba(43, 33, 28, 0.08);
+  overflow: hidden;
+  min-width: 0;
+  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease);
+}
+.home-leader-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(107, 31, 42, 0.12);
+}
+.home-leader-card--spouse {
+  background: linear-gradient(180deg, #fffefb 0%, #f8f1e6 100%);
+}
+.home-leader-link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+/* Full portrait visible (contain, not crop) */
+.home-leader-photo {
+  height: 150px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 40%, rgba(255, 253, 248, 0.95), transparent 70%),
+    linear-gradient(160deg, #f3ebe0, #e6d7c6);
+  padding: 0.65rem 0.65rem 0.35rem;
+}
+.home-leader-photo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center center;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(43, 33, 28, 0.12);
+}
+.home-leader-ph {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  background: rgba(255, 253, 248, 0.9);
+  border: 2px solid rgba(196, 163, 90, 0.4);
+}
+.home-leader-body {
+  padding: 0.7rem 0.85rem 0.95rem;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.home-leader-body h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+.home-leader-body p {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 0.55rem;
+  line-height: 1.3;
+}
+.home-leader-cta {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  margin-top: auto;
+  opacity: 0.85;
+}
+.home-leader-link:hover .home-leader-cta { opacity: 1; }
+
+/* Legacy tribute grid (kept for any other uses) */
 .tribute-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -454,7 +577,6 @@ main { overflow-x: clip; }
   box-shadow: 0 14px 36px var(--shadow-md);
   transform: translateY(-2px);
 }
-/* Fixed equal portrait band on every card */
 .tribute-card-photo {
   flex-shrink: 0;
   width: 100%;
@@ -465,12 +587,13 @@ main { overflow-x: clip; }
   justify-content: center;
   overflow: hidden;
   position: relative;
+  padding: 0.5rem;
 }
 .tribute-card-photo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
+  object-fit: contain;
+  object-position: center center;
   display: block;
 }
 .tribute-card-photo-placeholder {
@@ -1657,6 +1780,11 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     content: "";
   }
 
+  .home-leaders-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .home-leader-photo { height: 130px; }
   .tribute-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
@@ -1730,6 +1858,12 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     max-width: none;
   }
 
+  .home-leaders-row {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .home-leader-photo { height: 160px; }
+  .home-leader-body h3 { font-size: 1.2rem; }
   /* Tribute / family cards: one column for readability */
   .tribute-grid {
     grid-template-columns: 1fr;

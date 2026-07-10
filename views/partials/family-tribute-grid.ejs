@@ -1,15 +1,15 @@
 <%
-  /* Six equal patriarch / matriarch / honored-elder cards */
+  /* Order: Capoccia siblings first (Tony, George, Anna), then spouses (Fran, Christine, Mickey) */
   function tributeLeaders(list) {
     const rank = (m) => {
       const full = m.full_name || "";
       const n = (full + " " + (m.preferred_name || "")).trim();
-      if (/George/i.test(n) && /Capoccia/i.test(n)) return 1;
-      if (/Christine/i.test(n) && /Capoccia/i.test(n)) return 2;
-      if (/Tony|Anthony/i.test(full) && /Capoccia/i.test(full)) return 3;
+      if (/Tony|Anthony/i.test(full) && /Capoccia/i.test(full)) return 1;
+      if (/George/i.test(n) && /Capoccia/i.test(n)) return 2;
+      if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3;
       if (/Frances|^Fran\b/i.test(full) && /Capoccia/i.test(full)) return 4;
-      if (/Mickey|Amerigo/i.test(n)) return 5;
-      if (/Anna/i.test(n) && /Miotto/i.test(n)) return 6;
+      if (/Christine/i.test(n) && /Capoccia/i.test(n)) return 5;
+      if (/Mickey|Amerigo/i.test(n)) return 6;
       return 0;
     };
     return (list || [])
@@ -18,55 +18,68 @@
       .sort((a, b) => rank(a) - rank(b));
   }
   const leaders = tributeLeaders(typeof members !== "undefined" ? members : []);
+  const siblings = leaders.filter(function (m, i) { return i < 3; });
+  const spouses = leaders.filter(function (m, i) { return i >= 3; });
 
-  function firstParagraph(bio) {
-    if (!bio) return "";
-    return String(bio).split(/\n\n+/)[0].trim();
-  }
-
-  function branchClass(m) {
-    const n = ((m.full_name || "") + " " + (m.preferred_name || "")).toLowerCase();
-    if (/anna/.test(n) && /miotto/.test(n)) return "both";
-    if ((m.family_branch || "").toLowerCase() === "miotto") return "miotto";
-    if ((m.family_branch || "").toLowerCase() === "capoccia") return "capoccia";
-    return "both";
+  function shortName(m) {
+    const n = m.display_name || m.preferred_name || m.full_name || "";
+    // Prefer familiar first names for the compact home display
+    if (/Tony|Anthony/i.test(n)) return "Tony Capoccia";
+    if (/George/i.test(n)) return "George Capoccia";
+    if (/Anna/i.test(n)) return "Anna Miotto";
+    if (/Fran|Frances/i.test(n)) return "Fran Capoccia";
+    if (/Christine/i.test(n)) return "Christine Capoccia";
+    if (/Mickey|Amerigo/i.test(n)) return "Mickey Miotto";
+    return n;
   }
 %>
 
-<div class="tribute-grid" role="list">
-  <% leaders.forEach(function(m) { %>
-    <% const excerpt = firstParagraph(m.biography); %>
-    <% const branch = branchClass(m); %>
-    <article class="tribute-card" role="listitem">
-      <div class="tribute-card-photo">
-        <% if (m.portrait_path) { %>
-          <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
-        <% } else { %>
-          <div class="tribute-card-photo-placeholder" aria-hidden="true">
-            <span><%= (m.display_name || "?").charAt(0) %></span>
-          </div>
-        <% } %>
-      </div>
-      <div class="tribute-card-body">
-        <div class="tribute-card-badges">
-          <% if (branch === "both") { %>
-            <span class="badge badge-capoccia">Capoccia</span>
-            <span class="badge badge-miotto">Miotto</span>
-          <% } else if (branch === "miotto") { %>
-            <span class="badge badge-miotto">Miotto</span>
-          <% } else { %>
-            <span class="badge badge-capoccia">Capoccia</span>
-          <% } %>
-        </div>
-        <h3 class="tribute-card-name"><%= m.display_name %></h3>
-        <p class="tribute-card-role"><%= m.role_in_family || "" %></p>
-        <% if (excerpt) { %>
-          <p class="tribute-card-excerpt"><%= excerpt %></p>
-        <% } else { %>
-          <p class="tribute-card-excerpt tribute-card-excerpt--empty">&nbsp;</p>
-        <% } %>
-        <a class="btn btn-outline tribute-card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
-      </div>
-    </article>
-  <% }) %>
+<div class="home-leaders" role="list">
+  <% if (siblings.length) { %>
+    <p class="home-leaders-label">The Capoccia siblings</p>
+    <div class="home-leaders-row home-leaders-row--siblings">
+      <% siblings.forEach(function(m) { %>
+        <article class="home-leader-card" role="listitem">
+          <a class="home-leader-link" href="/family-members/<%= m.id %>">
+            <div class="home-leader-photo">
+              <% if (m.portrait_path) { %>
+                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+              <% } else { %>
+                <div class="home-leader-ph" aria-hidden="true"><%= shortName(m).charAt(0) %></div>
+              <% } %>
+            </div>
+            <div class="home-leader-body">
+              <h3><%= shortName(m) %></h3>
+              <p><%= m.role_in_family || "Family leader" %></p>
+              <span class="home-leader-cta">View tribute →</span>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (spouses.length) { %>
+    <p class="home-leaders-label home-leaders-label--spouses">With their spouses</p>
+    <div class="home-leaders-row home-leaders-row--spouses">
+      <% spouses.forEach(function(m) { %>
+        <article class="home-leader-card home-leader-card--spouse" role="listitem">
+          <a class="home-leader-link" href="/family-members/<%= m.id %>">
+            <div class="home-leader-photo">
+              <% if (m.portrait_path) { %>
+                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+              <% } else { %>
+                <div class="home-leader-ph" aria-hidden="true"><%= shortName(m).charAt(0) %></div>
+              <% } %>
+            </div>
+            <div class="home-leader-body">
+              <h3><%= shortName(m) %></h3>
+              <p><%= m.role_in_family || "Family leader" %></p>
+              <span class="home-leader-cta">View tribute →</span>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  <% } %>
 </div>

@@ -1,5 +1,5 @@
 <%
-  /* Six equal tribute cards in fixed order */
+  /* Six equal tribute cards — living and deceased honored the same */
   function tributeLeaders(list) {
     const rank = (m) => {
       const full = m.full_name || "";
@@ -33,11 +33,6 @@
         <% } %>
       </div>
       <div class="tribute-card-body">
-        <% if (m.is_memorial) { %>
-          <p class="tribute-card-memory">In loving memory</p>
-        <% } else { %>
-          <p class="tribute-card-memory tribute-card-memory--spacer" aria-hidden="true">&nbsp;</p>
-        <% } %>
         <h3 class="tribute-card-name"><%= m.display_name %></h3>
         <p class="tribute-card-role"><%= m.role_in_family || "" %></p>
         <% if (m.biography) { %>

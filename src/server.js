@@ -281,12 +281,18 @@ app.post("/community-board", contributeLimiter, (req, res) => {
 });
 
 app.get("/in-loving-memory", (req, res) => {
-  const memorials = db.prepare(`
-    SELECT * FROM memorials WHERE status = 'approved' ORDER BY full_name ASC
+  // Deceased family members — same equal tribute cards as living leaders
+  const members = db.prepare(`
+    SELECT * FROM family_members
+    WHERE is_memorial = 1
+    ORDER BY sort_order ASC, full_name ASC
   `).all();
+  members.forEach((m) => {
+    m.display_name = m.preferred_name || m.full_name;
+  });
   const data = localsBase(req);
   clearFlash(req);
-  res.render("memorials", { ...data, memorials });
+  res.render("memorials", { ...data, members });
 });
 
 app.get("/family-tree", (req, res) => {

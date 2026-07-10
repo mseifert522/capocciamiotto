@@ -2,19 +2,46 @@
 <section class="section">
   <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">With love and respect</p>
+      <p class="section-eyebrow">Capoccia · Miotto</p>
       <h2 class="section-title">In Loving Memory</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">A quiet place to honor Capoccia and Miotto family members who are no longer with us. Memorials are published only after administrator approval.</p>
     </header>
-    <% if (memorials.length) { %>
-      <div class="card-grid">
-        <% memorials.forEach(function(m) { %>
-          <article class="card">
-            <div class="card-body">
-              <h3><%= m.full_name %></h3>
-              <% if (m.dates_text) { %><p class="meta"><%= m.dates_text %></p><% } %>
-              <p><%= m.biography || m.favorite_memories || '' %></p>
+
+    <% if (members && members.length) { %>
+      <div class="tribute-grid" role="list">
+        <% members.forEach(function(m) { %>
+          <article class="tribute-card" role="listitem">
+            <div class="tribute-card-photo">
+              <% if (m.portrait_path) { %>
+                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+              <% } else { %>
+                <div class="tribute-card-photo-placeholder" aria-hidden="true">
+                  <span><%= (m.display_name || "?").charAt(0) %></span>
+                </div>
+              <% } %>
+            </div>
+            <div class="tribute-card-body">
+              <h3 class="tribute-card-name"><%= m.display_name %></h3>
+              <p class="tribute-card-role"><%= m.role_in_family || "" %></p>
+              <% if (m.birth_date_display || m.death_date_display) { %>
+                <p class="tribute-card-dates">
+                  <% if (m.birth_date_display && m.death_date_display) { %>
+                    <%= m.birth_date_display %> – <%= m.death_date_display %>
+                  <% } else if (m.death_date_display) { %>
+                    <%= m.death_date_display %>
+                  <% } else { %>
+                    <%= m.birth_date_display %>
+                  <% } %>
+                </p>
+              <% } %>
+              <% if (m.biography) { %>
+                <div class="tribute-card-bio">
+                  <% m.biography.split(/\n\n+/).forEach(function(para) { %>
+                    <p><%= para %></p>
+                  <% }) %>
+                </div>
+              <% } %>
+              <a class="btn btn-outline tribute-card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
             </div>
           </article>
         <% }) %>

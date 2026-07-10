@@ -138,7 +138,7 @@ const ADMIN_ROLES = ["super_admin", "family_admin", "photo_moderator", "content_
 
 // ---------- Public pages ----------
 app.get("/", (req, res) => {
-  // Family Tribute: patriarchs, matriarchs, and honored elders (Tony & Fran)
+  // Family Tribute: patriarchs, matriarchs, and honored elders — split equally by branch
   const members = db.prepare(`
     SELECT * FROM family_members
     WHERE is_patriarch = 1 OR is_matriarch = 1
@@ -148,7 +148,6 @@ app.get("/", (req, res) => {
        OR full_name LIKE '%Frances%Capoccia%'
     ORDER BY sort_order ASC, full_name ASC
   `).all();
-  // Apply editable matriarch display name
   members.forEach((m) => {
     if (m.is_matriarch && m.family_branch === "Capoccia") {
       m.display_name = matriarchName();
@@ -156,6 +155,8 @@ app.get("/", (req, res) => {
       m.display_name = m.preferred_name || m.full_name;
     }
   });
+  const membersCapoccia = members.filter((m) => m.family_branch === "Capoccia");
+  const membersMiotto = members.filter((m) => m.family_branch === "Miotto");
   const recentPhotos = db.prepare(`
     SELECT * FROM photos WHERE status = 'approved' AND may_display_public = 1
     ORDER BY featured DESC, submitted_at DESC LIMIT 8
@@ -166,7 +167,7 @@ app.get("/", (req, res) => {
   `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("home", { ...data, members, recentPhotos, pinned });
+  res.render("home", { ...data, members, membersCapoccia, membersMiotto, recentPhotos, pinned });
 });
 
 app.get("/our-family-story", (req, res) => {
@@ -240,15 +241,17 @@ app.get("/photo-archive", (req, res) => {
 
 app.get("/family-members", (req, res) => {
   const members = db.prepare(`
-    SELECT * FROM family_members ORDER BY family_branch ASC, sort_order ASC, full_name ASC
+    SELECT * FROM family_members ORDER BY sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
     if (m.is_matriarch && m.family_branch === "Capoccia") m.display_name = matriarchName();
     else m.display_name = m.preferred_name || m.full_name;
   });
+  const membersCapoccia = members.filter((m) => m.family_branch === "Capoccia" || m.family_branch === "both");
+  const membersMiotto = members.filter((m) => m.family_branch === "Miotto");
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-members", { ...data, members });
+  res.render("family-members", { ...data, members, membersCapoccia, membersMiotto });
 });
 
 app.get("/family-members/:id", (req, res) => {

@@ -277,4 +277,5 @@ module.exports = {
   classifyLeader,
   displayName,
   LINEAGE_META,
+  LINEAGE_ORDER,
 };

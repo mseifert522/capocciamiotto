@@ -564,11 +564,11 @@ function seedFamilyTributes() {
       birth_date_display: "July 18, 1931 · Detroit, Michigan",
       death_date: "2019-06-25",
       death_date_display: "June 25, 2019",
-      role_in_family: "Capoccia brother · Tony & Fran",
+      role_in_family: "Capoccia Patriarch",
       biography:
         "Anthony “Tony” Joseph Capoccia is a son of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and the beloved brother of George Capoccia and Anna Capoccia (Anna Miotto).\n\n" +
         "Tony was married to Frances “Fran” Capoccia (née Babich). Anna’s 2017 obituary names him among her surviving brothers as “Tony (Fran) Capoccia,” confirming the sibling bond and Fran as his wife. Public research places the Capoccia siblings’ families in Metro Detroit (including areas such as Warren, Clinton Township, Troy, and Sterling Heights).\n\n" +
-        "Dates of birth and passing recorded on this tribute (born July 18, 1931, Detroit; passed June 25, 2019) come from the family archive on this site. Family members are invited to confirm documents, resting place, and additional memories so every detail remains accurate. Tony and Fran’s line is equal in honor with George & Christine and Anna & Mickey on this living reunion tribute.",
+        "Dates of birth and passing recorded on this tribute (born July 18, 1931, Detroit; passed June 25, 2019) come from the family archive on this site. Family members are invited to confirm documents, resting place, and additional memories so every detail remains accurate. Tony and Fran are honored as Capoccia Patriarch & Matriarch, equal with George & Christine and Anna & Mickey on this living reunion tribute.",
       favorite_memories:
         "Share your favorite memories and stories of Tony and Fran — family contributions welcome.",
       quotes: null,
@@ -588,10 +588,10 @@ function seedFamilyTributes() {
       birth_date_display: "October 23, 1932 · Dowell, Illinois",
       death_date: "2024-10-27",
       death_date_display: "October 27, 2024",
-      role_in_family: "Spouse of Tony Capoccia",
+      role_in_family: "Capoccia Matriarch",
       biography:
         "Frances “Fran” Capoccia (née Babich) was the wife of Anthony “Tony” Capoccia. Anna Capoccia Miotto’s 2017 obituary names “Tony (Fran) Capoccia,” confirming Fran as Tony’s wife and part of the Capoccia sibling generation’s family circle.\n\n" +
-        "Tony was the beloved brother of George Capoccia and Anna Capoccia (Anna Miotto). Together Tony and Fran are honored equally with the other sibling couples on this tribute. Birth and passing dates shown here are from the family archive maintained on this site; family members may contribute documents and memories to refine any detail.\n\n" +
+        "Tony was the beloved brother of George Capoccia and Anna Capoccia (Anna Miotto). Together Tony and Fran are honored as Capoccia Patriarch & Matriarch, equal with George & Christine and Anna & Mickey on this tribute. Birth and passing dates shown here are from the family archive maintained on this site; family members may contribute documents and memories to refine any detail.\n\n" +
         "Their story is part of the Capoccia–Miotto reunions that have gathered the extended family since 1977 across Metro Detroit.",
       favorite_memories:
         "Share your favorite memories and stories of Tony and Fran — family contributions welcome.",
@@ -849,7 +849,7 @@ function seedFamilyTributes() {
     ON CONFLICT(key) DO UPDATE SET value = excluded.value
   `).run(
     "Capoccia Parents → Costanzo Capoccia & Maddalena (Madeline) Cervi Capoccia\n" +
-      "├── Tony Capoccia (m. Fran Babich)\n" +
+      "├── Tony Capoccia (m. Fran Babich) – Capoccia Patriarch & Matriarch\n" +
       "├── George Capoccia (m. Christine) – Capoccia Patriarch & Matriarch · Warren, MI\n" +
       "└── Anna Capoccia Miotto (m. Amerigo “Mickey” Miotto) – Miotto Matriarch & Patriarch\n" +
       "    └── Patricia, Carol, John, Michael, MaryAnn (and families)"

@@ -20,8 +20,15 @@
             <div><label>Date text</label><input name="date_text" value="<%= r.date_text || '' %>" placeholder="Leave blank if unknown" /></div>
             <div><label>Location</label><input name="location" value="<%= r.location || '' %>" placeholder="Leave blank if unknown" /></div>
           </div>
+          <div class="form-row two">
+            <div><label>Event date</label><input type="date" name="event_date" value="<%= r.event_date || '' %>" /></div>
+            <div><label>Event time</label><input name="event_time" value="<%= r.event_time || '' %>" placeholder="e.g. 1:00 PM" /></div>
+          </div>
+          <div class="form-row"><label>Place name</label><input name="place_name" value="<%= r.place_name || '' %>" placeholder="Park, hall, home name" /></div>
+          <div class="form-row"><label>Address</label><input name="address" value="<%= r.address || '' %>" placeholder="Full street address" /></div>
           <div class="form-row"><label>Host family / organizer</label><input name="host_family" value="<%= r.host_family || '' %>" /></div>
           <div class="form-row"><label>Summary</label><textarea name="summary"><%= r.summary || '' %></textarea></div>
+          <label class="checkbox"><input type="checkbox" name="is_upcoming" value="1" <%= r.is_upcoming ? 'checked' : '' %> /> Show as upcoming reunion on public page</label>
           <label class="checkbox"><input type="checkbox" name="no_reunion" value="1" <%= r.no_reunion ? 'checked' : '' %> /> Mark: no reunion this year</label>
           <button class="btn btn-outline" type="submit" style="margin-top:0.75rem">Save <%= r.year %></button>
         </form>

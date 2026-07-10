@@ -308,6 +308,7 @@ function requireContributorPin(req, res, next) {
   let pinQs = year;
   if (!pinQs) {
     if (nextUrl.includes("/community-board") || nextUrl.includes("next=board")) pinQs = "?next=board";
+    else if (nextUrl.includes("/upcoming-reunion") || nextUrl.includes("next=upcoming")) pinQs = "?next=upcoming";
     else if (nextUrl.includes("/contribute/member") || nextUrl.includes("next=member")) pinQs = "?next=member";
     else if (nextUrl.includes("/contribute/recording") || nextUrl.includes("next=recording")) pinQs = "?next=recording";
     else if (nextUrl.includes("/contribute/story") || nextUrl.includes("next=story")) pinQs = "?next=story";
@@ -950,10 +951,170 @@ app.get("/family-tree", (req, res) => {
   res.render("family-tree", { ...data, members, tree });
 });
 
+function ensureUpcomingReunionColumns() {
+  try {
+    const cols = db.prepare("PRAGMA table_info(reunions)").all().map((c) => c.name);
+    const add = (name, def) => {
+      if (!cols.includes(name)) db.exec(`ALTER TABLE reunions ADD COLUMN ${name} ${def}`);
+    };
+    add("event_date", "TEXT");
+    add("event_time", "TEXT");
+    add("place_name", "TEXT");
+    add("address", "TEXT");
+    add("is_upcoming", "INTEGER NOT NULL DEFAULT 0");
+    add("details_updated_by", "TEXT");
+  } catch (_) { /* ignore */ }
+}
+
+/** Prefer flagged upcoming, else soonest future/today event_date, else current/next year row with details */
+function getUpcomingReunion() {
+  ensureUpcomingReunionColumns();
+  const flagged = db.prepare(`
+    SELECT * FROM reunions
+    WHERE is_upcoming = 1 AND COALESCE(no_reunion, 0) = 0
+    ORDER BY year DESC LIMIT 1
+  `).get();
+  if (flagged && (flagged.event_date || flagged.place_name || flagged.address || flagged.date_text || flagged.location)) {
+    return flagged;
+  }
+  const byDate = db.prepare(`
+    SELECT * FROM reunions
+    WHERE COALESCE(no_reunion, 0) = 0
+      AND event_date IS NOT NULL AND trim(event_date) != ''
+      AND date(event_date) >= date('now')
+    ORDER BY date(event_date) ASC
+    LIMIT 1
+  `).get();
+  if (byDate) return byDate;
+  const recent = db.prepare(`
+    SELECT * FROM reunions
+    WHERE year >= ? AND COALESCE(no_reunion, 0) = 0
+      AND (
+        (event_date IS NOT NULL AND trim(event_date) != '')
+        OR (place_name IS NOT NULL AND trim(place_name) != '')
+        OR (address IS NOT NULL AND trim(address) != '')
+        OR (date_text IS NOT NULL AND trim(date_text) != '')
+        OR (location IS NOT NULL AND trim(location) != '')
+      )
+    ORDER BY year DESC
+    LIMIT 1
+  `).get(CURRENT_YEAR);
+  return recent || null;
+}
+
+function formatReunionDisplayDate(isoDate) {
+  if (!isoDate) return null;
+  try {
+    const d = new Date(isoDate.includes("T") ? isoDate : `${isoDate}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch (_) {
+    return isoDate;
+  }
+}
+
 app.get("/upcoming-reunion", (req, res) => {
+  ensureUpcomingReunionColumns();
+  const upcoming = getUpcomingReunion();
+  if (upcoming) {
+    upcoming.display_date = formatReunionDisplayDate(upcoming.event_date) || upcoming.date_text || null;
+  }
+  const yearOptions = [];
+  for (let y = CURRENT_YEAR; y <= CURRENT_YEAR + 3; y++) yearOptions.push(y);
+  const canEdit =
+    hasValidContributorPin(req) || !!(req.session.user && ADMIN_ROLES.includes(req.session.user.role));
   const data = localsBase(req);
   clearFlash(req);
-  res.render("upcoming", data);
+  res.render("upcoming", {
+    ...data,
+    upcoming,
+    yearOptions,
+    canEdit,
+    pinHolder: req.session.contributorPin || null,
+    editYear: upcoming ? upcoming.year : CURRENT_YEAR,
+  });
+});
+
+/** Family PIN (or admin): post / update upcoming reunion details for a year */
+app.post("/upcoming-reunion", contributeLimiter, requireContributorPin, (req, res) => {
+  ensureUpcomingReunionColumns();
+  let year = parseInt(req.body.year, 10);
+  if (Number.isNaN(year) || year < CURRENT_YEAR - 1 || year > CURRENT_YEAR + 5) {
+    year = CURRENT_YEAR;
+  }
+  const event_date = (req.body.event_date || "").trim() || null;
+  const event_time = (req.body.event_time || "").trim() || null;
+  const place_name = (req.body.place_name || "").trim() || null;
+  const address = (req.body.address || "").trim() || null;
+  const host_family = (req.body.host_family || "").trim()
+    || (req.session.contributorPin && req.session.contributorPin.assignedName)
+    || (req.session.user && (req.session.user.name || req.session.user.email))
+    || null;
+  const summary = (req.body.summary || "").trim() || null;
+  const title = (req.body.title || "").trim() || `${year} Capoccia–Miotto Family Reunion`;
+
+  if (!event_date && !event_time && !place_name && !address) {
+    setFlash(req, "error", "Please enter at least a date, time, place name, or address for the reunion.");
+    return res.redirect("/upcoming-reunion#reunion-details-form");
+  }
+
+  // Build a readable date_text / location for older timeline display
+  const date_text = event_date
+    ? [formatReunionDisplayDate(event_date), event_time].filter(Boolean).join(" · ")
+    : event_time || null;
+  const location = [place_name, address].filter(Boolean).join(" — ") || null;
+
+  const existing = db.prepare("SELECT year FROM reunions WHERE year = ?").get(year);
+  if (!existing) {
+    db.prepare(`
+      INSERT INTO reunions (year, title, date_text, location, host_family, summary,
+        event_date, event_time, place_name, address, is_upcoming, details_updated_by, no_reunion, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, 'open')
+    `).run(
+      year, title, date_text, location, host_family, summary,
+      event_date, event_time, place_name, address, host_family
+    );
+  } else {
+    db.prepare(`
+      UPDATE reunions SET
+        title = ?,
+        date_text = ?,
+        location = ?,
+        host_family = COALESCE(?, host_family),
+        summary = COALESCE(?, summary),
+        event_date = ?,
+        event_time = ?,
+        place_name = ?,
+        address = ?,
+        is_upcoming = 1,
+        details_updated_by = ?,
+        no_reunion = 0,
+        updated_at = datetime('now')
+      WHERE year = ?
+    `).run(
+      title, date_text, location, host_family, summary,
+      event_date, event_time, place_name, address, host_family, year
+    );
+  }
+  // Only one active "upcoming" flag at a time
+  db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(year);
+
+  logSiteActivity(req, "reunion_details", {
+    actorName: host_family || "Family member",
+    details: `Upcoming ${year}: ${[event_date, event_time, place_name, address].filter(Boolean).join(" · ")}`,
+  });
+
+  setFlash(
+    req,
+    "success",
+    `Thank you. The ${year} reunion details are now posted for the family.`
+  );
+  res.redirect("/upcoming-reunion");
 });
 
 app.get("/about", (req, res) => {
@@ -975,6 +1136,9 @@ app.get("/contribute/pin", (req, res) => {
     const nextKey = req.query.next || "photos";
     if (nextKey === "portrait" && req.query.member) {
       return res.redirect(`/family-members/${encodeURIComponent(req.query.member)}`);
+    }
+    if (nextKey === "upcoming") {
+      return res.redirect("/upcoming-reunion#reunion-details-form");
     }
     const nextMap = {
       story: "/contribute/story",
@@ -1092,7 +1256,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   const memberId = (req.body.member || "").trim();
   const backQs = [];
   if (year) backQs.push(`year=${encodeURIComponent(year)}`);
-  if (next === "story" || next === "member" || next === "recording" || next === "board" || next === "portrait") {
+  if (next === "story" || next === "member" || next === "recording" || next === "board" || next === "portrait" || next === "upcoming") {
     backQs.push(`next=${encodeURIComponent(next)}`);
   }
   if (memberId) backQs.push(`member=${encodeURIComponent(memberId)}`);
@@ -1147,6 +1311,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   if (next === "member") return res.redirect("/contribute/member");
   if (next === "board") return res.redirect("/community-board");
   if (next === "recording") return res.redirect("/voice-recordings");
+  if (next === "upcoming") return res.redirect("/upcoming-reunion#reunion-details-form");
   if (next === "portrait" && memberId) return res.redirect(`/family-members/${encodeURIComponent(memberId)}`);
   return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
@@ -1862,11 +2027,17 @@ app.get("/admin/reunions", requireRole(...ADMIN_ROLES), (req, res) => {
 });
 
 app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureUpcomingReunionColumns();
   const year = parseInt(req.params.year, 10);
+  const isUpcoming = req.body.is_upcoming === "1" ? 1 : 0;
+  if (isUpcoming) {
+    db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(year);
+  }
   db.prepare(`
     UPDATE reunions SET
       title = ?, date_text = ?, location = ?, host_family = ?, summary = ?,
-      no_reunion = ?, updated_at = datetime('now')
+      event_date = ?, event_time = ?, place_name = ?, address = ?,
+      is_upcoming = ?, no_reunion = ?, updated_at = datetime('now')
     WHERE year = ?
   `).run(
     (req.body.title || "").trim() || `${year} Capoccia–Miotto Family Reunion`,
@@ -1874,6 +2045,11 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
     (req.body.location || "").trim() || null,
     (req.body.host_family || "").trim() || null,
     (req.body.summary || "").trim() || null,
+    (req.body.event_date || "").trim() || null,
+    (req.body.event_time || "").trim() || null,
+    (req.body.place_name || "").trim() || null,
+    (req.body.address || "").trim() || null,
+    isUpcoming,
     req.body.no_reunion === "1" ? 1 : 0,
     year
   );

@@ -64,6 +64,12 @@ function migrate() {
       summary TEXT,
       no_reunion INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'open',
+      event_date TEXT,
+      event_time TEXT,
+      place_name TEXT,
+      address TEXT,
+      is_upcoming INTEGER NOT NULL DEFAULT 0,
+      details_updated_by TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -350,6 +356,22 @@ function migrate() {
     ensureAnalyticsTables(db);
   } catch (e) {
     console.warn("analytics tables note:", e.message);
+  }
+
+  // Upcoming reunion detail columns (PIN-editable each year)
+  try {
+    const cols = db.prepare("PRAGMA table_info(reunions)").all().map((c) => c.name);
+    const add = (name, def) => {
+      if (!cols.includes(name)) db.exec(`ALTER TABLE reunions ADD COLUMN ${name} ${def}`);
+    };
+    add("event_date", "TEXT");
+    add("event_time", "TEXT");
+    add("place_name", "TEXT");
+    add("address", "TEXT");
+    add("is_upcoming", "INTEGER NOT NULL DEFAULT 0");
+    add("details_updated_by", "TEXT");
+  } catch (e) {
+    console.warn("reunions upcoming columns note:", e.message);
   }
 
   // Community board photo/video attachments

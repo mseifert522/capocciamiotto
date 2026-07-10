@@ -42,8 +42,6 @@
           <% member.biography.split(/\n\n+/).forEach(function(para) { %>
             <p style="margin-top:0.85rem;line-height:1.75"><%= para %></p>
           <% }) %>
-        <% } else { %>
-          <p style="margin-top:0.75rem">Biographical information will appear here when provided by the family.</p>
         <% } %>
 
         <% if (member.favorite_memories) { %>

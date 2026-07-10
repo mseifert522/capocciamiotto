@@ -37,9 +37,8 @@
       </div>
     <% } else { %>
       <div class="empty">
-        <h3>We are still searching for photographs and memories from the <%= reunion.year %> Capoccia–Miotto Family Reunion.</h3>
-        <p>Do you have something to share? Your contribution may help another family member reconnect with a forgotten memory.</p>
-        <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Add Photos or Memories From This Year</a>
+        <h3>No photographs yet from <%= reunion.year %>.</h3>
+        <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Add Photos From This Year</a>
       </div>
     <% } %>
 

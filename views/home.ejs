@@ -82,11 +82,9 @@
             </div>
             <h3><%= m.display_name %></h3>
             <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-            <p class="card-excerpt">
-              <% if (m.biography) { %><%= m.biography.split(/\n\n+/)[0] %><% } else { %>
-                Biographical information will appear here when provided by the family.
-              <% } %>
-            </p>
+            <% if (m.biography) { %>
+            <p class="card-excerpt"><%= m.biography.split(/\n\n+/)[0] %></p>
+            <% } %>
             <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
           </div>
         </article>
@@ -103,14 +101,11 @@
       <div class="section-rule"></div>
     </header>
     <p class="section-lead">
-      The Capoccia and Miotto families share Italian heritage and a reunion tradition that began in <strong>1977</strong>. Our complete family story is still being gathered.
+      The Capoccia and Miotto families share Italian heritage and a reunion tradition that began in <strong>1977</strong>.
     </p>
     <div class="empty" style="margin-top:1.5rem">
-      <h3>This chapter of our family history is waiting to be completed.</h3>
-      <p>
-        Family members are invited to contribute names, photographs, dates, stories, documents, recipes, traditions, and memories that will help us preserve the history of the Capoccia and Miotto families.
-      </p>
-      <a class="btn btn-secondary" href="/contribute/story">Help Tell Our Family Story</a>
+      <h3>Help tell our family story</h3>
+      <a class="btn btn-secondary" href="/contribute/story">Share a Memory</a>
     </div>
   </div>
 </section>

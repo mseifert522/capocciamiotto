@@ -5,11 +5,10 @@
       <p class="section-eyebrow">A safe family gathering place</p>
       <h2 class="section-title">Community Board</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">Announcements, photo requests, reunion planning, recipes, and family news—moderated with care.</p>
     </header>
     <div class="board-list" style="margin-bottom:2rem">
       <% if (!posts.length) { %>
-        <div class="empty"><h3>No public posts yet.</h3><p>Be the first to leave a respectful family message for review.</p></div>
+        <div class="empty"><h3>No public posts yet.</h3></div>
       <% } %>
       <% posts.forEach(function(post) { %>
         <article class="board-post <%= post.is_pinned ? 'pinned' : '' %>">

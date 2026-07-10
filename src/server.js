@@ -23,6 +23,13 @@ const PORT = process.env.PORT || 3080;
 const CURRENT_YEAR = new Date().getFullYear();
 const SECRET = process.env.SESSION_SECRET || "Capoccia-Miotto-tribute-change-in-production";
 
+/**
+ * Family contributions publish immediately until further notice.
+ * To re-enable admin review: set MODERATION_ENABLED=true in secrets and redeploy.
+ */
+const MODERATION_ENABLED = process.env.MODERATION_ENABLED === "true";
+const CONTENT_STATUS = MODERATION_ENABLED ? "pending" : "approved";
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
 app.set("trust proxy", 1);
@@ -164,6 +171,131 @@ function logActivity(userId, action, details) {
 }
 
 const ADMIN_ROLES = ["super_admin", "family_admin", "photo_moderator", "content_moderator", "reunion_organizer"];
+
+/**
+ * Publish a family-member submission onto the living tree (and optional spouse).
+ * Used by admin approve and by open publishing when moderation is off.
+ */
+function publishMemberSubmission(sub, reviewedByUserId) {
+  if (!sub) return { ok: false, error: "not_found" };
+  if (sub.status === "approved" && sub.family_member_id) {
+    return { ok: true, already: true, mainId: sub.family_member_id };
+  }
+
+  const role = [sub.role_in_family, sub.relation_to_family].filter(Boolean).join(" · ") || null;
+  const bio = sub.short_bio || null;
+  const maxSort = db.prepare("SELECT COALESCE(MAX(sort_order), 50) AS m FROM family_members").get().m;
+  const sortOrder = Math.max(100, (maxSort || 50) + 1);
+  const parentId = sub.parent_member_id || null;
+  const tree_lineage = sub.tree_lineage || (parentId ? lineageFromMember(db, parentId) : null);
+  const generation = generationFromParent(db, parentId, sub.relation_type || "child_of");
+  const isSpouseOf = sub.relation_type === "spouse_of";
+  const linkedSpouseId = isSpouseOf ? parentId : null;
+  const parentForTree = isSpouseOf ? null : parentId;
+  const spouseFull = (sub.spouse_full_name || "").trim();
+
+  const insertMember = db.prepare(`
+    INSERT INTO family_members (
+      full_name, preferred_name, maiden_name, family_branch,
+      is_patriarch, is_matriarch, is_memorial, is_placeholder,
+      role_in_family, biography, visibility, sort_order,
+      parent_member_id, spouse_member_id, tree_lineage, generation, relation_type
+    ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insert = insertMember.run(
+    sub.full_name,
+    sub.preferred_name || sub.full_name,
+    sub.maiden_name || null,
+    sub.family_branch || "both",
+    role,
+    bio,
+    sortOrder,
+    parentForTree,
+    linkedSpouseId,
+    tree_lineage,
+    generation,
+    sub.relation_type || "child_of"
+  );
+  const mainId = insert.lastInsertRowid;
+
+  let createdSpouseId = null;
+  if (spouseFull) {
+    const spouseRole = `Spouse of ${sub.preferred_name || sub.full_name}`;
+    const spouseInsert = insertMember.run(
+      spouseFull,
+      sub.spouse_preferred_name || spouseFull,
+      sub.spouse_maiden_name || null,
+      sub.family_branch || "both",
+      spouseRole,
+      null,
+      sortOrder + 1,
+      parentForTree,
+      mainId,
+      tree_lineage,
+      generation,
+      "spouse_of"
+    );
+    createdSpouseId = spouseInsert.lastInsertRowid;
+    db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(createdSpouseId, mainId);
+    if (isSpouseOf && parentId) {
+      db.prepare(`
+        UPDATE family_members
+        SET spouse_member_id = COALESCE(spouse_member_id, ?)
+        WHERE id = ?
+      `).run(mainId, parentId);
+    }
+  } else if (isSpouseOf && parentId) {
+    db.prepare(`
+      UPDATE family_members
+      SET spouse_member_id = COALESCE(spouse_member_id, ?)
+      WHERE id = ?
+    `).run(mainId, parentId);
+  }
+
+  db.prepare(`
+    UPDATE family_member_submissions
+    SET status = 'approved',
+        family_member_id = ?,
+        spouse_member_id = ?,
+        reviewed_at = datetime('now'),
+        reviewed_by = ?
+    WHERE id = ?
+  `).run(mainId, createdSpouseId, reviewedByUserId || null, sub.id);
+
+  db.prepare(`
+    UPDATE contributions_log SET status = 'approved'
+    WHERE kind = 'family_member' AND ref_id = ?
+  `).run(sub.id);
+
+  return { ok: true, mainId, createdSpouseId, spouseFull };
+}
+
+/** When moderation is off, publish any backlog still sitting in pending. */
+function publishPendingBacklog() {
+  if (MODERATION_ENABLED) return;
+  try {
+    const photos = db.prepare("UPDATE photos SET status = 'approved' WHERE status = 'pending'").run();
+    db.prepare("UPDATE photo_people SET status = 'approved' WHERE status = 'pending'").run();
+    const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
+    const stories = db.prepare("UPDATE stories SET status = 'approved' WHERE status = 'pending'").run();
+    const pendingMembers = db.prepare(`
+      SELECT * FROM family_member_submissions WHERE status = 'pending' ORDER BY id ASC
+    `).all();
+    let membersPublished = 0;
+    for (const sub of pendingMembers) {
+      const result = publishMemberSubmission(sub, null);
+      if (result.ok && !result.already) membersPublished += 1;
+    }
+    console.log(
+      `[open-publish] backlog photos=${photos.changes} board=${board.changes} stories=${stories.changes} members=${membersPublished}`
+    );
+  } catch (err) {
+    console.warn("publishPendingBacklog note:", err.message);
+  }
+}
+
+publishPendingBacklog();
 
 // ---------- Public pages ----------
 app.get("/", (req, res) => {
@@ -355,9 +487,15 @@ app.post("/community-board", contributeLimiter, requireContributorPin, (req, res
   }
   db.prepare(`
     INSERT INTO board_posts (title, body, category, author_name, author_email, status)
-    VALUES (?, ?, ?, ?, ?, 'pending')
-  `).run(title, body, category, author_name, author_email || null);
-  setFlash(req, "success", "Thank you. Your message was submitted for family administrator review.");
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(title, body, category, author_name, author_email || null, CONTENT_STATUS);
+  setFlash(
+    req,
+    "success",
+    MODERATION_ENABLED
+      ? "Thank you. Your message was submitted for family administrator review."
+      : "Thank you. Your message is now live on the community board."
+  );
   res.redirect("/community-board");
 });
 
@@ -619,12 +757,12 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
         @original_filename, @original_path, @web_path, @thumb_path, @title, @description,
         @reunion_year, @year_approximate, @year_unknown, @family_branch, @location, @photo_date,
         @original_owner, @photographer, @contributor_name, @contributor_email, @contributor_phone,
-        1, @may_display_public, 'pending', @file_size, @mime_type, @width, @height
+        1, @may_display_public, @status, @file_size, @mime_type, @width, @height
       )
     `);
     const insertPerson = db.prepare(`
       INSERT INTO photo_people (photo_id, person_name, is_identified, status)
-      VALUES (?, ?, 1, 'pending')
+      VALUES (?, ?, 1, ?)
     `);
 
     const tx = db.transaction(() => {
@@ -651,11 +789,18 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
         contributor_email: (req.body.contributor_email || "").trim() || null,
         contributor_phone: (req.body.contributor_phone || "").trim() || null,
         may_display_public: req.body.may_display_public === "0" ? 0 : 1,
+        status: CONTENT_STATUS,
       });
-      peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name));
+      peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name, CONTENT_STATUS));
     }
 
-    setFlash(req, "success", "Thank you. Your photographs were received and will appear after a family administrator reviews them.");
+    setFlash(
+      req,
+      "success",
+      MODERATION_ENABLED
+        ? "Thank you. Your photographs were received and will appear after a family administrator reviews them."
+        : "Thank you. Your photographs are live in the family archive."
+    );
     res.redirect("/contribute/thanks");
   } catch (err) {
     console.error(err);
@@ -737,7 +882,7 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
       relation_to_family, short_bio, contributor_name, contributor_email, contributor_phone,
       pin_id, parent_member_id, tree_lineage, relation_type,
       spouse_full_name, spouse_preferred_name, spouse_maiden_name, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     full_name,
     preferred_name,
@@ -755,14 +900,16 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     relType,
     spouse_full_name,
     spouse_preferred_name,
-    spouse_maiden_name
+    spouse_maiden_name,
+    CONTENT_STATUS
   );
 
+  const subId = info.lastInsertRowid;
   db.prepare(`
     INSERT INTO contributions_log (kind, ref_id, payload_json, contributor_name, contributor_email, status)
-    VALUES ('family_member', ?, ?, ?, ?, 'pending')
+    VALUES ('family_member', ?, ?, ?, ?, ?)
   `).run(
-    info.lastInsertRowid,
+    subId,
     JSON.stringify({
       full_name,
       family_branch: branch,
@@ -775,11 +922,26 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
       spouse_maiden_name,
     }),
     contributor_name,
-    contributor_email
+    contributor_email,
+    CONTENT_STATUS
   );
 
   const spouseNote = spouse_full_name ? " (with spouse)" : "";
-  setFlash(req, "success", `Thank you. Your name${spouseNote} was submitted and will appear on the family tree after a family administrator reviews it.`);
+  if (!MODERATION_ENABLED) {
+    const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(subId);
+    publishMemberSubmission(sub, null);
+    setFlash(
+      req,
+      "success",
+      `Thank you. Your name${spouseNote} is now on the family tree and Family Members list.`
+    );
+  } else {
+    setFlash(
+      req,
+      "success",
+      `Thank you. Your name${spouseNote} was submitted and will appear on the family tree after a family administrator reviews it.`
+    );
+  }
   res.redirect("/contribute/thanks");
 });
 
@@ -806,16 +968,23 @@ app.post("/contribute/story", contributeLimiter, requireContributorPin, (req, re
   const year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
   db.prepare(`
     INSERT INTO stories (reunion_year, title, body, contributor_name, contributor_email, story_type, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending')
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     year || null,
     (req.body.title || "").trim() || null,
     body,
     contributor_name,
     (req.body.contributor_email || "").trim() || null,
-    (req.body.story_type || "memory").trim()
+    (req.body.story_type || "memory").trim(),
+    CONTENT_STATUS
   );
-  setFlash(req, "success", "Thank you. Your story was submitted for review.");
+  setFlash(
+    req,
+    "success",
+    MODERATION_ENABLED
+      ? "Thank you. Your story was submitted for review."
+      : "Thank you. Your story is now published for the family."
+  );
   res.redirect("/contribute/thanks");
 });
 
@@ -993,102 +1162,20 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
     return res.redirect("/admin/members");
   }
 
-  const role = [sub.role_in_family, sub.relation_to_family].filter(Boolean).join(" · ") || null;
-  const bio = sub.short_bio || null;
-  const maxSort = db.prepare("SELECT COALESCE(MAX(sort_order), 50) AS m FROM family_members").get().m;
-  const sortOrder = Math.max(100, (maxSort || 50) + 1);
-  const parentId = sub.parent_member_id || null;
-  const tree_lineage = sub.tree_lineage || (parentId ? lineageFromMember(db, parentId) : null);
-  const generation = generationFromParent(db, parentId, sub.relation_type || "child_of");
-  const isSpouseOf = sub.relation_type === "spouse_of";
-  const linkedSpouseId = isSpouseOf ? parentId : null;
-  const parentForTree = isSpouseOf ? null : parentId;
-  const spouseFull = (sub.spouse_full_name || "").trim();
-
-  const insertMember = db.prepare(`
-    INSERT INTO family_members (
-      full_name, preferred_name, maiden_name, family_branch,
-      is_patriarch, is_matriarch, is_memorial, is_placeholder,
-      role_in_family, biography, visibility, sort_order,
-      parent_member_id, spouse_member_id, tree_lineage, generation, relation_type
-    ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insert = insertMember.run(
-    sub.full_name,
-    sub.preferred_name || sub.full_name,
-    sub.maiden_name || null,
-    sub.family_branch || "both",
-    role,
-    bio,
-    sortOrder,
-    parentForTree,
-    linkedSpouseId,
-    tree_lineage,
-    generation,
-    sub.relation_type || "child_of"
-  );
-  const mainId = insert.lastInsertRowid;
-
-  // Optional spouse submitted with this name (appear together on the living tree)
-  let createdSpouseId = null;
-  if (spouseFull) {
-    const spouseRole = `Spouse of ${sub.preferred_name || sub.full_name}`;
-    const spouseInsert = insertMember.run(
-      spouseFull,
-      sub.spouse_preferred_name || spouseFull,
-      sub.spouse_maiden_name || null,
-      sub.family_branch || "both",
-      spouseRole,
-      null,
-      sortOrder + 1,
-      parentForTree,
-      mainId,
-      tree_lineage,
-      generation,
-      "spouse_of"
-    );
-    createdSpouseId = spouseInsert.lastInsertRowid;
-    db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(createdSpouseId, mainId);
-    // If this person is spouse_of an existing member, keep that link on the primary spouse too
-    if (isSpouseOf && parentId) {
-      db.prepare(`
-        UPDATE family_members
-        SET spouse_member_id = COALESCE(spouse_member_id, ?)
-        WHERE id = ?
-      `).run(mainId, parentId);
-    }
-  } else if (isSpouseOf && parentId) {
-    db.prepare(`
-      UPDATE family_members
-      SET spouse_member_id = COALESCE(spouse_member_id, ?)
-      WHERE id = ?
-    `).run(mainId, parentId);
+  const result = publishMemberSubmission(sub, req.session.user.id);
+  if (!result.ok) {
+    setFlash(req, "error", "Could not publish this submission.");
+    return res.redirect("/admin/members");
   }
-
-  db.prepare(`
-    UPDATE family_member_submissions
-    SET status = 'approved',
-        family_member_id = ?,
-        spouse_member_id = ?,
-        reviewed_at = datetime('now'),
-        reviewed_by = ?
-    WHERE id = ?
-  `).run(mainId, createdSpouseId, req.session.user.id, sub.id);
-
-  db.prepare(`
-    UPDATE contributions_log SET status = 'approved'
-    WHERE kind = 'family_member' AND ref_id = ?
-  `).run(sub.id);
 
   logActivity(
     req.session.user.id,
     "approve_member_submission",
     `Approved family member submission #${sub.id}: ${sub.full_name}` +
-      (createdSpouseId ? ` + spouse ${spouseFull}` : "")
+      (result.createdSpouseId ? ` + spouse ${result.spouseFull}` : "")
   );
-  const successMsg = createdSpouseId
-    ? `${sub.full_name} and ${spouseFull} were approved and placed together on the living family tree.`
+  const successMsg = result.createdSpouseId
+    ? `${sub.full_name} and ${result.spouseFull} were approved and placed together on the living family tree.`
     : `${sub.full_name} was approved, added to Family Members, and placed on the living family tree.`;
   setFlash(req, "success", successMsg);
   res.redirect("/admin/members");

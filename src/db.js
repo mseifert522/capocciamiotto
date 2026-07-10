@@ -344,7 +344,7 @@ function migrate() {
       VALUES (?, ?, 'announcement', 'Family Administrators', 1, 'approved')
     `).run(
       "Welcome to Our Family Community Board",
-      "This is a safe gathering place for Capoccia and Miotto family news, reunion planning, photo requests, and messages. Posts are moderated so our tribute remains respectful for every generation. Please help us collect photographs and memories from reunions since 1977."
+      "This is a safe gathering place for Capoccia and Miotto family news, reunion planning, photo requests, and messages. Family members with the family PIN can post freely so our tribute grows together. Please help us collect photographs and memories from reunions since 1977."
     );
   }
 

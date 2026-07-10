@@ -161,6 +161,117 @@ function reunionHasPublicDetails(row) {
 }
 
 /**
+ * Seed / refresh 2025 archive details from the family save-the-date email.
+ * Does not invent a street address — only Pinckney, MI as stated.
+ * Preserves cover_photo_path if already set.
+ */
+function apply2025FamilyEmailDetails(db, { force = false } = {}) {
+  ensureReunionDetailSchema(db);
+  const year = 2025;
+  let row = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
+  if (!row) {
+    db.prepare(`
+      INSERT INTO reunions (year, title, is_upcoming, status)
+      VALUES (?, ?, 0, 'open')
+    `).run(year, "2025 Capoccia–Miotto Family Reunion");
+    row = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
+  }
+
+  if (!force && row.details_source === "family-email-2025-save-the-date" && row.place_name) {
+    return { ok: true, skipped: true, year };
+  }
+
+  const summary =
+    "Save the date for the annual Capoccia–Miotto family reunion on Sunday, June 29, 2025. " +
+    "Held at Jaclyn & Joe’s place in Pinckney, Michigan. Further details were to follow from the family invitation.";
+
+  const mainWhen = "Sunday, June 29, 2025";
+  const activities = [
+    {
+      day_label: "Sunday",
+      activity_date: "2025-06-29",
+      time_text: null,
+      title: "Annual family reunion",
+      location: "Jaclyn & Joe’s place, Pinckney, MI",
+      price_info: null,
+      notes: "Save-the-date announcement. Additional details were expected to follow.",
+      reservation_required: 0,
+      sort_order: 10,
+    },
+  ];
+
+  db.prepare(`
+    UPDATE reunions SET
+      title = ?,
+      date_text = ?,
+      location = ?,
+      host_family = ?,
+      summary = ?,
+      event_date = ?,
+      event_date_end = ?,
+      event_time = ?,
+      place_name = ?,
+      address = COALESCE(address, NULL),
+      city = ?,
+      state = ?,
+      room_name = NULL,
+      main_event_label = ?,
+      main_event_when = ?,
+      rsvp_notes = ?,
+      schedule_json = ?,
+      details_source = ?,
+      details_updated_by = ?,
+      no_reunion = 0,
+      is_upcoming = 0,
+      updated_at = datetime('now')
+    WHERE year = ?
+  `).run(
+    "2025 Capoccia–Miotto Family Reunion",
+    "Sunday, June 29, 2025",
+    "Jaclyn & Joe’s place, Pinckney, MI",
+    "Jaclyn & Joe",
+    summary,
+    "2025-06-29",
+    "2025-06-29",
+    "All day · details announced by hosts",
+    "Jaclyn & Joe’s place",
+    "Pinckney",
+    "MI",
+    "Annual family reunion",
+    mainWhen,
+    "Invitation asked that the notice be forwarded to anyone missing from the email list. Further details were to come soon.",
+    JSON.stringify(activities),
+    "family-email-2025-save-the-date",
+    "Family save-the-date email",
+    year
+  );
+
+  db.prepare("DELETE FROM reunion_activities WHERE reunion_year = ?").run(year);
+  const insertAct = db.prepare(`
+    INSERT INTO reunion_activities (
+      reunion_year, activity_date, day_label, time_text, title, location,
+      price_info, notes, reservation_required, sort_order
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  activities.forEach((a) => {
+    insertAct.run(
+      year,
+      a.activity_date,
+      a.day_label,
+      a.time_text,
+      a.title,
+      a.location,
+      a.price_info,
+      a.notes,
+      a.reservation_required ? 1 : 0,
+      a.sort_order
+    );
+  });
+
+  return { ok: true, year, activities: activities.length };
+}
+
+/**
  * Seed / refresh 2026 details from the family organizer email (Lori).
  * Only fills empty structured fields unless force=true.
  */
@@ -395,6 +506,7 @@ module.exports = {
   ensureReunionDetailSchema,
   enrichReunion,
   reunionHasPublicDetails,
+  apply2025FamilyEmailDetails,
   apply2026FamilyEmailDetails,
   formatDisplayDateRange,
   REUNION_DETAIL_COLUMNS,

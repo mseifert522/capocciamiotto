@@ -36,6 +36,7 @@ const {
   ensureReunionDetailSchema,
   enrichReunion,
   reunionHasPublicDetails,
+  apply2025FamilyEmailDetails,
   apply2026FamilyEmailDetails,
 } = require("./reunionDetails");
 
@@ -1091,9 +1092,10 @@ function formatReunionDisplayDate(isoDate) {
 app.get("/upcoming-reunion", (req, res) => {
   ensureUpcomingReunionColumns();
   try {
+    apply2025FamilyEmailDetails(db, { force: false });
     apply2026FamilyEmailDetails(db, { force: false });
   } catch (e) {
-    console.warn("2026 reunion seed note:", e.message);
+    console.warn("reunion seed note:", e.message);
   }
 
   // Ensure current + next year rows exist for navigation

@@ -360,8 +360,13 @@ function migrate() {
 
   // Structured reunion details (multi-day, pricing, schedule, RSVP)
   try {
-    const { ensureReunionDetailSchema, apply2026FamilyEmailDetails } = require("./reunionDetails");
+    const {
+      ensureReunionDetailSchema,
+      apply2025FamilyEmailDetails,
+      apply2026FamilyEmailDetails,
+    } = require("./reunionDetails");
     ensureReunionDetailSchema(db);
+    apply2025FamilyEmailDetails(db, { force: false });
     apply2026FamilyEmailDetails(db, { force: false });
   } catch (e) {
     console.warn("reunion details schema note:", e.message);

@@ -565,6 +565,15 @@ function seedFamilyTributes() {
   `).run(
     "Capoccia Parents → Costanzo & Madeline\n├── Tony (m. Fran Babich) – honored elder\n├── George (m. Christine) – Capoccia Patriarch & Matriarch\n└── Anna (m. Mickey Miotto) – Miotto Matriarch (link to Miotto branch)"
   );
+
+  // Portrait photos (bundled with the site)
+  db.prepare(`
+    UPDATE family_members
+    SET portrait_path = '/uploads/portraits/george-capoccia-army.jpg',
+        updated_at = datetime('now')
+    WHERE full_name LIKE 'George%Capoccia%'
+       OR preferred_name LIKE 'George%Capoccia%'
+  `).run();
 }
 
 migrate();

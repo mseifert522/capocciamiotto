@@ -424,14 +424,14 @@ input, select, textarea { font-size: 16px; }
 .tribute-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.35rem;
+  gap: 1.25rem;
   align-items: stretch;
   margin-top: 0.5rem;
 }
 .tribute-card {
   background: var(--parchment);
   border-radius: 14px;
-  box-shadow: 0 12px 32px var(--shadow);
+  box-shadow: 0 10px 28px var(--shadow);
   border: 1px solid rgba(196, 163, 90, 0.18);
   overflow: hidden;
   display: flex;
@@ -441,49 +441,60 @@ input, select, textarea { font-size: 16px; }
   transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
 }
 .tribute-card:hover {
-  box-shadow: 0 16px 40px var(--shadow-md);
+  box-shadow: 0 14px 36px var(--shadow-md);
   transform: translateY(-2px);
 }
+/* Fixed small portrait — same size on every card */
 .tribute-card-photo {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  max-height: 200px;
   flex-shrink: 0;
-  background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  padding: 1.15rem 1rem 0.35rem;
+  background: linear-gradient(180deg, var(--cream-deep) 0%, var(--parchment) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 .tribute-card-photo img {
-  width: 100%;
-  height: 100%;
+  width: 112px;
+  height: 112px;
+  max-width: 112px;
+  max-height: 112px;
+  border-radius: 50%;
   object-fit: cover;
-  object-position: center 18%;
+  object-position: center 15%;
+  border: 3px solid rgba(255, 253, 248, 0.95);
+  box-shadow: 0 4px 14px rgba(43, 33, 28, 0.12);
+  display: block;
 }
 .tribute-card-photo-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(155deg, #f3ebe0, #e4d4c2);
-}
-.tribute-card-photo-placeholder span {
-  width: 4.25rem;
-  height: 4.25rem;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(155deg, #f3ebe0, #e4d4c2);
+  border: 3px solid rgba(255, 253, 248, 0.95);
+  box-shadow: 0 4px 14px rgba(43, 33, 28, 0.1);
+}
+.tribute-card-photo-placeholder span {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   font-family: var(--font-display);
-  font-size: 1.85rem;
+  font-size: 2rem;
   color: var(--burgundy);
-  background: rgba(255, 253, 248, 0.85);
-  border: 1px solid rgba(196, 163, 90, 0.35);
 }
 .tribute-card-body {
-  padding: 1.15rem 1.15rem 1.25rem;
+  padding: 0.65rem 1.1rem 1.2rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -782,7 +793,13 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
-  .tribute-card-photo { max-height: 180px; }
+  .tribute-card-photo img,
+  .tribute-card-photo-placeholder {
+    width: 100px;
+    height: 100px;
+    max-width: 100px;
+    max-height: 100px;
+  }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -837,10 +854,18 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
-  .tribute-card-photo { max-height: 150px; }
-  .tribute-card-body { padding: 0.9rem 0.8rem 1rem; }
-  .tribute-card-name { font-size: 1.08rem; min-height: 2.4em; }
-  .tribute-card-bio { min-height: 7em; }
+  .tribute-card-photo {
+    padding: 0.9rem 0.75rem 0.25rem;
+  }
+  .tribute-card-photo img,
+  .tribute-card-photo-placeholder {
+    width: 88px;
+    height: 88px;
+    max-width: 88px;
+    max-height: 88px;
+  }
+  .tribute-card-body { padding: 0.5rem 0.8rem 1rem; }
+  .tribute-card-name { font-size: 1.05rem; min-height: 2.3em; }
   .tribute-card-bio p { font-size: 0.84rem; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -858,7 +883,13 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  .tribute-card-photo { max-height: 220px; aspect-ratio: 4 / 3; }
+  .tribute-card-photo img,
+  .tribute-card-photo-placeholder {
+    width: 104px;
+    height: 104px;
+    max-width: 104px;
+    max-height: 104px;
+  }
   .card-grid-uniform {
     grid-template-columns: 1fr;
   }

@@ -24,7 +24,7 @@ const {
   lineageFromMember,
   generationFromParent,
 } = require("./familyTree");
-const { sendFamilyPinEmail, sendActivityReportEmail, CONTACT_EMAIL } = require("./mail");
+const { sendFamilyPinEmail, sendActivityReportEmail, sendGenericEmail, CONTACT_EMAIL } = require("./mail");
 const {
   ensureAnalyticsTables,
   recordPageView,
@@ -1020,34 +1020,31 @@ function formatReunionDisplayDate(isoDate) {
 
 app.get("/upcoming-reunion", (req, res) => {
   ensureUpcomingReunionColumns();
-  // Ensure current year row exists so organizers can post 2026 (etc.) details
   let focusYear = CURRENT_YEAR;
   if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(focusYear)) {
     db.prepare("INSERT INTO reunions (year, title, is_upcoming) VALUES (?, ?, 1)").run(
       focusYear,
       `${focusYear} Capoccia–Miotto Family Reunion`
     );
+  } else {
+    // Prefer current year as the featured upcoming display year
+    try {
+      db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(focusYear);
+      db.prepare("UPDATE reunions SET is_upcoming = 1 WHERE year = ?").run(focusYear);
+    } catch (_) { /* ignore */ }
   }
-  const upcoming = getUpcomingReunion();
+
+  const focusRow = db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear);
+  const upcoming = getUpcomingReunion() || focusRow || null;
   if (upcoming) {
     upcoming.display_date = formatReunionDisplayDate(upcoming.event_date) || upcoming.date_text || null;
-    focusYear = upcoming.year;
+    if (upcoming.year) focusYear = upcoming.year;
   }
-  const focusRow = db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear);
   const hasDetails = !!(
     upcoming &&
     (upcoming.event_date || upcoming.event_time || upcoming.place_name || upcoming.address || upcoming.date_text || upcoming.location)
   );
-  const missing = [];
-  if (!hasDetails || !(upcoming && upcoming.event_date)) missing.push("date");
-  if (!hasDetails || !(upcoming && upcoming.event_time)) missing.push("time");
-  if (!hasDetails || !(upcoming && upcoming.place_name)) missing.push("place name");
-  if (!hasDetails || !(upcoming && upcoming.address)) missing.push("address");
 
-  const yearOptions = [];
-  for (let y = CURRENT_YEAR; y <= CURRENT_YEAR + 3; y++) yearOptions.push(y);
-  const canEdit =
-    hasValidContributorPin(req) || !!(req.session.user && ADMIN_ROLES.includes(req.session.user.role));
   const data = localsBase(req);
   clearFlash(req);
   res.render("upcoming", {
@@ -1056,89 +1053,126 @@ app.get("/upcoming-reunion", (req, res) => {
     focusYear,
     focusTitle: (focusRow && focusRow.title) || `${focusYear} Capoccia–Miotto Family Reunion`,
     hasDetails,
-    missingFields: missing,
-    yearOptions,
-    canEdit,
-    pinHolder: req.session.contributorPin || null,
-    editYear: focusYear,
+    showAdminForm: req.query.email === "1" || req.query.email === "admin",
   });
 });
 
-/** Family PIN (or admin): post / update upcoming reunion details for a year */
-app.post("/upcoming-reunion", contributeLimiter, requireContributorPin, (req, res) => {
-  ensureUpcomingReunionColumns();
-  let year = parseInt(req.body.year, 10);
-  if (Number.isNaN(year) || year < CURRENT_YEAR - 1 || year > CURRENT_YEAR + 5) {
-    year = CURRENT_YEAR;
-  }
-  const event_date = (req.body.event_date || "").trim() || null;
-  const event_time = (req.body.event_time || "").trim() || null;
-  const place_name = (req.body.place_name || "").trim() || null;
-  const address = (req.body.address || "").trim() || null;
-  const host_family = (req.body.host_family || "").trim()
-    || (req.session.contributorPin && req.session.contributorPin.assignedName)
-    || (req.session.user && (req.session.user.name || req.session.user.email))
-    || null;
-  const summary = (req.body.summary || "").trim() || null;
-  const title = (req.body.title || "").trim() || `${year} Capoccia–Miotto Family Reunion`;
+/**
+ * Public: email proposed reunion details to site admin (does not publish on the page).
+ * Admin posts official details from the admin reunions screen.
+ */
+app.post("/upcoming-reunion/email-admin", contributeLimiter, async (req, res) => {
+  const year = parseInt(req.body.year, 10) || CURRENT_YEAR;
+  const organizer_name = (req.body.organizer_name || "").trim();
+  const organizer_email = (req.body.organizer_email || "").trim().toLowerCase();
+  const event_date = (req.body.event_date || "").trim();
+  const event_time = (req.body.event_time || "").trim();
+  const place_name = (req.body.place_name || "").trim();
+  const address = (req.body.address || "").trim();
+  const notes = (req.body.notes || "").trim();
+  const phone = (req.body.phone || "").trim();
 
+  if (!organizer_name || !organizer_email) {
+    setFlash(req, "error", "Please include your name and email so the website administrator can reply.");
+    return res.redirect("/upcoming-reunion?email=1#email-admin");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(organizer_email)) {
+    setFlash(req, "error", "Please enter a valid email address.");
+    return res.redirect("/upcoming-reunion?email=1#email-admin");
+  }
   if (!event_date && !event_time && !place_name && !address) {
-    setFlash(req, "error", "Please enter at least a date, time, place name, or address for the reunion.");
-    return res.redirect("/upcoming-reunion#reunion-details-form");
+    setFlash(req, "error", "Please include the reunion date, time, place name, and/or address to email the administrator.");
+    return res.redirect("/upcoming-reunion?email=1#email-admin");
   }
 
-  // Build a readable date_text / location for older timeline display
-  const date_text = event_date
-    ? [formatReunionDisplayDate(event_date), event_time].filter(Boolean).join(" · ")
-    : event_time || null;
-  const location = [place_name, address].filter(Boolean).join(" — ") || null;
+  const escapeHtmlLite = (s) =>
+    String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
-  const existing = db.prepare("SELECT year FROM reunions WHERE year = ?").get(year);
-  if (!existing) {
-    db.prepare(`
-      INSERT INTO reunions (year, title, date_text, location, host_family, summary,
-        event_date, event_time, place_name, address, is_upcoming, details_updated_by, no_reunion, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, 'open')
-    `).run(
-      year, title, date_text, location, host_family, summary,
-      event_date, event_time, place_name, address, host_family
+  const displayDate = event_date ? (formatReunionDisplayDate(event_date) || event_date) : "(not provided)";
+  const subject = `${year} Capoccia–Miotto reunion details from ${organizer_name}`;
+  const text =
+    `Family reunion details submitted for the website administrator.\n\n` +
+    `Year: ${year}\n` +
+    `Organizer: ${organizer_name}\n` +
+    `Organizer email: ${organizer_email}\n` +
+    (phone ? `Phone: ${phone}\n` : "") +
+    `\n` +
+    `Date: ${displayDate}\n` +
+    `Time: ${event_time || "(not provided)"}\n` +
+    `Place name: ${place_name || "(not provided)"}\n` +
+    `Address: ${address || "(not provided)"}\n` +
+    `\nNotes:\n${notes || "(none)"}\n\n` +
+    `Please review and post official details in Admin → Reunions if approved.\n` +
+    `https://capocciamiotto.com/admin/reunions\n`;
+
+  const html =
+    `<div style="font-family:Georgia,serif;color:#2b211c;line-height:1.6;max-width:560px">` +
+    `<h2 style="color:#6b1f2a;margin:0 0 0.75rem">${year} Capoccia–Miotto Family Reunion</h2>` +
+    `<p>A family member submitted reunion details for the website administrator.</p>` +
+    `<table style="border-collapse:collapse;width:100%;font-size:15px">` +
+    `<tr><td style="padding:6px 0;color:#7a675c">Organizer</td><td style="padding:6px 0"><strong>${escapeHtmlLite(organizer_name)}</strong></td></tr>` +
+    `<tr><td style="padding:6px 0;color:#7a675c">Email</td><td style="padding:6px 0"><a href="mailto:${escapeHtmlLite(organizer_email)}">${escapeHtmlLite(organizer_email)}</a></td></tr>` +
+    (phone ? `<tr><td style="padding:6px 0;color:#7a675c">Phone</td><td style="padding:6px 0">${escapeHtmlLite(phone)}</td></tr>` : "") +
+    `<tr><td style="padding:6px 0;color:#7a675c">Date</td><td style="padding:6px 0"><strong>${escapeHtmlLite(displayDate)}</strong></td></tr>` +
+    `<tr><td style="padding:6px 0;color:#7a675c">Time</td><td style="padding:6px 0">${escapeHtmlLite(event_time || "(not provided)")}</td></tr>` +
+    `<tr><td style="padding:6px 0;color:#7a675c">Place</td><td style="padding:6px 0">${escapeHtmlLite(place_name || "(not provided)")}</td></tr>` +
+    `<tr><td style="padding:6px 0;color:#7a675c">Address</td><td style="padding:6px 0">${escapeHtmlLite(address || "(not provided)")}</td></tr>` +
+    `</table>` +
+    (notes ? `<p style="margin-top:1rem"><strong>Notes</strong><br/>${escapeHtmlLite(notes).replace(/\n/g, "<br/>")}</p>` : "") +
+    `<p style="margin-top:1.25rem;font-size:14px;color:#7a675c">Post official details: <a href="https://capocciamiotto.com/admin/reunions">Admin → Reunions</a></p>` +
+    `</div>`;
+
+  const adminTo = CONTACT_EMAIL || "info@capocciamiotto.com";
+  try {
+    const sent = await sendGenericEmail({
+      toEmail: adminTo,
+      subject,
+      text,
+      html,
+    });
+    // Also notify Mike when admin inbox is the family address
+    if (sent.ok && adminTo.toLowerCase() !== "mike@seifertcapital.com") {
+      try {
+        await sendGenericEmail({
+          toEmail: "mike@seifertcapital.com",
+          subject: `[Copy] ${subject}`,
+          text,
+          html,
+        });
+      } catch (_) { /* non-fatal */ }
+    }
+
+    if (!sent.ok) {
+      console.error("Reunion details email failed:", sent);
+      setFlash(
+        req,
+        "error",
+        `We could not send the email right now. Please write ${adminTo} directly with the reunion details.`
+      );
+      return res.redirect("/upcoming-reunion?email=1#email-admin");
+    }
+
+    logSiteActivity(req, "reunion_details_email", {
+      actorName: organizer_name,
+      actorEmail: organizer_email,
+      details: `${year}: ${[displayDate, event_time, place_name, address].filter(Boolean).join(" · ")}`,
+    });
+
+    setFlash(
+      req,
+      "success",
+      `Thank you, ${organizer_name}. Your ${year} reunion details were emailed to the website administrator for review.`
     );
-  } else {
-    db.prepare(`
-      UPDATE reunions SET
-        title = ?,
-        date_text = ?,
-        location = ?,
-        host_family = COALESCE(?, host_family),
-        summary = COALESCE(?, summary),
-        event_date = ?,
-        event_time = ?,
-        place_name = ?,
-        address = ?,
-        is_upcoming = 1,
-        details_updated_by = ?,
-        no_reunion = 0,
-        updated_at = datetime('now')
-      WHERE year = ?
-    `).run(
-      title, date_text, location, host_family, summary,
-      event_date, event_time, place_name, address, host_family, year
-    );
+    return res.redirect("/upcoming-reunion");
+  } catch (err) {
+    console.error(err);
+    setFlash(req, "error", `Could not send email. Please contact ${adminTo}.`);
+    return res.redirect("/upcoming-reunion?email=1#email-admin");
   }
-  // Only one active "upcoming" flag at a time
-  db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(year);
-
-  logSiteActivity(req, "reunion_details", {
-    actorName: host_family || "Family member",
-    details: `Upcoming ${year}: ${[event_date, event_time, place_name, address].filter(Boolean).join(" · ")}`,
-  });
-
-  setFlash(
-    req,
-    "success",
-    `Thank you. The ${year} reunion details are now posted for the family.`
-  );
-  res.redirect("/upcoming-reunion");
 });
 
 app.get("/about", (req, res) => {

@@ -1,166 +1,134 @@
 <%- include('partials/header', { pageTitle: 'Upcoming Reunion' }) %>
-<section class="section">
-  <div class="container narrow">
-    <header class="section-header">
-      <p class="section-eyebrow">Save the date</p>
-      <h2 class="section-title">Upcoming Reunion</h2>
-      <div class="section-rule"></div>
-      <p class="section-lead">
-        Each year, the family member in charge of the reunion may post the date, time, place, and address here for everyone to see.
-      </p>
-    </header>
+<section class="upcoming-page">
+  <div class="upcoming-hero">
+    <div class="upcoming-hero-inner container">
+      <p class="upcoming-hero-eyebrow">Capoccia · Miotto</p>
+      <p class="upcoming-hero-year" aria-label="<%= focusYear %>"><%= focusYear %></p>
+      <h1 class="upcoming-hero-title">Family Reunion</h1>
+      <div class="upcoming-hero-rule" aria-hidden="true"></div>
+      <p class="upcoming-hero-sub"><%= focusTitle || (focusYear + ' Capoccia–Miotto Family Reunion') %></p>
 
-    <% if (hasDetails && upcoming) { %>
-      <article class="card upcoming-card">
-        <div class="card-body">
-          <p class="upcoming-year-badge"><%= upcoming.year %> Family Reunion</p>
-          <h3 class="upcoming-title"><%= upcoming.title || (upcoming.year + ' Capoccia–Miotto Family Reunion') %></h3>
-
-          <dl class="upcoming-details">
-            <% if (upcoming.display_date || upcoming.event_date || upcoming.date_text) { %>
-              <div class="upcoming-detail-row">
-                <dt>Date</dt>
-                <dd><%= upcoming.display_date || upcoming.date_text || upcoming.event_date %></dd>
-              </div>
-            <% } %>
-            <% if (upcoming.event_time) { %>
-              <div class="upcoming-detail-row">
-                <dt>Time</dt>
-                <dd><%= upcoming.event_time %></dd>
-              </div>
-            <% } %>
-            <% if (upcoming.place_name) { %>
-              <div class="upcoming-detail-row">
-                <dt>Place</dt>
-                <dd><%= upcoming.place_name %></dd>
-              </div>
-            <% } %>
-            <% if (upcoming.address) { %>
-              <div class="upcoming-detail-row">
-                <dt>Address</dt>
-                <dd>
-                  <a
-                    class="upcoming-map-link"
-                    href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(upcoming.address) %>"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  ><%= upcoming.address %></a>
-                </dd>
-              </div>
-            <% } else if (upcoming.location && !upcoming.place_name) { %>
-              <div class="upcoming-detail-row">
-                <dt>Location</dt>
-                <dd><%= upcoming.location %></dd>
-              </div>
-            <% } %>
-            <% if (upcoming.host_family) { %>
-              <div class="upcoming-detail-row">
-                <dt>Organizer</dt>
-                <dd><%= upcoming.host_family %></dd>
-              </div>
-            <% } %>
-            <% if (upcoming.summary) { %>
-              <div class="upcoming-detail-row upcoming-detail-notes">
-                <dt>Notes</dt>
-                <dd><%= upcoming.summary %></dd>
-              </div>
-            <% } %>
-          </dl>
-
-          <% if (upcoming.details_updated_by || upcoming.updated_at) { %>
-            <p class="upcoming-meta">
-              <% if (upcoming.details_updated_by) { %>Posted by <%= upcoming.details_updated_by %><% } %>
-              <% if (upcoming.updated_at) { %><% if (upcoming.details_updated_by) { %> · <% } %>Updated <%= upcoming.updated_at %><% } %>
-            </p>
+      <% if (hasDetails && upcoming) { %>
+        <div class="upcoming-hero-facts">
+          <% if (upcoming.display_date || upcoming.event_date || upcoming.date_text) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label">Date</span>
+              <span class="upcoming-fact-value"><%= upcoming.display_date || upcoming.date_text || upcoming.event_date %></span>
+            </div>
+          <% } %>
+          <% if (upcoming.event_time) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label">Time</span>
+              <span class="upcoming-fact-value"><%= upcoming.event_time %></span>
+            </div>
+          <% } %>
+          <% if (upcoming.place_name) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label">Place</span>
+              <span class="upcoming-fact-value"><%= upcoming.place_name %></span>
+            </div>
+          <% } %>
+          <% if (upcoming.address) { %>
+            <div class="upcoming-fact upcoming-fact--wide">
+              <span class="upcoming-fact-label">Address</span>
+              <span class="upcoming-fact-value">
+                <a
+                  class="upcoming-map-link"
+                  href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(upcoming.address) %>"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                ><%= upcoming.address %></a>
+              </span>
+            </div>
+          <% } %>
+          <% if (upcoming.host_family) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label">Organizer</span>
+              <span class="upcoming-fact-value"><%= upcoming.host_family %></span>
+            </div>
           <% } %>
         </div>
-      </article>
-    <% } else { %>
-      <article class="card upcoming-card upcoming-card--pending">
-        <div class="card-body">
-          <p class="upcoming-year-badge"><%= focusYear %> Family Reunion</p>
-          <h3 class="upcoming-title"><%= focusTitle || (focusYear + ' Capoccia–Miotto Family Reunion') %></h3>
-          <p class="upcoming-pending-lead">
-            <strong><%= focusYear %> reunion details still need to be posted.</strong>
-            Date, time, place name, and address have not been entered yet.
-          </p>
-          <ul class="upcoming-missing-list">
-            <% (missingFields || ['date','time','place name','address']).forEach(function(item) { %>
-              <li>Still needed: <strong><%= item %></strong></li>
-            <% }) %>
-          </ul>
-          <p class="upcoming-pending-note">
-            When the family member in charge is ready, use the form below with the family PIN to publish the <%= focusYear %> details for everyone.
-          </p>
-          <p style="margin-top:1rem;text-align:center">
-            <a class="btn btn-primary" href="#reunion-details-form">Enter <%= focusYear %> details</a>
-          </p>
-        </div>
-      </article>
-    <% } %>
-
-    <div class="upcoming-organizer" id="reunion-details-form">
-      <h3 class="upcoming-organizer-title">Post <%= focusYear %> reunion details</h3>
-      <p class="upcoming-organizer-lead">
-        If you are organizing the <%= focusYear %> reunion, sign in with the family PIN and enter the date, time, name of place, and address.
-        Your update will appear at the top of this page for all family members.
-      </p>
-
-      <% if (!canEdit) { %>
-        <div class="invite" style="max-width:480px;margin:0 auto 1rem">
-          <p>Family PIN required to post <%= focusYear %> reunion details.</p>
-          <a class="btn btn-primary" href="/contribute/pin?next=upcoming">Enter family PIN</a>
-          <a class="btn btn-outline" href="/contribute/request-pin" style="margin-left:0.5rem">Request PIN #</a>
-        </div>
+        <% if (upcoming.summary) { %>
+          <p class="upcoming-hero-notes"><%= upcoming.summary %></p>
+        <% } %>
       <% } else { %>
-        <p class="upcoming-pin-ok">
-          Signed in as <strong><%= (pinHolder && pinHolder.assignedName) || (user && (user.name || user.email)) || 'family organizer' %></strong>.
-          You may post or update the <%= focusYear %> reunion.
+        <p class="upcoming-hero-status">Details coming soon</p>
+        <p class="upcoming-hero-status-lead">
+          Official date, time, place, and address for the <%= focusYear %> reunion will appear here once the website administrator posts them.
         </p>
-        <form class="form-card" method="post" action="/upcoming-reunion" style="max-width:520px;margin:0 auto">
-          <div class="form-row">
-            <label for="year">Reunion year *</label>
-            <select id="year" name="year" required>
-              <% yearOptions.forEach(function(y) { %>
-                <option value="<%= y %>" <%= (editYear == y) ? 'selected' : '' %>><%= y %><%= y == focusYear && !hasDetails ? ' — details needed' : '' %></option>
-              <% }) %>
-            </select>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="container narrow upcoming-page-body">
+    <div class="upcoming-admin-cta card">
+      <div class="card-body" style="text-align:center">
+        <h2 class="upcoming-admin-cta-title">Organizing the <%= focusYear %> reunion?</h2>
+        <p class="upcoming-admin-cta-text">
+          If you are in charge this year, send the date, time, name of place, and address to the website administrator.
+          Details are not entered on this page — they are emailed for review and then posted for the family.
+        </p>
+        <a class="btn btn-primary btn-lg upcoming-email-admin-btn" href="/upcoming-reunion?email=1#email-admin">
+          Email admin of the website
+        </a>
+      </div>
+    </div>
+
+    <% if (showAdminForm) { %>
+      <div class="upcoming-email-panel" id="email-admin">
+        <h3 class="upcoming-email-panel-title">Email admin of the website</h3>
+        <p class="upcoming-email-panel-lead">
+          Complete the fields below. Your message will be emailed to the website administrator
+          (not published on this page until they post it).
+        </p>
+        <form class="form-card" method="post" action="/upcoming-reunion/email-admin" style="max-width:540px;margin:0 auto">
+          <input type="hidden" name="year" value="<%= focusYear %>" />
+          <div class="form-row two">
+            <div>
+              <label for="organizer_name">Your name *</label>
+              <input id="organizer_name" name="organizer_name" type="text" required maxlength="120" autocomplete="name" />
+            </div>
+            <div>
+              <label for="organizer_email">Your email *</label>
+              <input id="organizer_email" name="organizer_email" type="email" required maxlength="160" autocomplete="email" />
+            </div>
           </div>
           <div class="form-row">
-            <label for="title">Title (optional)</label>
-            <input id="title" name="title" type="text" maxlength="160" placeholder="e.g. <%= focusYear %> Capoccia–Miotto Family Reunion" value="<%= focusTitle || '' %>" />
+            <label for="phone">Phone (optional)</label>
+            <input id="phone" name="phone" type="tel" maxlength="40" autocomplete="tel" />
           </div>
           <div class="form-row two">
             <div>
-              <label for="event_date">Date *</label>
-              <input id="event_date" name="event_date" type="date" value="<%= hasDetails && upcoming && upcoming.event_date ? upcoming.event_date : '' %>" />
+              <label for="event_date">Reunion date</label>
+              <input id="event_date" name="event_date" type="date" />
             </div>
             <div>
-              <label for="event_time">Time *</label>
-              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. 1:00 PM – 6:00 PM" value="<%= hasDetails && upcoming && upcoming.event_time ? upcoming.event_time : '' %>" />
+              <label for="event_time">Time</label>
+              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. 1:00 PM – 6:00 PM" />
             </div>
           </div>
           <div class="form-row">
-            <label for="place_name">Name of place *</label>
-            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="e.g. park pavilion, hall, or family home" value="<%= hasDetails && upcoming && upcoming.place_name ? upcoming.place_name : '' %>" />
+            <label for="place_name">Name of place</label>
+            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="Park, hall, pavilion, or home" />
           </div>
           <div class="form-row">
-            <label for="address">Address *</label>
-            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" value="<%= hasDetails && upcoming && upcoming.address ? upcoming.address : '' %>" />
+            <label for="address">Address</label>
+            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" />
           </div>
           <div class="form-row">
-            <label for="host_family">Organizer / host name</label>
-            <input id="host_family" name="host_family" type="text" maxlength="120" placeholder="Your name" value="<%= (pinHolder && pinHolder.assignedName) || (hasDetails && upcoming && upcoming.host_family) || '' %>" />
+            <label for="notes">Notes for the administrator (optional)</label>
+            <textarea id="notes" name="notes" rows="3" maxlength="2000" placeholder="Parking, rain plan, dish to pass, etc."></textarea>
           </div>
-          <div class="form-row">
-            <label for="summary">Additional notes (optional)</label>
-            <textarea id="summary" name="summary" rows="3" maxlength="2000" placeholder="Bring a dish, parking, rain location, etc."><%= hasDetails && upcoming && upcoming.summary ? upcoming.summary : '' %></textarea>
-          </div>
-          <p class="hint" style="margin-bottom:1rem">Please include date, time, place name, and address so the family can plan to attend.</p>
-          <button class="btn btn-primary btn-block" type="submit">Publish <%= focusYear %> reunion details</button>
+          <p class="hint" style="margin-bottom:1rem">
+            Please include at least one of: date, time, place name, or address.
+          </p>
+          <button class="btn btn-primary btn-block" type="submit">Send details to website admin</button>
+          <p style="text-align:center;margin-top:0.85rem">
+            <a href="/upcoming-reunion" style="font-family:var(--font-ui);font-size:0.9rem">Cancel</a>
+          </p>
         </form>
-      <% } %>
-    </div>
+      </div>
+    <% } %>
 
     <div class="btn-row" style="margin-top:2rem;justify-content:center">
       <a class="btn btn-outline" href="/community-board">Community Board</a>

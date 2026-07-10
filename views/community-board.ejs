@@ -2,10 +2,17 @@
 <section class="section">
   <div class="container narrow">
     <header class="section-header">
-      <p class="section-eyebrow">A safe family gathering place</p>
+      <p class="section-eyebrow">Family only · PIN protected</p>
       <h2 class="section-title">Community Board</h2>
       <div class="section-rule"></div>
     </header>
+
+    <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
+      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600;text-align:center">
+        Signed in with family PIN as: <%= pinHolder.assignedName %>
+      </p>
+    <% } %>
+
     <div class="board-list" style="margin-bottom:2rem">
       <% if (!posts.length) { %>
         <div class="empty"><h3>No public posts yet.</h3></div>

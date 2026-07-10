@@ -139,7 +139,8 @@ function requireContributorPin(req, res, next) {
   const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : qs.includes("year=") ? qs : "";
   let pinQs = year;
   if (!pinQs) {
-    if (nextUrl.includes("/contribute/member") || nextUrl.includes("next=member")) pinQs = "?next=member";
+    if (nextUrl.includes("/community-board") || nextUrl.includes("next=board")) pinQs = "?next=board";
+    else if (nextUrl.includes("/contribute/member") || nextUrl.includes("next=member")) pinQs = "?next=member";
     else if (nextUrl.includes("/contribute/recording") || nextUrl.includes("next=recording")) pinQs = "?next=recording";
     else if (nextUrl.includes("/contribute/story") || nextUrl.includes("next=story")) pinQs = "?next=story";
   } else if (nextUrl.includes("/contribute/member")) {
@@ -317,20 +318,26 @@ app.get("/voice-recordings", (req, res) => {
   res.render("voice-recordings", { ...data, recordings });
 });
 
-app.get("/community-board", (req, res) => {
+app.get("/community-board", requireContributorPin, (req, res) => {
   const posts = db.prepare(`
     SELECT * FROM board_posts WHERE status = 'approved'
     ORDER BY is_pinned DESC, created_at DESC LIMIT 100
   `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("community-board", { ...data, posts });
+  res.render("community-board", {
+    ...data,
+    posts,
+    pinHolder: req.session.contributorPin || null,
+  });
 });
 
-app.post("/community-board", contributeLimiter, (req, res) => {
+app.post("/community-board", contributeLimiter, requireContributorPin, (req, res) => {
   const title = (req.body.title || "").trim();
   const body = (req.body.body || "").trim();
-  const author_name = (req.body.author_name || "").trim();
+  const author_name = (req.body.author_name || "").trim()
+    || (req.session.contributorPin && req.session.contributorPin.assignedName)
+    || "";
   const author_email = (req.body.author_email || "").trim();
   const category = (req.body.category || "general").trim();
   if (!title || !body || !author_name) {
@@ -393,17 +400,14 @@ app.get("/contribute/pin", (req, res) => {
     const nextMap = {
       story: "/contribute/story",
       member: "/contribute/member",
-      recording: "/contribute/recording",
+      recording: "/voice-recordings",
+      board: "/community-board",
       photos: "/contribute",
     };
     const nextKey = req.query.next || "photos";
     const next = nextMap[nextKey] || "/contribute";
     const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : "";
-    const member = req.query.member ? `member=${encodeURIComponent(req.query.member)}` : "";
     if (next === "/contribute") return res.redirect(`${next}${year}`);
-    if (next === "/contribute/recording" && member) {
-      return res.redirect(`${next}?${member}`);
-    }
     return res.redirect(next);
   }
   const data = localsBase(req);
@@ -500,7 +504,9 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   const next = (req.body.next || "photos").trim();
   const backQs = [];
   if (year) backQs.push(`year=${encodeURIComponent(year)}`);
-  if (next === "story" || next === "member" || next === "recording") backQs.push(`next=${encodeURIComponent(next)}`);
+  if (next === "story" || next === "member" || next === "recording" || next === "board") {
+    backQs.push(`next=${encodeURIComponent(next)}`);
+  }
   if (req.body.member) backQs.push(`member=${encodeURIComponent(req.body.member)}`);
   const back = `/contribute/pin${backQs.length ? "?" + backQs.join("&") : ""}`;
 
@@ -528,13 +534,11 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     verifiedAt: Date.now(),
   };
 
-  setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted. You may now contribute.`);
+  setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted.`);
   if (next === "story") return res.redirect("/contribute/story");
   if (next === "member") return res.redirect("/contribute/member");
-  if (next === "recording") {
-    const m = (req.body.member || "").trim();
-    return res.redirect(m ? `/contribute/recording?member=${encodeURIComponent(m)}` : "/contribute/recording");
-  }
+  if (next === "board") return res.redirect("/community-board");
+  if (next === "recording") return res.redirect("/voice-recordings");
   return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
 

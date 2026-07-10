@@ -10,6 +10,14 @@
     };
     toggle.addEventListener("click", () => setOpen(!links.classList.contains("open")));
     links.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
+    // Close menu on resize back to desktop
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 960) setOpen(false);
+    });
+    // Close on Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") setOpen(false);
+    });
   }
 
   // Multi person-name fields on contribute form

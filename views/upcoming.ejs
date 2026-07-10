@@ -1,4 +1,10 @@
 <%- include('partials/header', { pageTitle: 'Upcoming Reunion' }) %>
+<%
+  const u = upcoming || {};
+  const activities = (u.activities && u.activities.length) ? u.activities : [];
+  const pricing = (u.pricing && u.pricing.length) ? u.pricing : [];
+  const mapQ = u.map_query || u.full_address || u.address || u.place_name || '';
+%>
 <section class="upcoming-page">
   <div class="upcoming-hero">
     <div class="upcoming-hero-inner container">
@@ -8,65 +14,202 @@
       <div class="upcoming-hero-rule" aria-hidden="true"></div>
       <p class="upcoming-hero-sub"><%= focusTitle || (focusYear + ' Capoccia–Miotto Family Reunion') %></p>
 
-      <% if (hasDetails && upcoming) { %>
+      <% if (hasDetails) { %>
         <div class="upcoming-hero-facts">
-          <% if (upcoming.display_date || upcoming.event_date || upcoming.date_text) { %>
+          <% if (u.display_date || u.date_text) { %>
             <div class="upcoming-fact">
-              <span class="upcoming-fact-label">Date</span>
-              <span class="upcoming-fact-value"><%= upcoming.display_date || upcoming.date_text || upcoming.event_date %></span>
+              <span class="upcoming-fact-label">Dates</span>
+              <span class="upcoming-fact-value"><%= u.display_date || u.date_text %></span>
             </div>
           <% } %>
-          <% if (upcoming.event_time) { %>
-            <div class="upcoming-fact">
-              <span class="upcoming-fact-label">Time</span>
-              <span class="upcoming-fact-value"><%= upcoming.event_time %></span>
-            </div>
-          <% } %>
-          <% if (upcoming.place_name) { %>
+          <% if (u.place_name || u.location) { %>
             <div class="upcoming-fact">
               <span class="upcoming-fact-label">Place</span>
-              <span class="upcoming-fact-value"><%= upcoming.place_name %></span>
+              <span class="upcoming-fact-value"><%= u.place_name || u.location %></span>
             </div>
           <% } %>
-          <% if (upcoming.address) { %>
+          <% if (u.room_name) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label">Room</span>
+              <span class="upcoming-fact-value"><%= u.room_name %></span>
+            </div>
+          <% } %>
+          <% if (u.main_event_when || u.main_event_label) { %>
+            <div class="upcoming-fact">
+              <span class="upcoming-fact-label"><%= u.main_event_label || 'Main event' %></span>
+              <span class="upcoming-fact-value"><%= u.main_event_when || u.event_time || '' %></span>
+            </div>
+          <% } %>
+          <% if (u.full_address || u.address) { %>
             <div class="upcoming-fact upcoming-fact--wide">
               <span class="upcoming-fact-label">Address</span>
               <span class="upcoming-fact-value">
-                <a
-                  class="upcoming-map-link"
-                  href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(upcoming.address) %>"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                ><%= upcoming.address %></a>
+                <% if (mapQ) { %>
+                  <a
+                    class="upcoming-map-link"
+                    href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(mapQ) %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  ><%= u.full_address || u.address %></a>
+                <% } else { %>
+                  <%= u.full_address || u.address %>
+                <% } %>
               </span>
             </div>
           <% } %>
-          <% if (upcoming.host_family) { %>
+          <% if (u.host_family) { %>
             <div class="upcoming-fact">
               <span class="upcoming-fact-label">Organizer</span>
-              <span class="upcoming-fact-value"><%= upcoming.host_family %></span>
+              <span class="upcoming-fact-value">
+                <%= u.host_family %>
+                <% if (u.organizer_phone) { %><br /><span class="upcoming-fact-sub"><a class="upcoming-map-link" href="tel:<%= String(u.organizer_phone).replace(/[^\d+]/g,'') %>"><%= u.organizer_phone %></a></span><% } %>
+              </span>
             </div>
           <% } %>
         </div>
-        <% if (upcoming.summary) { %>
-          <p class="upcoming-hero-notes"><%= upcoming.summary %></p>
-        <% } %>
       <% } else { %>
         <p class="upcoming-hero-status">Details coming soon</p>
         <p class="upcoming-hero-status-lead">
-          Official date, time, place, and address for the <%= focusYear %> reunion will appear here once the website administrator posts them.
+          Official date, time, place, and address for the <%= focusYear %> reunion will appear here once posted.
         </p>
       <% } %>
     </div>
   </div>
 
+  <% if (hasDetails) { %>
+  <div class="container upcoming-detail-sections">
+    <% if (u.summary) { %>
+      <section class="upcoming-section">
+        <h2 class="upcoming-section-title">Overview</h2>
+        <p class="upcoming-section-body"><%= u.summary %></p>
+      </section>
+    <% } %>
+
+    <% if (u.main_event_label || u.main_event_when || pricing.length) { %>
+      <section class="upcoming-section upcoming-section--highlight">
+        <h2 class="upcoming-section-title"><%= u.main_event_label || 'Sunday lunch' %></h2>
+        <% if (u.main_event_when) { %>
+          <p class="upcoming-highlight-when"><%= u.main_event_when %></p>
+        <% } %>
+        <% if (u.room_name) { %>
+          <p class="upcoming-section-meta">In the <strong><%= u.room_name %></strong><% if (u.place_name) { %> at <%= u.place_name %><% } %></p>
+        <% } %>
+        <% if (pricing.length) { %>
+          <div class="upcoming-price-grid">
+            <% pricing.forEach(function(p) { %>
+              <div class="upcoming-price-card">
+                <div class="upcoming-price-amt"><%= p.price %></div>
+                <div class="upcoming-price-label"><%= p.label %></div>
+                <% if (p.note) { %><div class="upcoming-price-note"><%= p.note %></div><% } %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+        <% if (u.payment_info || u.venmo_url) { %>
+          <div class="upcoming-payment">
+            <% if (u.payment_info) { %><p><%= u.payment_info %></p><% } %>
+            <% if (u.venmo_url) { %>
+              <p>
+                <a class="btn btn-secondary" href="<%= u.venmo_url %>" target="_blank" rel="noopener noreferrer">
+                  <%= u.venmo_label || 'Pay with Venmo' %>
+                </a>
+              </p>
+            <% } %>
+          </div>
+        <% } %>
+        <% if (u.rsvp_deadline || u.rsvp_notes) { %>
+          <div class="upcoming-rsvp">
+            <% if (u.rsvp_deadline) { %>
+              <p><strong>RSVP / final lunch count by:</strong>
+                <% try {
+                  const d = new Date(u.rsvp_deadline + 'T12:00:00');
+                  %><%= isNaN(d.getTime()) ? u.rsvp_deadline : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %><%
+                } catch(e) { %><%= u.rsvp_deadline %><% } %>
+              </p>
+            <% } %>
+            <% if (u.rsvp_notes) { %><p><%= u.rsvp_notes %></p><% } %>
+            <% if (u.organizer_phone) { %>
+              <p>Text or call <a href="tel:<%= String(u.organizer_phone).replace(/[^\d+]/g,'') %>"><%= u.organizer_phone %></a>, or reply to the family organizer email.</p>
+            <% } %>
+          </div>
+        <% } %>
+      </section>
+    <% } %>
+
+    <% if (activities.length) { %>
+      <section class="upcoming-section">
+        <h2 class="upcoming-section-title">Weekend schedule</h2>
+        <div class="upcoming-activity-list">
+          <% activities.forEach(function(a) { %>
+            <article class="upcoming-activity">
+              <div class="upcoming-activity-when">
+                <% if (a.day_label) { %><span class="upcoming-activity-day"><%= a.day_label %></span><% } %>
+                <% if (a.time_text) { %><span class="upcoming-activity-time"><%= a.time_text %></span><% } %>
+                <% if (a.activity_date) {
+                  try {
+                    const ad = new Date(a.activity_date + 'T12:00:00');
+                    if (!isNaN(ad.getTime())) { %>
+                      <span class="upcoming-activity-date"><%= ad.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></span>
+                    <% }
+                  } catch (e) {}
+                } %>
+              </div>
+              <div class="upcoming-activity-body">
+                <h3 class="upcoming-activity-title"><%= a.title %></h3>
+                <% if (a.location) { %><p class="upcoming-activity-loc"><%= a.location %></p><% } %>
+                <% if (a.price_info) { %><p class="upcoming-activity-price"><%= a.price_info %></p><% } %>
+                <% if (a.notes) { %><p class="upcoming-activity-notes"><%= a.notes %></p><% } %>
+                <% if (a.reservation_required) { %><p class="upcoming-activity-rsv">Reservation required — contact the organizer.</p><% } %>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (u.attending_list || u.not_attending_list) { %>
+      <section class="upcoming-section">
+        <h2 class="upcoming-section-title">Lunch count (so far)</h2>
+        <div class="upcoming-lists">
+          <% if (u.attending_list) { %>
+            <div>
+              <h3 class="upcoming-list-heading">Planning to attend lunch</h3>
+              <p class="upcoming-list-body"><%= u.attending_list %></p>
+            </div>
+          <% } %>
+          <% if (u.not_attending_list) { %>
+            <div>
+              <h3 class="upcoming-list-heading">Unable to attend</h3>
+              <p class="upcoming-list-body"><%= u.not_attending_list %></p>
+            </div>
+          <% } %>
+        </div>
+        <p class="upcoming-list-foot">If your name is missing or incorrect, please contact the organizer so the Sunday lunch count is accurate.</p>
+      </section>
+    <% } %>
+
+    <% if (mapQ) { %>
+      <section class="upcoming-section upcoming-section--center">
+        <h2 class="upcoming-section-title">Find the venue</h2>
+        <p class="upcoming-section-body"><%= u.full_address || mapQ %></p>
+        <a
+          class="btn btn-primary"
+          href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(mapQ) %>"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Open in Google Maps</a>
+      </section>
+    <% } %>
+  </div>
+  <% } %>
+
   <div class="container narrow upcoming-page-body">
     <div class="upcoming-admin-cta card">
       <div class="card-body" style="text-align:center">
-        <h2 class="upcoming-admin-cta-title">Organizing the <%= focusYear %> reunion?</h2>
+        <h2 class="upcoming-admin-cta-title">Updates or corrections?</h2>
         <p class="upcoming-admin-cta-text">
-          If you are in charge this year, send the date, time, name of place, and address to the website administrator.
-          Details are not entered on this page — they are emailed for review and then posted for the family.
+          Organizers can email changes (date, room, pricing, RSVP list, or activities) to the website administrator.
+          Official details are posted after review — not typed live by the public on this page.
         </p>
         <a class="btn btn-primary btn-lg upcoming-email-admin-btn" href="/upcoming-reunion?email=1#email-admin">
           Email admin of the website
@@ -78,8 +221,7 @@
       <div class="upcoming-email-panel" id="email-admin">
         <h3 class="upcoming-email-panel-title">Email admin of the website</h3>
         <p class="upcoming-email-panel-lead">
-          Complete the fields below. Your message will be emailed to the website administrator
-          (not published on this page until they post it).
+          Send reunion details or corrections. Your message is emailed to the administrator for review.
         </p>
         <form class="form-card" method="post" action="/upcoming-reunion/email-admin" style="max-width:540px;margin:0 auto">
           <input type="hidden" name="year" value="<%= focusYear %>" />
@@ -99,29 +241,26 @@
           </div>
           <div class="form-row two">
             <div>
-              <label for="event_date">Reunion date</label>
-              <input id="event_date" name="event_date" type="date" />
+              <label for="event_date">Reunion start date</label>
+              <input id="event_date" name="event_date" type="date" value="<%= u.event_date || '' %>" />
             </div>
             <div>
-              <label for="event_time">Time</label>
-              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. 1:00 PM – 6:00 PM" />
+              <label for="event_time">Key time</label>
+              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. Sunday lunch at noon" value="<%= u.main_event_when || u.event_time || '' %>" />
             </div>
           </div>
           <div class="form-row">
             <label for="place_name">Name of place</label>
-            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="Park, hall, pavilion, or home" />
+            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="Bavarian Inn Lodge" value="<%= u.place_name || '' %>" />
           </div>
           <div class="form-row">
             <label for="address">Address</label>
-            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" />
+            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" value="<%= u.full_address || u.address || '' %>" />
           </div>
           <div class="form-row">
-            <label for="notes">Notes for the administrator (optional)</label>
-            <textarea id="notes" name="notes" rows="3" maxlength="2000" placeholder="Parking, rain plan, dish to pass, etc."></textarea>
+            <label for="notes">Details / corrections for the administrator</label>
+            <textarea id="notes" name="notes" rows="4" maxlength="4000" placeholder="Room name, pricing, activities, RSVP list changes, etc."></textarea>
           </div>
-          <p class="hint" style="margin-bottom:1rem">
-            Please include at least one of: date, time, place name, or address.
-          </p>
           <button class="btn btn-primary btn-block" type="submit">Send details to website admin</button>
           <p style="text-align:center;margin-top:0.85rem">
             <a href="/upcoming-reunion" style="font-family:var(--font-ui);font-size:0.9rem">Cancel</a>

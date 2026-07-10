@@ -3,31 +3,65 @@
   <div class="container admin-shell">
     <aside class="admin-nav">
       <a href="/admin">Dashboard</a>
+      <a href="/admin/activity">Activity</a>
       <a href="/admin/photos">Photos</a>
       <a href="/admin/stories">Stories</a>
       <a href="/admin/recordings">Voice Recordings</a>
       <a href="/admin/board">Board</a>
       <a href="/admin/members">Family Members</a>
       <a class="active" href="/admin/reunions">Reunions</a>
+      <a href="/admin/pins">Family PINs</a>
     </aside>
     <div class="admin-main">
-      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Reunion years</h2>
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Reunion years</h2>
+      <p style="margin-bottom:1.25rem;color:var(--ink-muted)">
+        Structured fields for multi-day reunions (venue, room, pricing, RSVP, schedule). These power the public Upcoming Reunion page.
+      </p>
       <% reunions.forEach(function(r) { %>
-        <form class="form-card" method="post" action="/admin/reunions/<%= r.year %>" style="margin-bottom:1rem">
-          <h3 style="font-family:var(--font-display)"><%= r.year %></h3>
+        <form class="form-card" method="post" action="/admin/reunions/<%= r.year %>" style="margin-bottom:1.25rem">
+          <h3 style="font-family:var(--font-display);margin-bottom:0.75rem">
+            <%= r.year %>
+            <% if (r.is_upcoming) { %> <span class="badge badge-both">Upcoming</span><% } %>
+          </h3>
           <div class="form-row"><label>Title</label><input name="title" value="<%= r.title || '' %>" /></div>
           <div class="form-row two">
-            <div><label>Date text</label><input name="date_text" value="<%= r.date_text || '' %>" placeholder="Leave blank if unknown" /></div>
-            <div><label>Location</label><input name="location" value="<%= r.location || '' %>" placeholder="Leave blank if unknown" /></div>
+            <div><label>Date text (display)</label><input name="date_text" value="<%= r.date_text || '' %>" placeholder="July 17–19, 2026" /></div>
+            <div><label>Location blurb</label><input name="location" value="<%= r.location || '' %>" placeholder="Bavarian Inn Lodge, Frankenmuth, MI" /></div>
           </div>
           <div class="form-row two">
-            <div><label>Event date</label><input type="date" name="event_date" value="<%= r.event_date || '' %>" /></div>
-            <div><label>Event time</label><input name="event_time" value="<%= r.event_time || '' %>" placeholder="e.g. 1:00 PM" /></div>
+            <div><label>Start date</label><input type="date" name="event_date" value="<%= r.event_date || '' %>" /></div>
+            <div><label>End date</label><input type="date" name="event_date_end" value="<%= r.event_date_end || '' %>" /></div>
           </div>
-          <div class="form-row"><label>Place name</label><input name="place_name" value="<%= r.place_name || '' %>" placeholder="Park, hall, home name" /></div>
-          <div class="form-row"><label>Address</label><input name="address" value="<%= r.address || '' %>" placeholder="Full street address" /></div>
-          <div class="form-row"><label>Host family / organizer</label><input name="host_family" value="<%= r.host_family || '' %>" /></div>
-          <div class="form-row"><label>Summary</label><textarea name="summary"><%= r.summary || '' %></textarea></div>
+          <div class="form-row"><label>Key time / schedule note</label><input name="event_time" value="<%= r.event_time || '' %>" placeholder="Sunday lunch at noon" /></div>
+          <div class="form-row two">
+            <div><label>Place name</label><input name="place_name" value="<%= r.place_name || '' %>" /></div>
+            <div><label>Room name</label><input name="room_name" value="<%= r.room_name || '' %>" placeholder="Austrian Room" /></div>
+          </div>
+          <div class="form-row"><label>Street address</label><input name="address" value="<%= r.address || '' %>" placeholder="One Covered Bridge Lane" /></div>
+          <div class="form-row two">
+            <div><label>City</label><input name="city" value="<%= r.city || '' %>" /></div>
+            <div><label>State / ZIP</label><input name="state" value="<%= r.state || '' %>" placeholder="MI 48734" /></div>
+          </div>
+          <div class="form-row two">
+            <div><label>Organizer / host</label><input name="host_family" value="<%= r.host_family || '' %>" /></div>
+            <div><label>Organizer phone</label><input name="organizer_phone" value="<%= r.organizer_phone || '' %>" /></div>
+          </div>
+          <div class="form-row two">
+            <div><label>Main event label</label><input name="main_event_label" value="<%= r.main_event_label || '' %>" placeholder="Sunday lunch & bocce" /></div>
+            <div><label>Main event when</label><input name="main_event_when" value="<%= r.main_event_when || '' %>" placeholder="Sunday, July 19 at noon" /></div>
+          </div>
+          <div class="form-row two">
+            <div><label>RSVP deadline</label><input type="date" name="rsvp_deadline" value="<%= r.rsvp_deadline || '' %>" /></div>
+            <div><label>Venmo label</label><input name="venmo_label" value="<%= r.venmo_label || '' %>" /></div>
+          </div>
+          <div class="form-row"><label>RSVP notes</label><textarea name="rsvp_notes" rows="2"><%= r.rsvp_notes || '' %></textarea></div>
+          <div class="form-row"><label>Payment info</label><textarea name="payment_info" rows="2"><%= r.payment_info || '' %></textarea></div>
+          <div class="form-row"><label>Venmo URL</label><input name="venmo_url" value="<%= r.venmo_url || '' %>" placeholder="https://venmo.com/u/..." /></div>
+          <div class="form-row"><label>Pricing JSON</label><textarea name="pricing_json" rows="3" placeholder='[{"label":"Adults","price":"$42"}]'><%= r.pricing_json || '' %></textarea></div>
+          <div class="form-row"><label>Schedule JSON (optional backup)</label><textarea name="schedule_json" rows="3"><%= r.schedule_json || '' %></textarea></div>
+          <div class="form-row"><label>Attending list</label><textarea name="attending_list" rows="3"><%= r.attending_list || '' %></textarea></div>
+          <div class="form-row"><label>Not attending list</label><textarea name="not_attending_list" rows="2"><%= r.not_attending_list || '' %></textarea></div>
+          <div class="form-row"><label>Summary / overview</label><textarea name="summary" rows="3"><%= r.summary || '' %></textarea></div>
           <label class="checkbox"><input type="checkbox" name="is_upcoming" value="1" <%= r.is_upcoming ? 'checked' : '' %> /> Show as upcoming reunion on public page</label>
           <label class="checkbox"><input type="checkbox" name="no_reunion" value="1" <%= r.no_reunion ? 'checked' : '' %> /> Mark: no reunion this year</label>
           <button class="btn btn-outline" type="submit" style="margin-top:0.75rem">Save <%= r.year %></button>

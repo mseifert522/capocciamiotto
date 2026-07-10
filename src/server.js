@@ -32,6 +32,12 @@ const {
   getDashboardAnalytics,
   formatDuration,
 } = require("./analytics");
+const {
+  ensureReunionDetailSchema,
+  enrichReunion,
+  reunionHasPublicDetails,
+  apply2026FamilyEmailDetails,
+} = require("./reunionDetails");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -953,16 +959,7 @@ app.get("/family-tree", (req, res) => {
 
 function ensureUpcomingReunionColumns() {
   try {
-    const cols = db.prepare("PRAGMA table_info(reunions)").all().map((c) => c.name);
-    const add = (name, def) => {
-      if (!cols.includes(name)) db.exec(`ALTER TABLE reunions ADD COLUMN ${name} ${def}`);
-    };
-    add("event_date", "TEXT");
-    add("event_time", "TEXT");
-    add("place_name", "TEXT");
-    add("address", "TEXT");
-    add("is_upcoming", "INTEGER NOT NULL DEFAULT 0");
-    add("details_updated_by", "TEXT");
+    ensureReunionDetailSchema(db);
   } catch (_) { /* ignore */ }
 }
 
@@ -1020,30 +1017,24 @@ function formatReunionDisplayDate(isoDate) {
 
 app.get("/upcoming-reunion", (req, res) => {
   ensureUpcomingReunionColumns();
+  try {
+    apply2026FamilyEmailDetails(db, { force: false });
+  } catch (e) {
+    console.warn("2026 reunion seed note:", e.message);
+  }
+
   let focusYear = CURRENT_YEAR;
   if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(focusYear)) {
     db.prepare("INSERT INTO reunions (year, title, is_upcoming) VALUES (?, ?, 1)").run(
       focusYear,
       `${focusYear} Capoccia–Miotto Family Reunion`
     );
-  } else {
-    // Prefer current year as the featured upcoming display year
-    try {
-      db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(focusYear);
-      db.prepare("UPDATE reunions SET is_upcoming = 1 WHERE year = ?").run(focusYear);
-    } catch (_) { /* ignore */ }
   }
 
-  const focusRow = db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear);
-  const upcoming = getUpcomingReunion() || focusRow || null;
-  if (upcoming) {
-    upcoming.display_date = formatReunionDisplayDate(upcoming.event_date) || upcoming.date_text || null;
-    if (upcoming.year) focusYear = upcoming.year;
-  }
-  const hasDetails = !!(
-    upcoming &&
-    (upcoming.event_date || upcoming.event_time || upcoming.place_name || upcoming.address || upcoming.date_text || upcoming.location)
-  );
+  const focusRow = enrichReunion(db, db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear));
+  let upcoming = enrichReunion(db, getUpcomingReunion()) || focusRow || null;
+  if (upcoming && upcoming.year) focusYear = upcoming.year;
+  const hasDetails = reunionHasPublicDetails(upcoming);
 
   const data = localsBase(req);
   clearFlash(req);
@@ -1051,7 +1042,7 @@ app.get("/upcoming-reunion", (req, res) => {
     ...data,
     upcoming: hasDetails ? upcoming : null,
     focusYear,
-    focusTitle: (focusRow && focusRow.title) || `${focusYear} Capoccia–Miotto Family Reunion`,
+    focusTitle: (focusRow && focusRow.title) || (upcoming && upcoming.title) || `${focusYear} Capoccia–Miotto Family Reunion`,
     hasDetails,
     showAdminForm: req.query.email === "1" || req.query.email === "admin",
   });
@@ -2078,7 +2069,8 @@ app.post("/admin/members/:id", requireRole("super_admin", "family_admin"), (req,
 });
 
 app.get("/admin/reunions", requireRole(...ADMIN_ROLES), (req, res) => {
-  const reunions = db.prepare("SELECT * FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
+  ensureUpcomingReunionColumns();
+  const reunions = db.prepare("SELECT * FROM reunions ORDER BY year DESC LIMIT 80").all();
   const data = localsBase(req);
   clearFlash(req);
   res.render("admin/reunions", { ...data, reunions });
@@ -2087,6 +2079,12 @@ app.get("/admin/reunions", requireRole(...ADMIN_ROLES), (req, res) => {
 app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
   ensureUpcomingReunionColumns();
   const year = parseInt(req.params.year, 10);
+  if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(year)) {
+    db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(
+      year,
+      `${year} Capoccia–Miotto Family Reunion`
+    );
+  }
   const isUpcoming = req.body.is_upcoming === "1" ? 1 : 0;
   if (isUpcoming) {
     db.prepare("UPDATE reunions SET is_upcoming = 0 WHERE year != ?").run(year);
@@ -2094,7 +2092,12 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
   db.prepare(`
     UPDATE reunions SET
       title = ?, date_text = ?, location = ?, host_family = ?, summary = ?,
-      event_date = ?, event_time = ?, place_name = ?, address = ?,
+      event_date = ?, event_date_end = ?, event_time = ?,
+      place_name = ?, address = ?, city = ?, state = ?, room_name = ?,
+      organizer_phone = ?, rsvp_deadline = ?, rsvp_notes = ?,
+      main_event_label = ?, main_event_when = ?,
+      pricing_json = ?, payment_info = ?, venmo_url = ?, venmo_label = ?,
+      schedule_json = ?, attending_list = ?, not_attending_list = ?,
       is_upcoming = ?, no_reunion = ?, updated_at = datetime('now')
     WHERE year = ?
   `).run(
@@ -2104,9 +2107,25 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
     (req.body.host_family || "").trim() || null,
     (req.body.summary || "").trim() || null,
     (req.body.event_date || "").trim() || null,
+    (req.body.event_date_end || "").trim() || null,
     (req.body.event_time || "").trim() || null,
     (req.body.place_name || "").trim() || null,
     (req.body.address || "").trim() || null,
+    (req.body.city || "").trim() || null,
+    (req.body.state || "").trim() || null,
+    (req.body.room_name || "").trim() || null,
+    (req.body.organizer_phone || "").trim() || null,
+    (req.body.rsvp_deadline || "").trim() || null,
+    (req.body.rsvp_notes || "").trim() || null,
+    (req.body.main_event_label || "").trim() || null,
+    (req.body.main_event_when || "").trim() || null,
+    (req.body.pricing_json || "").trim() || null,
+    (req.body.payment_info || "").trim() || null,
+    (req.body.venmo_url || "").trim() || null,
+    (req.body.venmo_label || "").trim() || null,
+    (req.body.schedule_json || "").trim() || null,
+    (req.body.attending_list || "").trim() || null,
+    (req.body.not_attending_list || "").trim() || null,
     isUpcoming,
     req.body.no_reunion === "1" ? 1 : 0,
     year

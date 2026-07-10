@@ -358,20 +358,13 @@ function migrate() {
     console.warn("analytics tables note:", e.message);
   }
 
-  // Upcoming reunion detail columns (PIN-editable each year)
+  // Structured reunion details (multi-day, pricing, schedule, RSVP)
   try {
-    const cols = db.prepare("PRAGMA table_info(reunions)").all().map((c) => c.name);
-    const add = (name, def) => {
-      if (!cols.includes(name)) db.exec(`ALTER TABLE reunions ADD COLUMN ${name} ${def}`);
-    };
-    add("event_date", "TEXT");
-    add("event_time", "TEXT");
-    add("place_name", "TEXT");
-    add("address", "TEXT");
-    add("is_upcoming", "INTEGER NOT NULL DEFAULT 0");
-    add("details_updated_by", "TEXT");
+    const { ensureReunionDetailSchema, apply2026FamilyEmailDetails } = require("./reunionDetails");
+    ensureReunionDetailSchema(db);
+    apply2026FamilyEmailDetails(db, { force: false });
   } catch (e) {
-    console.warn("reunions upcoming columns note:", e.message);
+    console.warn("reunion details schema note:", e.message);
   }
 
   // Community board photo/video attachments

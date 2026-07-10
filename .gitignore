@@ -5,3 +5,7 @@ public/uploads/originals/*
 public/uploads/web/*
 public/uploads/thumbs/*
 !.gitkeep
+
+.admin-credentials.txt
+deploy-remote.sh
+

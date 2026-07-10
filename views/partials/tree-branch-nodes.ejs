@@ -1,7 +1,7 @@
 <ul class="living-tree-list living-tree-depth-<%= typeof depth !== 'undefined' ? depth : 2 %>">
   <% (nodes || []).forEach(function(n) { %>
     <li class="living-tree-item">
-      <div class="living-tree-person">
+      <div class="living-tree-person<%= n.spouse ? ' living-tree-person--couple' : '' %>">
         <% if (n.portrait_path) { %>
           <img class="living-tree-avatar" src="<%= n.portrait_path %>" alt="" loading="lazy" />
         <% } else { %>
@@ -9,7 +9,12 @@
         <% } %>
         <div class="living-tree-person-text">
           <a class="living-tree-name" href="/family-members/<%= n.id %>"><%= n.name %></a>
+          <% if (n.spouse) { %>
+            <span class="living-tree-amp" aria-hidden="true">&amp;</span>
+            <a class="living-tree-name" href="/family-members/<%= n.spouse.id %>"><%= n.spouse.name %></a>
+          <% } %>
           <% if (n.role) { %><p class="living-tree-role"><%= n.role %></p><% } %>
+          <% if (n.spouse && n.spouse.role) { %><p class="living-tree-role"><%= n.spouse.role %></p><% } %>
         </div>
       </div>
       <% if (n.children && n.children.length) { %>

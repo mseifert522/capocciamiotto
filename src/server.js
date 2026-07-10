@@ -702,6 +702,9 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
   const relation_type = (req.body.relation_type || "child_of").trim();
   let parent_member_id = req.body.parent_member_id ? parseInt(req.body.parent_member_id, 10) : null;
   if (parent_member_id && Number.isNaN(parent_member_id)) parent_member_id = null;
+  const spouse_full_name = (req.body.spouse_full_name || "").trim() || null;
+  const spouse_preferred_name = (req.body.spouse_preferred_name || "").trim() || null;
+  const spouse_maiden_name = (req.body.spouse_maiden_name || "").trim() || null;
   const contributor_name = (req.body.contributor_name || "").trim()
     || (req.session.contributorPin && req.session.contributorPin.assignedName)
     || "";
@@ -732,8 +735,9 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     INSERT INTO family_member_submissions (
       full_name, preferred_name, maiden_name, family_branch, role_in_family,
       relation_to_family, short_bio, contributor_name, contributor_email, contributor_phone,
-      pin_id, parent_member_id, tree_lineage, relation_type, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      pin_id, parent_member_id, tree_lineage, relation_type,
+      spouse_full_name, spouse_preferred_name, spouse_maiden_name, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(
     full_name,
     preferred_name,
@@ -748,7 +752,10 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     pinId,
     parent_member_id,
     tree_lineage,
-    relType
+    relType,
+    spouse_full_name,
+    spouse_preferred_name,
+    spouse_maiden_name
   );
 
   db.prepare(`
@@ -756,12 +763,23 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     VALUES ('family_member', ?, ?, ?, ?, 'pending')
   `).run(
     info.lastInsertRowid,
-    JSON.stringify({ full_name, family_branch: branch, relation_to_family, parent_member_id, tree_lineage, relType }),
+    JSON.stringify({
+      full_name,
+      family_branch: branch,
+      relation_to_family,
+      parent_member_id,
+      tree_lineage,
+      relType,
+      spouse_full_name,
+      spouse_preferred_name,
+      spouse_maiden_name,
+    }),
     contributor_name,
     contributor_email
   );
 
-  setFlash(req, "success", "Thank you. Your name was submitted and will appear on the family tree after a family administrator reviews it.");
+  const spouseNote = spouse_full_name ? " (with spouse)" : "";
+  setFlash(req, "success", `Thank you. Your name${spouseNote} was submitted and will appear on the family tree after a family administrator reviews it.`);
   res.redirect("/contribute/thanks");
 });
 
@@ -982,17 +1000,21 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
   const parentId = sub.parent_member_id || null;
   const tree_lineage = sub.tree_lineage || (parentId ? lineageFromMember(db, parentId) : null);
   const generation = generationFromParent(db, parentId, sub.relation_type || "child_of");
-  const spouseId = sub.relation_type === "spouse_of" ? parentId : null;
-  const parentForTree = sub.relation_type === "spouse_of" ? null : parentId;
+  const isSpouseOf = sub.relation_type === "spouse_of";
+  const linkedSpouseId = isSpouseOf ? parentId : null;
+  const parentForTree = isSpouseOf ? null : parentId;
+  const spouseFull = (sub.spouse_full_name || "").trim();
 
-  const insert = db.prepare(`
+  const insertMember = db.prepare(`
     INSERT INTO family_members (
       full_name, preferred_name, maiden_name, family_branch,
       is_patriarch, is_matriarch, is_memorial, is_placeholder,
       role_in_family, biography, visibility, sort_order,
       parent_member_id, spouse_member_id, tree_lineage, generation, relation_type
     ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?, ?, ?, ?, ?, ?)
-  `).run(
+  `);
+
+  const insert = insertMember.run(
     sub.full_name,
     sub.preferred_name || sub.full_name,
     sub.maiden_name || null,
@@ -1001,28 +1023,74 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
     bio,
     sortOrder,
     parentForTree,
-    spouseId,
+    linkedSpouseId,
     tree_lineage,
     generation,
     sub.relation_type || "child_of"
   );
+  const mainId = insert.lastInsertRowid;
+
+  // Optional spouse submitted with this name (appear together on the living tree)
+  let createdSpouseId = null;
+  if (spouseFull) {
+    const spouseRole = `Spouse of ${sub.preferred_name || sub.full_name}`;
+    const spouseInsert = insertMember.run(
+      spouseFull,
+      sub.spouse_preferred_name || spouseFull,
+      sub.spouse_maiden_name || null,
+      sub.family_branch || "both",
+      spouseRole,
+      null,
+      sortOrder + 1,
+      parentForTree,
+      mainId,
+      tree_lineage,
+      generation,
+      "spouse_of"
+    );
+    createdSpouseId = spouseInsert.lastInsertRowid;
+    db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(createdSpouseId, mainId);
+    // If this person is spouse_of an existing member, keep that link on the primary spouse too
+    if (isSpouseOf && parentId) {
+      db.prepare(`
+        UPDATE family_members
+        SET spouse_member_id = COALESCE(spouse_member_id, ?)
+        WHERE id = ?
+      `).run(mainId, parentId);
+    }
+  } else if (isSpouseOf && parentId) {
+    db.prepare(`
+      UPDATE family_members
+      SET spouse_member_id = COALESCE(spouse_member_id, ?)
+      WHERE id = ?
+    `).run(mainId, parentId);
+  }
 
   db.prepare(`
     UPDATE family_member_submissions
     SET status = 'approved',
         family_member_id = ?,
+        spouse_member_id = ?,
         reviewed_at = datetime('now'),
         reviewed_by = ?
     WHERE id = ?
-  `).run(insert.lastInsertRowid, req.session.user.id, sub.id);
+  `).run(mainId, createdSpouseId, req.session.user.id, sub.id);
 
   db.prepare(`
     UPDATE contributions_log SET status = 'approved'
     WHERE kind = 'family_member' AND ref_id = ?
   `).run(sub.id);
 
-  logActivity(req.session.user.id, "approve_member_submission", `Approved family member submission #${sub.id}: ${sub.full_name}`);
-  setFlash(req, "success", `${sub.full_name} was approved, added to Family Members, and placed on the living family tree.`);
+  logActivity(
+    req.session.user.id,
+    "approve_member_submission",
+    `Approved family member submission #${sub.id}: ${sub.full_name}` +
+      (createdSpouseId ? ` + spouse ${spouseFull}` : "")
+  );
+  const successMsg = createdSpouseId
+    ? `${sub.full_name} and ${spouseFull} were approved and placed together on the living family tree.`
+    : `${sub.full_name} was approved, added to Family Members, and placed on the living family tree.`;
+  setFlash(req, "success", successMsg);
   res.redirect("/admin/members");
 });
 
@@ -1049,22 +1117,68 @@ app.post("/admin/member-submissions/:id/reject", requireRole("super_admin", "fam
 });
 
 app.post("/admin/members", requireRole("super_admin", "family_admin"), (req, res) => {
-  db.prepare(`
+  const full_name = (req.body.full_name || "").trim();
+  const preferred_name = (req.body.preferred_name || "").trim() || null;
+  const family_branch = (req.body.family_branch || "both").trim();
+  const role_in_family = (req.body.role_in_family || "").trim() || null;
+  const biography = (req.body.biography || "").trim() || null;
+  const sort_order = parseInt(req.body.sort_order || "50", 10);
+  let parent_member_id = req.body.parent_member_id ? parseInt(req.body.parent_member_id, 10) : null;
+  if (parent_member_id && Number.isNaN(parent_member_id)) parent_member_id = null;
+  const spouse_full_name = (req.body.spouse_full_name || "").trim();
+  const spouse_preferred_name = (req.body.spouse_preferred_name || "").trim() || null;
+  const spouse_maiden_name = (req.body.spouse_maiden_name || "").trim() || null;
+  const tree_lineage = parent_member_id ? lineageFromMember(db, parent_member_id) : null;
+  const generation = parent_member_id
+    ? generationFromParent(db, parent_member_id, "child_of")
+    : null;
+
+  const insert = db.prepare(`
     INSERT INTO family_members
-      (full_name, preferred_name, family_branch, is_patriarch, is_matriarch, role_in_family, biography, is_placeholder, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (full_name, preferred_name, family_branch, is_patriarch, is_matriarch, role_in_family, biography,
+       is_placeholder, sort_order, parent_member_id, tree_lineage, generation, relation_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    (req.body.full_name || "").trim(),
-    (req.body.preferred_name || "").trim() || null,
-    (req.body.family_branch || "both").trim(),
+    full_name,
+    preferred_name,
+    family_branch,
     req.body.is_patriarch === "1" ? 1 : 0,
     req.body.is_matriarch === "1" ? 1 : 0,
-    (req.body.role_in_family || "").trim() || null,
-    (req.body.biography || "").trim() || null,
+    role_in_family,
+    biography,
     req.body.is_placeholder === "0" ? 0 : 1,
-    parseInt(req.body.sort_order || "50", 10)
+    sort_order,
+    parent_member_id,
+    tree_lineage,
+    generation,
+    parent_member_id ? "child_of" : null
   );
-  setFlash(req, "success", "Family member added.");
+  const mainId = insert.lastInsertRowid;
+
+  if (spouse_full_name) {
+    const sp = db.prepare(`
+      INSERT INTO family_members
+        (full_name, preferred_name, maiden_name, family_branch, is_patriarch, is_matriarch,
+         role_in_family, is_placeholder, sort_order, parent_member_id, spouse_member_id,
+         tree_lineage, generation, relation_type)
+      VALUES (?, ?, ?, ?, 0, 0, ?, 0, ?, ?, ?, ?, ?, 'spouse_of')
+    `).run(
+      spouse_full_name,
+      spouse_preferred_name || spouse_full_name,
+      spouse_maiden_name,
+      family_branch,
+      `Spouse of ${preferred_name || full_name}`,
+      sort_order + 1,
+      parent_member_id,
+      mainId,
+      tree_lineage,
+      generation
+    );
+    db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(sp.lastInsertRowid, mainId);
+    setFlash(req, "success", `Family member and spouse added (${full_name} & ${spouse_full_name}).`);
+  } else {
+    setFlash(req, "success", "Family member added.");
+  }
   res.redirect("/admin/members");
 });
 

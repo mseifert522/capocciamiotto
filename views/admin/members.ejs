@@ -36,6 +36,9 @@
                     <% if (s.preferred_name && s.preferred_name !== s.full_name) { %><br /><span style="color:var(--ink-muted)"><%= s.full_name %></span><% } %>
                     <br /><span style="font-size:0.85rem;color:var(--ink-muted)">Submitted by <%= s.contributor_name || 'Family' %><% if (s.contributor_email) { %> · <%= s.contributor_email %><% } %></span>
                     <% if (s.short_bio) { %><br /><span style="font-size:0.88rem"><%= s.short_bio.slice(0, 160) %></span><% } %>
+                    <% if (s.spouse_full_name) { %>
+                      <br /><span style="font-size:0.9rem;color:var(--burgundy)"><strong>Spouse:</strong> <%= s.spouse_preferred_name || s.spouse_full_name %><% if (s.spouse_preferred_name && s.spouse_preferred_name !== s.spouse_full_name) { %> <span style="color:var(--ink-muted)">(<%= s.spouse_full_name %>)</span><% } %><% if (s.spouse_maiden_name) { %> · maiden <%= s.spouse_maiden_name %><% } %></span>
+                    <% } %>
                   </td>
                   <td>
                     <%= s.relation_to_family || '—' %><br />
@@ -45,6 +48,7 @@
                       <% if (s.tree_lineage) { %> · line: <%= s.tree_lineage %><% } %>
                       <% if (s.parent_member_id) { %> · under #<%= s.parent_member_id %><% } %>
                       <% if (s.role_in_family) { %> · <%= s.role_in_family %><% } %>
+                      <% if (s.spouse_full_name) { %> · + spouse<% } %>
                     </span>
                   </td>
                   <td><%= s.status %></td>
@@ -87,6 +91,23 @@
           <div><label>Sort order</label><input name="sort_order" type="number" value="50" /></div>
         </div>
         <div class="form-row"><label>Role in family</label><input name="role_in_family" /></div>
+        <div class="form-row">
+          <label>Place under (parent on tree)</label>
+          <select name="parent_member_id">
+            <option value="">— none / root leader —</option>
+            <% members.forEach(function(m) { %>
+              <option value="<%= m.id %>"><%= m.preferred_name || m.full_name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <fieldset class="form-fieldset spouse-fields">
+          <legend>Spouse (optional)</legend>
+          <div class="form-row two">
+            <div><label>Spouse full name</label><input name="spouse_full_name" maxlength="160" placeholder="Leave blank if none" /></div>
+            <div><label>Spouse preferred name</label><input name="spouse_preferred_name" maxlength="160" /></div>
+          </div>
+          <div class="form-row"><label>Spouse maiden name</label><input name="spouse_maiden_name" maxlength="120" /></div>
+        </fieldset>
         <div class="form-row"><label>Biography</label><textarea name="biography"></textarea></div>
         <label class="checkbox"><input type="checkbox" name="is_patriarch" value="1" /> Patriarch</label>
         <label class="checkbox"><input type="checkbox" name="is_matriarch" value="1" /> Matriarch</label>

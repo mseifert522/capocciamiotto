@@ -61,6 +61,9 @@ function ensureTreeColumns(db) {
     ["spouse_member_id", "INTEGER"],
     ["tree_lineage", "TEXT"],
     ["relation_type", "TEXT"],
+    ["spouse_full_name", "TEXT"],
+    ["spouse_preferred_name", "TEXT"],
+    ["spouse_maiden_name", "TEXT"],
   ];
   for (const [col, type] of memberCols) {
     try {
@@ -201,6 +204,10 @@ function buildLivingTree(db) {
     if (leaderIds.has(m.id) || usedAsChild.has(m.id)) continue;
     const node = byId.get(m.id);
     if (!node) continue;
+    // Spouse-only nodes attach to their spouse later; skip if spouse is already placed
+    if (m.spouse_member_id && usedAsChild.has(m.spouse_member_id) && !m.parent_member_id) {
+      continue;
+    }
     const lineage = m.tree_lineage || lineageFromMember(db, m.id);
     const primary =
       lineage === "tony" ? leaders.tony
@@ -213,11 +220,36 @@ function buildLivingTree(db) {
     }
   }
 
+  // Pair spouses: show couples together; hide spouse from sibling list when linked
+  function pairSpouses(list) {
+    if (!list || !list.length) return list || [];
+    const spouseOnly = new Set();
+    for (const n of list) {
+      if (!n.spouse_member_id || !byId.has(n.spouse_member_id)) continue;
+      const sp = byId.get(n.spouse_member_id);
+      if (!sp || spouseOnly.has(n.id)) continue;
+      // Prefer lower id as the "primary" display so pairing is stable
+      const a = n.id < sp.id ? n : sp;
+      const b = n.id < sp.id ? sp : n;
+      a.spouse = b;
+      spouseOnly.add(b.id);
+      usedAsChild.add(b.id);
+    }
+    const filtered = list.filter((n) => !spouseOnly.has(n.id));
+    filtered.forEach((c) => {
+      c.children = pairSpouses(c.children || []);
+    });
+    return filtered;
+  }
+
   function sortKids(list) {
     list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     list.forEach((c) => sortKids(c.children || []));
   }
-  Object.values(leaders).forEach((n) => sortKids(n.children || []));
+  Object.values(leaders).forEach((n) => {
+    n.children = pairSpouses(n.children || []);
+    sortKids(n.children || []);
+  });
 
   const lines = LINEAGE_ORDER.map((key) => {
     const meta = LINEAGE_META[key];

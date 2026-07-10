@@ -1709,6 +1709,25 @@ label {
   margin-bottom: 0.35rem;
 }
 .hint { font-size: 0.82rem; color: var(--ink-muted); margin-top: 0.3rem; }
+.form-fieldset {
+  border: 1px solid rgba(196, 163, 90, 0.28);
+  border-radius: var(--radius, 12px);
+  padding: 1rem 1.1rem 0.35rem;
+  margin: 0 0 1.25rem;
+  background: rgba(250, 246, 240, 0.55);
+}
+.form-fieldset legend {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--burgundy, #6b1f2a);
+  padding: 0 0.35rem;
+}
+.living-tree-person--couple .living-tree-name + .living-tree-amp {
+  margin: 0 0.35rem;
+  color: var(--ink-muted, #6b5a50);
+  font-weight: 600;
+}
 input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="password"], input[type="date"], select, textarea {
   width: 100%;
   border: 1px solid rgba(43, 33, 28, 0.15);

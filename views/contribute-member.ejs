@@ -85,6 +85,29 @@
           placeholder="Example: Daughter of … / Son of … / Grandson of George &amp; Christine" />
       </div>
 
+      <fieldset class="form-fieldset spouse-fields">
+        <legend>Your spouse (optional)</legend>
+        <p class="hint" style="margin-top:0">
+          Adding a name to the family tree? You can include your spouse here so you appear together on the living tree after approval.
+        </p>
+        <div class="form-row">
+          <label for="spouse_full_name">Spouse’s full name</label>
+          <input type="text" id="spouse_full_name" name="spouse_full_name" maxlength="160"
+            placeholder="Leave blank if not adding a spouse" />
+        </div>
+        <div class="form-row two">
+          <div>
+            <label for="spouse_preferred_name">Spouse’s preferred name on the tribute</label>
+            <input type="text" id="spouse_preferred_name" name="spouse_preferred_name" maxlength="160"
+              placeholder="How their name should appear" />
+          </div>
+          <div>
+            <label for="spouse_maiden_name">Spouse’s maiden name (if applicable)</label>
+            <input type="text" id="spouse_maiden_name" name="spouse_maiden_name" maxlength="120" />
+          </div>
+        </div>
+      </fieldset>
+
       <div class="form-row">
         <label for="short_bio">A short note about you (optional)</label>
         <textarea id="short_bio" name="short_bio" maxlength="2000" rows="4" placeholder="A sentence or two for your family tribute card."></textarea>

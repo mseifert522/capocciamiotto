@@ -1,5 +1,10 @@
 <%- include('partials/header', { pageTitle: reunion.year + ' Reunion' }) %>
-<section class="section">
+<%
+  const cover = typeof coverPhoto !== 'undefined' ? coverPhoto : null;
+  const gallery = typeof galleryPhotos !== 'undefined' ? galleryPhotos : (photos || []);
+  const allPhotos = photos || [];
+%>
+<section class="section year-section">
   <div class="container">
     <header class="section-header">
       <p class="section-eyebrow">Capoccia–Miotto Family Reunion</p>
@@ -16,9 +21,28 @@
       </p>
     </header>
 
-    <div class="btn-row" style="justify-content:center;margin-bottom:2rem">
+    <% if (cover && (cover.web_path || cover.thumb_path)) { %>
+      <figure class="year-cover" data-lightbox data-full="<%= cover.web_path || cover.thumb_path %>" data-caption="<%= cover.title || (reunion.year + ' Capoccia–Miotto Family Reunion') %>">
+        <img
+          src="<%= cover.web_path || cover.thumb_path %>"
+          alt="<%= cover.title || (reunion.year + ' family reunion cover photograph') %>"
+          class="year-cover-img"
+          loading="eager"
+        />
+        <figcaption class="year-cover-cap">
+          <span class="year-cover-badge"><%= reunion.year %> cover photo</span>
+          <span class="year-cover-title"><%= cover.title || (reunion.year + ' Capoccia–Miotto Family Reunion') %></span>
+          <% if (allPhotos.length) { %>
+            <span class="year-cover-count"><%= allPhotos.length %> photograph<%= allPhotos.length === 1 ? '' : 's' %> from this year in the archive</span>
+          <% } %>
+        </figcaption>
+      </figure>
+    <% } %>
+
+    <div class="btn-row" style="justify-content:center;margin:1.5rem 0 2rem">
       <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Contribute to This Reunion</a>
       <a class="btn btn-secondary" href="/contribute?year=<%= reunion.year %>">Add Photos From This Year</a>
+      <a class="btn btn-outline" href="/photo-archive?year=<%= reunion.year %>">View in Photo Archive</a>
       <a class="btn btn-outline" href="/contribute/story">Share a Family Memory</a>
     </div>
 
@@ -26,14 +50,28 @@
       <div class="narrow" style="margin-bottom:2rem"><p><%= reunion.summary %></p></div>
     <% } %>
 
-    <% if (photos.length) { %>
+    <% if (gallery.length) { %>
+      <h3 class="year-gallery-heading">More photographs from <%= reunion.year %></h3>
+      <p class="year-gallery-lead">All photos below are also in the <a href="/photo-archive?year=<%= reunion.year %>">Photo Archive</a> for <%= reunion.year %>.</p>
       <div class="photo-grid">
-        <% photos.forEach(function(p) { %>
-          <figure class="photo-tile" style="margin:0">
-            <img src="<%= p.web_path || p.thumb_path %>" alt="<%= p.title || 'Reunion photograph' %>" loading="lazy" />
+        <% gallery.forEach(function(p) { %>
+          <figure
+            class="photo-tile"
+            style="margin:0"
+            data-lightbox
+            data-full="<%= p.web_path || p.thumb_path %>"
+            data-caption="<%= p.title || 'Reunion photograph' %>"
+          >
+            <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Reunion photograph' %>" loading="lazy" />
             <figcaption class="cap"><%= p.title || (peopleByPhoto[p.id] && peopleByPhoto[p.id].map(x => x.person_name).join(', ')) || 'Family photograph' %></figcaption>
           </figure>
         <% }) %>
+      </div>
+    <% } else if (cover) { %>
+      <div class="empty" style="margin-top:1rem">
+        <h3>This is the cover photo for <%= reunion.year %>.</h3>
+        <p>Add more photographs from this reunion to grow the year gallery.</p>
+        <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Add Photos From This Year</a>
       </div>
     <% } else { %>
       <div class="empty">

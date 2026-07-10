@@ -65,6 +65,11 @@
           <div class="tl-card">
             <div class="tl-card-accent" aria-hidden="true"></div>
             <a class="tl-card-main" href="/reunion/<%= r.year %>">
+              <% if (r.cover_photo_path) { %>
+                <div class="tl-card-cover">
+                  <img src="<%= r.cover_photo_path %>" alt="<%= r.year %> reunion cover" loading="lazy" />
+                </div>
+              <% } %>
               <div class="tl-card-top">
                 <span class="tl-year"><%= r.year %></span>
                 <span class="tl-badge tl-badge--<%= state %>">

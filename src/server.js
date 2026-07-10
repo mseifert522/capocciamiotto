@@ -665,15 +665,63 @@ app.get("/reunion-timeline", (req, res) => {
     WHERE status = 'approved' GROUP BY reunion_year
   `).all();
   const countMap = Object.fromEntries(counts.map((r) => [r.year, r.c]));
-  reunions.forEach((r) => { r.photo_count = countMap[r.year] || 0; });
+  reunions.forEach((r) => {
+    r.photo_count = countMap[r.year] || 0;
+    // Prefer stored cover, else featured/first approved photo for the year
+    if (!r.cover_photo_path) {
+      const coverRow = db.prepare(`
+        SELECT web_path, thumb_path FROM photos
+        WHERE reunion_year = ? AND status = 'approved' AND may_display_public = 1
+        ORDER BY featured DESC, submitted_at DESC, id DESC
+        LIMIT 1
+      `).get(r.year);
+      if (coverRow) r.cover_photo_path = coverRow.web_path || coverRow.thumb_path;
+    }
+  });
   const data = localsBase(req);
   clearFlash(req);
   res.render("timeline", { ...data, reunions });
 });
 
+/**
+ * Cover photo for a reunion year: explicit cover_photo_path, else featured photo, else first photo.
+ * Remaining approved photos form the year gallery (cover not duplicated).
+ */
+function resolveYearCoverAndGallery(reunion, photos) {
+  const list = photos || [];
+  let cover = null;
+  if (reunion && reunion.cover_photo_path) {
+    cover =
+      list.find(
+        (p) =>
+          p.web_path === reunion.cover_photo_path ||
+          p.original_path === reunion.cover_photo_path ||
+          p.thumb_path === reunion.cover_photo_path
+      ) || null;
+    if (!cover) {
+      cover = {
+        id: null,
+        web_path: reunion.cover_photo_path,
+        thumb_path: reunion.cover_photo_path,
+        title: `${reunion.year} Capoccia–Miotto Family Reunion`,
+        is_cover_only: true,
+      };
+    }
+  }
+  if (!cover) {
+    cover = list.find((p) => p.featured) || list[0] || null;
+  }
+  const gallery = cover && cover.id
+    ? list.filter((p) => p.id !== cover.id)
+    : list.filter((p) => !cover || p.web_path !== (cover && cover.web_path));
+  return { coverPhoto: cover, galleryPhotos: gallery };
+}
+
 app.get("/reunion/:year", (req, res) => {
   const year = parseInt(req.params.year, 10);
-  if (Number.isNaN(year) || year < 1977 || year > CURRENT_YEAR) return res.status(404).render("404", localsBase(req));
+  if (Number.isNaN(year) || year < 1977 || year > CURRENT_YEAR + 1) {
+    return res.status(404).render("404", localsBase(req));
+  }
   let reunion = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   if (!reunion) {
     db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(year, `${year} Capoccia–Miotto Family Reunion`);
@@ -681,8 +729,13 @@ app.get("/reunion/:year", (req, res) => {
   }
   const photos = db.prepare(`
     SELECT * FROM photos WHERE reunion_year = ? AND status = 'approved' AND may_display_public = 1
-    ORDER BY featured DESC, submitted_at DESC
+    ORDER BY featured DESC, submitted_at DESC, id DESC
   `).all(year);
+  const { coverPhoto, galleryPhotos } = resolveYearCoverAndGallery(reunion, photos);
+  // If we have a photo cover but reunion.cover_photo_path empty, keep UI consistent
+  if (coverPhoto && coverPhoto.web_path && !reunion.cover_photo_path) {
+    reunion.cover_photo_path = coverPhoto.web_path;
+  }
   const stories = db.prepare(`
     SELECT * FROM stories WHERE reunion_year = ? AND status = 'approved' ORDER BY created_at DESC
   `).all(year);
@@ -694,7 +747,15 @@ app.get("/reunion/:year", (req, res) => {
   });
   const data = localsBase(req);
   clearFlash(req);
-  res.render("reunion-year", { ...data, reunion, photos, stories, peopleByPhoto });
+  res.render("reunion-year", {
+    ...data,
+    reunion,
+    photos,
+    coverPhoto,
+    galleryPhotos,
+    stories,
+    peopleByPhoto,
+  });
 });
 
 app.get("/photo-archive", (req, res) => {

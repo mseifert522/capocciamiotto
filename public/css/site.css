@@ -1808,6 +1808,96 @@ main { overflow-x: clip; }
   grid-column: 2;
 }
 
+.tl-card-cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--cream-deep);
+  border-radius: 10px 10px 0 0;
+  margin: -0.15rem 0 0.75rem;
+}
+.tl-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+}
+.year-cover {
+  margin: 0 auto 0.5rem;
+  max-width: 1100px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1f1714;
+  box-shadow: 0 16px 40px rgba(43, 33, 28, 0.18);
+  cursor: zoom-in;
+}
+.year-cover-img {
+  width: 100%;
+  display: block;
+  max-height: min(62vh, 620px);
+  object-fit: cover;
+  object-position: center 35%;
+}
+.year-cover-cap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 1rem;
+  padding: 0.85rem 1.1rem 1rem;
+  background: linear-gradient(180deg, #2a1c18, #1f1714);
+  color: rgba(250, 246, 240, 0.9);
+}
+.year-cover-badge {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1f1712;
+  background: linear-gradient(160deg, var(--gold-soft), var(--gold));
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+}
+.year-cover-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.year-cover-count {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: rgba(250, 246, 240, 0.65);
+  margin-left: auto;
+}
+.year-gallery-heading {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  color: var(--burgundy);
+  text-align: center;
+  margin: 0 0 0.35rem;
+}
+.year-gallery-lead {
+  text-align: center;
+  color: var(--ink-muted);
+  margin: 0 0 1.25rem;
+  font-size: 0.98rem;
+}
+.photo-tile--cover {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.photo-cover-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(196, 163, 90, 0.25);
+  color: var(--burgundy);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-right: 0.25rem;
+}
 .tl-card {
   position: relative;
   display: flex;

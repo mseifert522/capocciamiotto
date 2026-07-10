@@ -31,12 +31,22 @@
       </div>
       <button class="btn btn-primary" type="submit">Search archive</button>
     </form>
+    <% if (year) { %>
+      <p class="year-gallery-lead" style="text-align:center;margin:-0.5rem 0 1.25rem">
+        Showing photographs from <strong><%= year %></strong>.
+        <a href="/reunion/<%= year %>">Open <%= year %> reunion page</a>
+        (cover photo first, then the year gallery).
+      </p>
+    <% } %>
     <% if (photos.length) { %>
       <div class="photo-grid">
         <% photos.forEach(function(p) { %>
-          <a class="photo-tile" href="<%= p.reunion_year ? '/reunion/' + p.reunion_year : '/photo-archive' %>">
-            <img src="<%= p.thumb_path || p.web_path %>" alt="" loading="lazy" />
-            <div class="cap"><%= p.reunion_year || 'Year TBD' %></div>
+          <a class="photo-tile<%= p.featured ? ' photo-tile--cover' : '' %>" href="<%= p.reunion_year ? '/reunion/' + p.reunion_year : '/photo-archive' %>">
+            <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
+            <div class="cap">
+              <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
+              <%= p.reunion_year || 'Year TBD' %><% if (p.title) { %> · <%= p.title %><% } %>
+            </div>
           </a>
         <% }) %>
       </div>

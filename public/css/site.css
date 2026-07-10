@@ -1782,6 +1782,99 @@ input:focus, select:focus, textarea:focus {
 .board-post.pinned { border-left: 4px solid var(--gold); }
 .board-post h3 { font-family: var(--font-display); font-size: 1.35rem; color: var(--ink); margin-bottom: 0.35rem; }
 .board-meta { font-family: var(--font-ui); font-size: 0.8rem; color: var(--ink-muted); margin-bottom: 0.65rem; }
+.board-post-body { white-space: pre-wrap; margin: 0; line-height: 1.55; color: var(--ink); }
+
+/* Community board: compose left (sticky) · messages right (scroll) */
+.board-section { padding-top: 1.5rem; }
+.board-page { max-width: 1180px; }
+.board-page-header { margin-bottom: 1.25rem; }
+.board-pin-status {
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  color: var(--green, #2f5d3a);
+  margin-top: 0.75rem;
+}
+.board-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.board-compose {
+  position: sticky;
+  top: 5.5rem;
+  z-index: 2;
+}
+.board-compose-form {
+  margin: 0;
+  box-shadow: 0 12px 36px rgba(43, 33, 28, 0.1);
+}
+.board-compose-title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--ink);
+  margin: 0 0 0.35rem;
+}
+.board-compose-hint { margin: 0 0 1rem; }
+.board-feed-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 28rem;
+  max-height: calc(100vh - 10rem);
+  background: rgba(255, 253, 248, 0.55);
+  border: 1px solid rgba(196, 163, 90, 0.22);
+  border-radius: var(--radius, 12px);
+  overflow: hidden;
+}
+.board-feed-head {
+  flex: 0 0 auto;
+  padding: 0.9rem 1.15rem 0.75rem;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.2);
+  background: linear-gradient(180deg, rgba(250, 246, 240, 0.98), rgba(250, 246, 240, 0.88));
+}
+.board-feed-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--ink);
+  margin: 0 0 0.15rem;
+}
+.board-feed-head .hint { margin: 0; }
+.board-feed {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.1rem 1.35rem;
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.board-feed-empty {
+  margin: 1.5rem auto;
+  max-width: 22rem;
+}
+.board-feed .board-post {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .board-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .board-compose {
+    position: relative;
+    top: auto;
+    order: 1;
+  }
+  .board-feed-wrap {
+    order: 2;
+    max-height: min(70vh, 32rem);
+    min-height: 18rem;
+  }
+}
 
 /* Admin */
 .admin-shell { display: grid; grid-template-columns: 220px 1fr; min-height: 70vh; }

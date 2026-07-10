@@ -19,10 +19,17 @@
   <div class="tricolor" aria-hidden="true"></div>
   <header class="site-header">
     <div class="container nav">
-      <a href="/" class="nav-brand">Capoccia–Miotto<span>Family Reunion Tribute · since 1977</span></a>
+      <a href="/" class="nav-brand<%= path === '/' ? ' is-home' : '' %>" aria-label="Capoccia–Miotto Family Reunion Tribute — Home">
+        <span class="nav-brand-flag" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span class="nav-brand-text">
+          <span class="nav-brand-title">Capoccia–Miotto</span>
+          <span class="nav-brand-sub">Family Reunion Tribute · since 1977</span>
+        </span>
+      </a>
       <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false"><span></span><span></span></button>
       <nav class="nav-links" aria-label="Main">
-        <a href="/" class="<%= path === '/' ? 'active' : '' %>">Home</a>
         <a href="/our-family-story" class="<%= path.startsWith('/our-family') ? 'active' : '' %>">Our Family Story</a>
         <a href="/reunion-timeline" class="<%= path.startsWith('/reunion') ? 'active' : '' %>">Reunion Timeline</a>
         <a href="/photo-archive" class="<%= path.startsWith('/photo') ? 'active' : '' %>">Photo Archive</a>

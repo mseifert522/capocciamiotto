@@ -403,7 +403,7 @@ function seedFamilyTributes() {
       role_in_family: "Capoccia Patriarch",
       biography:
         "Born January 25, 1933, in Detroit, Michigan, George G. Capoccia is the beloved living patriarch of the Capoccia family — a man whose quiet strength, unwavering faith, and deep love have guided our family for nearly a century.\n\n" +
-        "Son of Costanzo and Madeline Capoccia, George grew up in the warm Italian neighborhoods of Detroit with his brother Tony and sister Anna. Married for decades to his cherished wife Christine, George has been the steady heart of the Capoccia–Miotto reunions since they began in 1977. From the bustling streets of Detroit to the welcoming homes of Warren and Farmington Hills, he has carried forward the proud heritage of Alvito and Frosinone with grace and devotion.\n\n" +
+        "Son of Costanzo and Madeline Capoccia, George grew up in the warm Italian neighborhoods of Detroit with his brother Tony and sister Anna. Married for decades to his cherished wife Christine, George has been the steady heart of the Capoccia–Miotto reunions since they began in 1977. Together, George and Christine live in Warren, Michigan, carrying forward the proud heritage of Alvito and Frosinone with grace and devotion.\n\n" +
         "Today, George continues to be the living link that holds us all together. His presence is a blessing, his wisdom a gift, and his love the foundation upon which our family stands. We are forever grateful to call him our patriarch.",
       favorite_memories:
         "Share your favorite memories and stories of George — family contributions welcome.",
@@ -426,7 +426,7 @@ function seedFamilyTributes() {
       role_in_family: "Capoccia Matriarch",
       biography:
         "Christine E. Capoccia is the beloved matriarch of the Capoccia family — a woman of grace, warmth, and boundless love whose gentle spirit has been the heart of our family for generations.\n\n" +
-        "Married to George, Christine has stood faithfully beside him, creating a home filled with Italian tradition, faith, and joy. Together they have nurtured the Capoccia–Miotto reunions since 1977, opening their hearts to every branch of the family. Her kindness and devotion reflect the beautiful heritage our ancestors brought from Italy to Detroit and later to the suburbs of Farmington Hills.\n\n" +
+        "Married to George, Christine has stood faithfully beside him, creating a home filled with Italian tradition, faith, and joy. Together they live in Warren, Michigan, and have nurtured the Capoccia–Miotto reunions since 1977, opening their hearts to every branch of the family. Her kindness and devotion reflect the beautiful heritage our ancestors brought from Italy to Detroit and beyond.\n\n" +
         "Christine’s elegant presence and loving embrace continue to inspire us all. She is more than our matriarch — she is the soul of the Capoccia family we cherish so deeply.",
       favorite_memories:
         "Share your favorite memories and stories of Christine — family contributions welcome.",

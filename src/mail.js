@@ -221,11 +221,89 @@ async function sendFamilyPinEmail({ toEmail, requesterName }) {
   }
 }
 
+/**
+ * Send a plain-text activity report (admin dashboard / scheduled).
+ */
+async function sendGenericEmail({ toEmail, subject, text, html }) {
+  const email = String(toEmail || "").trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Invalid email address." };
+  }
+  const subj = subject || "Capoccia–Miotto site notice";
+  const bodyText = text || "";
+  const bodyHtml =
+    html ||
+    `<pre style="font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;color:#2b211c">${escapeHtml(bodyText)}</pre>`;
+
+  if (resendConfigured()) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `${MAIL_FROM_NAME} <${MAIL_FROM}>`,
+          to: [email],
+          reply_to: CONTACT_EMAIL,
+          subject: subj,
+          text: bodyText,
+          html: bodyHtml,
+        }),
+      });
+      const bodyTextRes = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(bodyTextRes);
+      } catch (_) {
+        data = { raw: bodyTextRes };
+      }
+      if (res.ok) return { ok: true, method: "resend", id: (data && data.id) || null };
+      console.error("Resend generic email failed:", data);
+    } catch (err) {
+      console.error("Resend generic email error:", err.message);
+    }
+  }
+
+  if (smtpConfigured()) {
+    try {
+      const transport = createTransport();
+      if (transport) {
+        const info = await transport.sendMail({
+          from: `"${MAIL_FROM_NAME}" <${MAIL_FROM}>`,
+          to: email,
+          replyTo: CONTACT_EMAIL,
+          subject: subj,
+          text: bodyText,
+          html: bodyHtml,
+        });
+        return { ok: true, method: "smtp", id: info.messageId || null };
+      }
+    } catch (err) {
+      console.error("SMTP generic email failed:", err.message);
+      return { ok: false, error: err.message || "SMTP send failed" };
+    }
+  }
+
+  return { ok: false, error: "No email transport configured (Resend/SMTP)." };
+}
+
+async function sendActivityReportEmail(toEmail, reportText) {
+  return sendGenericEmail({
+    toEmail,
+    subject: "Capoccia–Miotto site activity report",
+    text: reportText,
+  });
+}
+
 module.exports = {
   FAMILY_PIN,
   MAIL_FROM,
   CONTACT_EMAIL,
   sendFamilyPinEmail,
+  sendActivityReportEmail,
+  sendGenericEmail,
   smtpConfigured,
   resendConfigured,
 };

@@ -1,0 +1,145 @@
+<%- include('../partials/header', { pageTitle: 'Site Activity' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a class="active" href="/admin/activity">Activity</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/recordings">Voice Recordings</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+      <a href="/admin/pins">Family PINs</a>
+      <a href="/">View site</a>
+      <form method="post" action="/admin/logout" style="margin-top:1rem"><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" type="submit">Log out</button></form>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Site activity</h2>
+      <p style="margin-bottom:1rem;color:var(--ink-muted)">Who entered the family PIN, who requested a PIN by email, and recent site actions. Times shown as stored (UTC unless noted).</p>
+
+      <form method="post" action="/admin/activity/email-report" class="form-card" style="margin-bottom:1.5rem;padding:1rem 1.15rem;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end">
+        <div class="form-row" style="margin:0;flex:1;min-width:220px">
+          <label for="to_email">Email full report to</label>
+          <input type="email" id="to_email" name="to_email" value="mike@seifertcapital.com" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Send activity report</button>
+      </form>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.65rem">Family PIN logins</h3>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.5rem">People who successfully entered the family PIN #</p>
+      <div class="table-wrap" style="margin-bottom:1.75rem">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Who</th>
+              <th>Details</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!pinLogins.length) { %>
+              <tr><td colspan="4">No PIN logins recorded yet.</td></tr>
+            <% } else { pinLogins.forEach(function(r) { %>
+              <tr>
+                <td style="white-space:nowrap"><%= r.created_at %></td>
+                <td><strong><%= r.actor_name || 'Family member' %></strong></td>
+                <td><%= r.details || '—' %></td>
+                <td style="font-size:0.85rem;color:var(--ink-muted)"><%= r.ip || '—' %></td>
+              </tr>
+            <% }) } %>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.65rem">PIN # requests</h3>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.5rem">Who requested an access PIN and the email used</p>
+      <div class="table-wrap" style="margin-bottom:1.75rem">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!pinRequests.length) { %>
+              <tr><td colspan="5">No PIN requests recorded yet.</td></tr>
+            <% } else { pinRequests.forEach(function(r) { %>
+              <tr>
+                <td style="white-space:nowrap"><%= r.created_at %></td>
+                <td><strong><%= r.requester_name || '—' %></strong></td>
+                <td><a href="mailto:<%= r.requester_email %>"><%= r.requester_email || '—' %></a></td>
+                <td><%= r.status || '—' %></td>
+                <td style="font-size:0.85rem"><%= r.method || '—' %></td>
+              </tr>
+            <% }) } %>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.65rem">Recent photo uploads</h3>
+      <div class="table-wrap" style="margin-bottom:1.75rem">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Contributor</th>
+              <th>Title / year</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!photoUploads.length) { %>
+              <tr><td colspan="4">No photo uploads yet.</td></tr>
+            <% } else { photoUploads.forEach(function(p) { %>
+              <tr>
+                <td style="white-space:nowrap"><%= p.submitted_at %></td>
+                <td>
+                  <strong><%= p.contributor_name || '—' %></strong>
+                  <% if (p.contributor_email) { %><br /><span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.contributor_email %></span><% } %>
+                </td>
+                <td><%= p.title || 'Photo' %> · <%= p.reunion_year || '?' %></td>
+                <td><%= p.status %></td>
+              </tr>
+            <% }) } %>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.65rem">All recent activity</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Type</th>
+              <th>Who</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!recentActivity.length) { %>
+              <tr><td colspan="4">No activity logged yet.</td></tr>
+            <% } else { recentActivity.forEach(function(r) { %>
+              <tr>
+                <td style="white-space:nowrap"><%= r.created_at %></td>
+                <td><code style="font-size:0.8rem"><%= r.kind %></code></td>
+                <td>
+                  <%= r.actor_name || '—' %>
+                  <% if (r.actor_email) { %><br /><span style="font-size:0.85rem;color:var(--ink-muted)"><%= r.actor_email %></span><% } %>
+                </td>
+                <td><%= r.details || '—' %></td>
+              </tr>
+            <% }) } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

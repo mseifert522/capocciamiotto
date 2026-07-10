@@ -2,13 +2,38 @@
 <section class="section">
   <div class="container narrow">
     <article class="card">
-      <div class="card-portrait" style="max-height:380px">
+      <div class="card-portrait member-portrait-wrap" style="max-height:380px">
         <% if (member.portrait_path) { %>
           <img src="<%= member.portrait_path %>" alt="<%= member.display_name %>" />
+          <% if (canUploadPhoto) { %>
+            <form class="portrait-add-overlay" method="post" action="/family-members/<%= member.id %>/portrait" enctype="multipart/form-data">
+              <label class="btn btn-secondary portrait-add-btn">
+                Change photo
+                <input type="file" name="portrait" accept="image/jpeg,image/png,image/webp,image/gif" required hidden onchange="this.form.submit()" />
+              </label>
+            </form>
+          <% } else { %>
+            <a class="btn btn-secondary portrait-add-btn portrait-add-overlay" href="/contribute/pin?next=portrait&amp;member=<%= member.id %>">
+              Add photo
+            </a>
+          <% } %>
         <% } else { %>
-          <div class="placeholder-mark">
-            Portrait placeholder<br />for <%= member.display_name %><br />
-            <span style="font-size:0.9rem;display:block;margin-top:0.5rem">Please upload a favorite photo of the family.</span>
+          <div class="placeholder-mark placeholder-with-upload">
+            <span class="placeholder-label">Portrait placeholder<br />for <%= member.display_name %></span>
+            <span class="placeholder-hint">Please upload a favorite photo of the family.</span>
+            <% if (canUploadPhoto) { %>
+              <form class="portrait-add-form" method="post" action="/family-members/<%= member.id %>/portrait" enctype="multipart/form-data">
+                <label class="btn btn-primary portrait-add-btn">
+                  Add photo
+                  <input type="file" name="portrait" accept="image/jpeg,image/png,image/webp,image/gif" required hidden onchange="this.form.submit()" />
+                </label>
+              </form>
+            <% } else { %>
+              <a class="btn btn-primary portrait-add-btn" href="/contribute/pin?next=portrait&amp;member=<%= member.id %>">
+                Add photo
+              </a>
+              <span class="placeholder-pin-note">Family PIN required to upload</span>
+            <% } %>
           </div>
         <% } %>
       </div>

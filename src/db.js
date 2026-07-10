@@ -324,6 +324,26 @@ function migrate() {
     console.warn("pin email requests table note:", e.message);
   }
 
+  // Site activity (PIN logins, PIN requests, uploads) for admin dashboard
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS site_activity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        actor_name TEXT,
+        actor_email TEXT,
+        details TEXT,
+        ip TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_site_activity_kind ON site_activity(kind);
+      CREATE INDEX IF NOT EXISTS idx_site_activity_created ON site_activity(created_at);
+    `);
+  } catch (e) {
+    console.warn("site_activity table note:", e.message);
+  }
+
   // Community board photo/video attachments
   try {
     db.exec(`
@@ -346,17 +366,35 @@ function migrate() {
     console.warn("board media table note:", e.message);
   }
 
-  // Super admin
-  const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
-  const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!";
-  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(adminEmail);
-  if (!existing) {
-    const hash = bcrypt.hashSync(adminPass, 12);
-    db.prepare(`
-      INSERT INTO users (email, password_hash, name, role, email_verified)
-      VALUES (?, ?, ?, 'super_admin', 1)
-    `).run(adminEmail, hash, "Family Administrator");
+  // Super admin(s) — passwords only from env, never hardcode production secrets
+  function ensureSuperAdmin(email, password, name) {
+    if (!email || !password) return;
+    const em = String(email).trim().toLowerCase();
+    const hash = bcrypt.hashSync(password, 12);
+    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(em);
+    if (!existing) {
+      db.prepare(`
+        INSERT INTO users (email, password_hash, name, role, email_verified)
+        VALUES (?, ?, ?, 'super_admin', 1)
+      `).run(em, hash, name || "Family Administrator");
+    } else if (process.env.ADMIN_SYNC_PASSWORD === "true") {
+      db.prepare(`
+        UPDATE users SET password_hash = ?, role = 'super_admin', name = COALESCE(name, ?)
+        WHERE email = ?
+      `).run(hash, name || "Family Administrator", em);
+    }
   }
+  ensureSuperAdmin(
+    process.env.ADMIN_EMAIL || "info@seifertcapital.com",
+    process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!",
+    "Family Administrator"
+  );
+  // Optional second admin (e.g. mike@) via ADMIN_EMAIL_2 / ADMIN_PASSWORD_2
+  ensureSuperAdmin(
+    process.env.ADMIN_EMAIL_2 || "",
+    process.env.ADMIN_PASSWORD_2 || "",
+    process.env.ADMIN_NAME_2 || "Mike Seifert"
+  );
 
   // Welcome board post
   const boardCount = db.prepare("SELECT COUNT(*) AS c FROM board_posts").get().c;

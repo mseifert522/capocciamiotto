@@ -24,7 +24,7 @@ const {
   lineageFromMember,
   generationFromParent,
 } = require("./familyTree");
-const { sendFamilyPinEmail, CONTACT_EMAIL } = require("./mail");
+const { sendFamilyPinEmail, sendActivityReportEmail, CONTACT_EMAIL } = require("./mail");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -241,6 +241,11 @@ function requireContributorPin(req, res, next) {
   const nextUrl = req.originalUrl || "/contribute";
   // Avoid loop if already on pin page
   if (nextUrl.startsWith("/contribute/pin")) return next();
+  // Portrait upload on a member page
+  const portraitMatch = nextUrl.match(/\/family-members\/(\d+)\/portrait/);
+  if (portraitMatch) {
+    return res.redirect(`/contribute/pin?next=portrait&member=${portraitMatch[1]}`);
+  }
   const qs = nextUrl.includes("?") ? nextUrl.slice(nextUrl.indexOf("?")) : "";
   const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : qs.includes("year=") ? qs : "";
   let pinQs = year;
@@ -267,6 +272,157 @@ function logActivity(userId, action, details) {
     action,
     details || null
   );
+}
+
+function clientIp(req) {
+  const xf = (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim();
+  return xf || req.ip || req.socket?.remoteAddress || null;
+}
+
+function logSiteActivity(req, kind, { actorName, actorEmail, details } = {}) {
+  try {
+    db.prepare(`
+      INSERT INTO site_activity (kind, actor_name, actor_email, details, ip, user_agent)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      kind,
+      actorName || null,
+      actorEmail || null,
+      details || null,
+      clientIp(req),
+      (req.headers["user-agent"] || "").toString().slice(0, 400) || null
+    );
+  } catch (e) {
+    console.warn("site_activity log note:", e.message);
+  }
+}
+
+function ensureSiteActivityTable() {
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS site_activity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        actor_name TEXT,
+        actor_email TEXT,
+        details TEXT,
+        ip TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_site_activity_kind ON site_activity(kind);
+      CREATE INDEX IF NOT EXISTS idx_site_activity_created ON site_activity(created_at);
+    `);
+  } catch (_) { /* ignore */ }
+}
+
+function formatActivityWhen(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("en-US", {
+      timeZone: "America/Detroit",
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch (_) {
+    return iso;
+  }
+}
+
+function buildActivityReportText() {
+  ensureSiteActivityTable();
+  const pinLogins = db.prepare(`
+    SELECT * FROM site_activity WHERE kind = 'pin_login'
+    ORDER BY datetime(created_at) DESC LIMIT 100
+  `).all();
+  const pinRequests = db.prepare(`
+    SELECT * FROM pin_email_requests
+    ORDER BY datetime(created_at) DESC LIMIT 100
+  `).all();
+  const recentActivity = db.prepare(`
+    SELECT * FROM site_activity
+    ORDER BY datetime(created_at) DESC LIMIT 150
+  `).all();
+  const photoUploads = db.prepare(`
+    SELECT id, title, contributor_name, contributor_email, status, reunion_year, submitted_at
+    FROM photos ORDER BY datetime(submitted_at) DESC LIMIT 50
+  `).all();
+
+  const lines = [];
+  lines.push("Capoccia–Miotto Family Tribute — Site Activity Report");
+  lines.push(`Generated: ${formatActivityWhen(new Date().toISOString())} (Eastern)`);
+  lines.push(`Site: https://capocciamiotto.com`);
+  lines.push("");
+  lines.push("══════════════════════════════════════");
+  lines.push("FAMILY PIN LOGINS (who entered PIN)");
+  lines.push("══════════════════════════════════════");
+  if (!pinLogins.length) {
+    lines.push("(none recorded yet)");
+  } else {
+    pinLogins.forEach((r) => {
+      lines.push(
+        `• ${formatActivityWhen(r.created_at)} — ${r.actor_name || "Family member"}` +
+          (r.details ? ` · ${r.details}` : "") +
+          (r.ip ? ` · IP ${r.ip}` : "")
+      );
+    });
+  }
+  lines.push("");
+  lines.push("══════════════════════════════════════");
+  lines.push("PIN # REQUESTS (name + email)");
+  lines.push("══════════════════════════════════════");
+  if (!pinRequests.length) {
+    lines.push("(none recorded yet)");
+  } else {
+    pinRequests.forEach((r) => {
+      lines.push(
+        `• ${formatActivityWhen(r.created_at)} — ${r.requester_name || "—"} <${r.requester_email || "—"}>` +
+          ` · status: ${r.status || "—"}` +
+          (r.method ? ` via ${r.method}` : "")
+      );
+    });
+  }
+  lines.push("");
+  lines.push("══════════════════════════════════════");
+  lines.push("RECENT PHOTO UPLOADS");
+  lines.push("══════════════════════════════════════");
+  if (!photoUploads.length) {
+    lines.push("(none)");
+  } else {
+    photoUploads.forEach((p) => {
+      lines.push(
+        `• ${formatActivityWhen(p.submitted_at)} — ${p.contributor_name || "—"}` +
+          (p.contributor_email ? ` <${p.contributor_email}>` : "") +
+          ` · ${p.title || "photo"} · year ${p.reunion_year || "?"} · ${p.status}`
+      );
+    });
+  }
+  lines.push("");
+  lines.push("══════════════════════════════════════");
+  lines.push("ALL RECENT ACTIVITY");
+  lines.push("══════════════════════════════════════");
+  if (!recentActivity.length) {
+    lines.push("(none recorded yet)");
+  } else {
+    recentActivity.forEach((r) => {
+      lines.push(
+        `• ${formatActivityWhen(r.created_at)} [${r.kind}]` +
+          ` ${r.actor_name || "—"}` +
+          (r.actor_email ? ` <${r.actor_email}>` : "") +
+          (r.details ? ` — ${r.details}` : "")
+      );
+    });
+  }
+  lines.push("");
+  lines.push("— End of report —");
+  lines.push("Dashboard: https://capocciamiotto.com/admin/activity");
+  return lines.join("\n");
 }
 
 const ADMIN_ROLES = ["super_admin", "family_admin", "photo_moderator", "content_moderator", "reunion_organizer"];
@@ -543,8 +699,58 @@ app.get("/family-members/:id", (req, res) => {
   `).all(member.id);
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-member", { ...data, member, recordings });
+  res.render("family-member", {
+    ...data,
+    member,
+    recordings,
+    pinHolder: req.session.contributorPin || null,
+    canUploadPhoto: hasValidContributorPin(req) || !!(req.session.user && ADMIN_ROLES.includes(req.session.user.role)),
+  });
 });
+
+/** Family PIN required: set / replace a member portrait photo */
+app.post(
+  "/family-members/:id/portrait",
+  contributeLimiter,
+  requireContributorPin,
+  upload.single("portrait"),
+  async (req, res) => {
+    const memberId = parseInt(req.params.id, 10);
+    const member = db.prepare("SELECT * FROM family_members WHERE id = ?").get(memberId);
+    if (!member || Number.isNaN(memberId)) {
+      setFlash(req, "error", "Family member not found.");
+      return res.redirect("/family-members");
+    }
+    if (!req.file) {
+      setFlash(req, "error", "Please choose a photo to upload.");
+      return res.redirect(`/family-members/${memberId}`);
+    }
+    try {
+      const processed = await processUpload(req.file);
+      db.prepare(`
+        UPDATE family_members
+        SET portrait_path = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).run(processed.web_path || processed.original_path, memberId);
+
+      const actor =
+        (req.session.contributorPin && req.session.contributorPin.assignedName) ||
+        (req.session.user && (req.session.user.name || req.session.user.email)) ||
+        "Family member";
+      logSiteActivity(req, "portrait_upload", {
+        actorName: actor,
+        details: `Portrait for ${member.preferred_name || member.full_name} (id ${memberId})`,
+      });
+
+      setFlash(req, "success", `Photo added for ${member.preferred_name || member.full_name}. Thank you!`);
+      res.redirect(`/family-members/${memberId}`);
+    } catch (err) {
+      console.error(err);
+      setFlash(req, "error", err.message || "Could not upload that photo.");
+      res.redirect(`/family-members/${memberId}`);
+    }
+  }
+);
 
 app.get("/voice-recordings", (req, res) => {
   const recordings = db.prepare(`
@@ -703,6 +909,10 @@ app.get("/guidelines", (req, res) => {
 
 app.get("/contribute/pin", (req, res) => {
   if (hasValidContributorPin(req) || (req.session.user && ADMIN_ROLES.includes(req.session.user.role))) {
+    const nextKey = req.query.next || "photos";
+    if (nextKey === "portrait" && req.query.member) {
+      return res.redirect(`/family-members/${encodeURIComponent(req.query.member)}`);
+    }
     const nextMap = {
       story: "/contribute/story",
       member: "/contribute/member",
@@ -710,7 +920,6 @@ app.get("/contribute/pin", (req, res) => {
       board: "/community-board",
       photos: "/contribute",
     };
-    const nextKey = req.query.next || "photos";
     const next = nextMap[nextKey] || "/contribute";
     const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : "";
     if (next === "/contribute") return res.redirect(`${next}${year}`);
@@ -781,6 +990,15 @@ app.post("/contribute/request-pin", pinRequestLimiter, async (req, res) => {
       result.ok ? (result.id || "ok") : (result.error || "failed")
     );
 
+    ensureSiteActivityTable();
+    logSiteActivity(req, result.ok ? "pin_request" : "pin_request_failed", {
+      actorName: name,
+      actorEmail: email,
+      details: result.ok
+        ? `PIN emailed via ${result.method || "resend"} (${result.id || "ok"})`
+        : `PIN email failed: ${result.error || "unknown"}`,
+    });
+
     if (!result.ok) {
       console.error("PIN email failed:", result);
       setFlash(
@@ -808,12 +1026,13 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   const pin = normalizePin(req.body.pin);
   const year = (req.body.year || "").trim();
   const next = (req.body.next || "photos").trim();
+  const memberId = (req.body.member || "").trim();
   const backQs = [];
   if (year) backQs.push(`year=${encodeURIComponent(year)}`);
-  if (next === "story" || next === "member" || next === "recording" || next === "board") {
+  if (next === "story" || next === "member" || next === "recording" || next === "board" || next === "portrait") {
     backQs.push(`next=${encodeURIComponent(next)}`);
   }
-  if (req.body.member) backQs.push(`member=${encodeURIComponent(req.body.member)}`);
+  if (memberId) backQs.push(`member=${encodeURIComponent(memberId)}`);
   const back = `/contribute/pin${backQs.length ? "?" + backQs.join("&") : ""}`;
 
   if (!pin || pin.length < 4) {
@@ -826,6 +1045,10 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   `).get(pin);
 
   if (!row) {
+    ensureSiteActivityTable();
+    logSiteActivity(req, "pin_login_failed", {
+      details: "Unrecognized PIN attempt",
+    });
     setFlash(req, "error", "That PIN was not recognized. Please check the number you were assigned and try again.");
     return res.redirect(back);
   }
@@ -845,6 +1068,12 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   // Touch session so cookie maxAge is issued with the longer remember window
   req.session.cookie.maxAge = PIN_REMEMBER_MS;
 
+  ensureSiteActivityTable();
+  logSiteActivity(req, "pin_login", {
+    actorName: row.assigned_name || "Family member",
+    details: `Family PIN accepted (pin id ${row.id})${next && next !== "photos" ? ` · next=${next}` : ""}${memberId ? ` · member=${memberId}` : ""}`,
+  });
+
   setFlash(
     req,
     "success",
@@ -855,6 +1084,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   if (next === "member") return res.redirect("/contribute/member");
   if (next === "board") return res.redirect("/community-board");
   if (next === "recording") return res.redirect("/voice-recordings");
+  if (next === "portrait" && memberId) return res.redirect(`/family-members/${encodeURIComponent(memberId)}`);
   return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
 
@@ -963,6 +1193,16 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
       });
       peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name, CONTENT_STATUS));
     }
+
+    const actor =
+      contributor_name ||
+      (req.session.contributorPin && req.session.contributorPin.assignedName) ||
+      "Family member";
+    logSiteActivity(req, "photo_upload", {
+      actorName: actor,
+      actorEmail: (req.body.contributor_email || "").trim() || null,
+      details: `${files.length} photo(s) uploaded · year ${reunion_year || "unknown"} · ${CONTENT_STATUS}`,
+    });
 
     setFlash(
       req,
@@ -1226,11 +1466,69 @@ app.post("/admin/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), (req,
   };
   db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(user.id);
   logActivity(user.id, "login", "Administrator signed in");
+  ensureSiteActivityTable();
+  logSiteActivity(req, "admin_login", {
+    actorName: user.name || user.email,
+    actorEmail: user.email,
+    details: `Admin role: ${user.role}`,
+  });
   res.redirect("/admin");
 });
 
 app.post("/admin/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/"));
+});
+
+app.get("/admin/activity", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureSiteActivityTable();
+  const pinLogins = db.prepare(`
+    SELECT * FROM site_activity WHERE kind = 'pin_login'
+    ORDER BY datetime(created_at) DESC LIMIT 100
+  `).all();
+  const pinRequests = db.prepare(`
+    SELECT * FROM pin_email_requests
+    ORDER BY datetime(created_at) DESC LIMIT 100
+  `).all();
+  const recentActivity = db.prepare(`
+    SELECT * FROM site_activity
+    ORDER BY datetime(created_at) DESC LIMIT 150
+  `).all();
+  const photoUploads = db.prepare(`
+    SELECT id, title, contributor_name, contributor_email, status, reunion_year, submitted_at
+    FROM photos ORDER BY datetime(submitted_at) DESC LIMIT 50
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("admin/activity", {
+    ...data,
+    pinLogins,
+    pinRequests,
+    recentActivity,
+    photoUploads,
+  });
+});
+
+app.post("/admin/activity/email-report", requireRole(...ADMIN_ROLES), async (req, res) => {
+  ensureSiteActivityTable();
+  const to = (req.body.to_email || "mike@seifertcapital.com").trim().toLowerCase();
+  try {
+    const report = buildActivityReportText();
+    const sent = await sendActivityReportEmail(to, report);
+    if (!sent.ok) {
+      setFlash(req, "error", `Could not send report: ${sent.error || "unknown error"}`);
+    } else {
+      logSiteActivity(req, "activity_report_email", {
+        actorName: req.session.user.name || req.session.user.email,
+        actorEmail: req.session.user.email,
+        details: `Report emailed to ${to}`,
+      });
+      setFlash(req, "success", `Activity report emailed to ${to}.`);
+    }
+  } catch (e) {
+    console.error(e);
+    setFlash(req, "error", e.message || "Could not send report.");
+  }
+  res.redirect("/admin/activity");
 });
 
 app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {

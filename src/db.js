@@ -206,17 +206,19 @@ function migrate() {
     CREATE INDEX IF NOT EXISTS idx_board_status ON board_posts(status);
   `);
 
-  // Seed reunions 1977 → current year
+  // Seed reunions 1977 → current year only (no future years)
   const currentYear = new Date().getFullYear();
   const insertReunion = db.prepare(`
     INSERT OR IGNORE INTO reunions (year, title) VALUES (?, ?)
   `);
   const seedReunions = db.transaction(() => {
-    for (let y = 1977; y <= currentYear + 1; y++) {
+    for (let y = 1977; y <= currentYear; y++) {
       insertReunion.run(y, `${y} Capoccia–Miotto Family Reunion`);
     }
   });
   seedReunions();
+  // Drop any future-year placeholder reunions that were seeded earlier
+  db.prepare("DELETE FROM reunions WHERE year > ?").run(currentYear);
 
   // Seed / refresh patriarch & matriarch tributes (idempotent)
   seedFamilyTributes();

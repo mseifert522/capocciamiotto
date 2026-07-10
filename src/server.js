@@ -165,7 +165,7 @@ app.get("/our-family-story", (req, res) => {
 });
 
 app.get("/reunion-timeline", (req, res) => {
-  const reunions = db.prepare("SELECT * FROM reunions ORDER BY year DESC").all();
+  const reunions = db.prepare("SELECT * FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const counts = db.prepare(`
     SELECT reunion_year AS year, COUNT(*) AS c FROM photos
     WHERE status = 'approved' GROUP BY reunion_year
@@ -179,7 +179,7 @@ app.get("/reunion-timeline", (req, res) => {
 
 app.get("/reunion/:year", (req, res) => {
   const year = parseInt(req.params.year, 10);
-  if (Number.isNaN(year) || year < 1977) return res.status(404).render("404", localsBase(req));
+  if (Number.isNaN(year) || year < 1977 || year > CURRENT_YEAR) return res.status(404).render("404", localsBase(req));
   let reunion = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   if (!reunion) {
     db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(year, `${year} Capoccia–Miotto Family Reunion`);
@@ -221,7 +221,7 @@ app.get("/photo-archive", (req, res) => {
   }
   sql += " ORDER BY reunion_year DESC, featured DESC, submitted_at DESC LIMIT 120";
   const photos = db.prepare(sql).all(...params);
-  const years = db.prepare("SELECT year FROM reunions ORDER BY year DESC").all();
+  const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
   res.render("photo-archive", { ...data, photos, years, q, year, branch });
@@ -375,7 +375,7 @@ app.post("/contribute/pin/clear", (req, res) => {
 });
 
 app.get("/contribute", requireContributorPin, (req, res) => {
-  const years = db.prepare("SELECT year FROM reunions ORDER BY year DESC").all();
+  const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
   res.render("contribute", {
@@ -411,6 +411,9 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
     const year_unknown = req.body.year_unknown === "1" ? 1 : 0;
     const year_approximate = req.body.year_approximate === "1" ? 1 : 0;
     if (year_unknown) reunion_year = null;
+    if (reunion_year && (reunion_year < 1977 || reunion_year > CURRENT_YEAR)) {
+      reunion_year = null;
+    }
     if (reunion_year && !db.prepare("SELECT year FROM reunions WHERE year = ?").get(reunion_year)) {
       db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(
         reunion_year,
@@ -485,7 +488,7 @@ app.get("/contribute/thanks", (req, res) => {
 });
 
 app.get("/contribute/story", requireContributorPin, (req, res) => {
-  const years = db.prepare("SELECT year FROM reunions ORDER BY year DESC").all();
+  const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
   res.render("contribute-story", {
@@ -729,7 +732,7 @@ app.post("/admin/members/:id", requireRole("super_admin", "family_admin"), (req,
 });
 
 app.get("/admin/reunions", requireRole(...ADMIN_ROLES), (req, res) => {
-  const reunions = db.prepare("SELECT * FROM reunions ORDER BY year DESC").all();
+  const reunions = db.prepare("SELECT * FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
   res.render("admin/reunions", { ...data, reunions });

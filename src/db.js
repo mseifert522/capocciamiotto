@@ -338,7 +338,7 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 10,
+      sort_order: 5,
       birth_date: null,
       birth_date_display: null,
       death_date: null,
@@ -362,12 +362,12 @@ function seedFamilyTributes() {
       is_matriarch: 1,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 11,
+      sort_order: 6,
       birth_date: null,
       birth_date_display: "circa 1929",
       death_date: "2017-01-08",
       death_date_display: "January 8, 2017",
-      role_in_family: "Sister of Tony & George Capoccia · Miotto Matriarch",
+      role_in_family: "Miotto Matriarch",
       biography:
         "Anna M. Capoccia Miotto (born circa 1929; passed January 8, 2017, age 88) was the beloved sister of Tony and George Capoccia, and the gentle matriarch of the Miotto family who wove the Capoccia and Miotto families into one. Anna married Amerigo “Mickey” Miotto and spent 65 joyful years creating a home filled with love, faith, and Italian warmth.\n\n" +
         "Her 2017 obituary captured the family’s closeness, naming her brothers “Tony (Fran) Capoccia and George (Christine) Capoccia.” Together with Mickey, Anna raised five children and left a legacy of 14 grandchildren and 14 great-grandchildren who keep the reunions alive and full of joy. Anna’s grace and devotion turned two families into one beautiful legacy — the very heart of capocciamiotto.com.\n\n" +
@@ -378,19 +378,19 @@ function seedFamilyTributes() {
     },
     {
       full_name: "Anthony “Tony” Joseph Capoccia",
-      preferred_name: "Tony Capoccia",
+      preferred_name: "Anthony “Tony” Capoccia",
       nickname: "Tony",
       family_branch: "Capoccia",
       is_patriarch: 0,
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 20,
+      sort_order: 3,
       birth_date: "1931-07-18",
       birth_date_display: "July 18, 1931 · Detroit",
       death_date: "2019-06-25",
       death_date_display: "June 25, 2019",
-      role_in_family: "Honored Elder of the Capoccia Family",
+      role_in_family: "Honored Elder",
       biography:
         "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) and his devoted wife Frances “Fran” Lee Babich Capoccia are remembered with deepest love as cherished elders of the Capoccia family.\n\n" +
         "Tony was the beloved brother of George and Anna Miotto. He and Fran shared more than 60 years of marriage filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
@@ -401,7 +401,7 @@ function seedFamilyTributes() {
     },
     {
       full_name: "Frances “Fran” Lee Capoccia",
-      preferred_name: "Fran Capoccia",
+      preferred_name: "Frances “Fran” Capoccia",
       maiden_name: "Babich",
       nickname: "Fran",
       family_branch: "Capoccia",
@@ -409,12 +409,12 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 21,
+      sort_order: 4,
       birth_date: "1932-10-23",
       birth_date_display: "October 23, 1932 · Dowell, Illinois",
       death_date: "2024-10-27",
       death_date_display: "October 27, 2024",
-      role_in_family: "Honored Elder of the Capoccia Family",
+      role_in_family: "Honored Elder",
       biography:
         "Frances “Fran” Lee Babich Capoccia (born October 23, 1932, Dowell, Illinois; passed October 27, 2024, age 92) is remembered with deepest love as a cherished elder of the Capoccia family.\n\n" +
         "Married to Anthony “Tony” Joseph Capoccia for more than 60 years, Fran shared a life filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +

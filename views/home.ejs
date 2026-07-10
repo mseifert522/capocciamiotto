@@ -31,64 +31,18 @@
   </div>
 </section>
 
-<section class="section section-alt">
+<section class="section section-alt" id="family-tribute">
   <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">Honored beginnings</p>
-      <h2 class="section-title">Family Tribute</h2>
+      <p class="section-eyebrow">Capoccia · Miotto</p>
+      <h2 class="section-title">Our Family Patriarchs &amp; Matriarchs</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">
-        The Capoccia siblings—Tony, George, and Anna—stand together as equals. With their spouses Christine, Fran, and Mickey, they form the heart of the Capoccia–Miotto reunions since 1977.
-      </p>
     </header>
 
-    <% 
-      // Fixed equal order: Capoccia brothers & sister first, then spouses — same card size for everyone
-      function tributeOrder(list) {
-        const rank = (m) => {
-          const n = (m.full_name || '') + (m.preferred_name || '');
-          if (/George/i.test(n) && /Capoccia/i.test(n)) return 1;
-          if (/Tony|Anthony/i.test(n) && /Capoccia/i.test(n)) return 2;
-          if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3; // sister of Tony & George — equal with brothers
-          if (/Christine/i.test(n)) return 4;
-          if (/Fran|Frances/i.test(n)) return 5;
-          if (/Mickey|Amerigo/i.test(n)) return 6;
-          return 50 + (m.sort_order || 0);
-        };
-        return (list || []).slice().sort((a, b) => rank(a) - rank(b));
-      }
-      const tributeMembers = tributeOrder(members);
-    %>
+    <%- include('partials/family-tribute-grid') %>
 
-    <div class="card-grid card-grid-uniform">
-      <% tributeMembers.forEach(function(m) { %>
-        <article class="card card-equal">
-          <div class="card-portrait">
-            <% if (m.portrait_path) { %>
-              <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-            <% } else { %>
-              <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-            <% } %>
-          </div>
-          <div class="card-body">
-            <div class="card-badges">
-              <% if (/Anna/i.test(m.full_name || '') && /Miotto/i.test(m.full_name || '')) { %>
-                <span class="badge badge-capoccia">Capoccia</span>
-                <span class="badge badge-miotto">Miotto</span>
-              <% } else { %>
-                <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %></span>
-              <% } %>
-              <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-            </div>
-            <h3><%= m.display_name %></h3>
-            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-            <% if (m.biography) { %>
-            <p class="card-excerpt"><%= m.biography.split(/\n\n+/)[0] %></p>
-            <% } %>
-            <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
-          </div>
-        </article>
-      <% }) %>
+    <div style="text-align:center;margin-top:2rem">
+      <a class="btn btn-outline" href="/family-members">All Family Members</a>
     </div>
   </div>
 </section>
@@ -116,7 +70,6 @@
       <p class="section-eyebrow">Since 1977</p>
       <h2 class="section-title">Reunion Timeline</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">Every year has a home here—whether we already have photographs or we are still searching for them.</p>
     </header>
     <div style="text-align:center">
       <a class="btn btn-gold" href="/reunion-timeline">Open the Full Timeline</a>

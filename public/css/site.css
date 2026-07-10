@@ -20,7 +20,7 @@
   --font-ui: "Source Sans 3", system-ui, sans-serif;
   --header-h: 5rem;
   --gutter: clamp(1rem, 4vw, 1.5rem);
-  --max: 1120px;
+  --max: 1180px;
   --radius: 12px;
   --touch: 44px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -312,14 +312,13 @@ input, select, textarea { font-size: 16px; }
 }
 .section-dark .section-lead { color: rgba(250,246,240,0.75); }
 
-/* Uniform family cards — same size for every member */
+/* Generic card grids (archive, etc.) */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 1.15rem;
   align-items: stretch;
 }
-/* Exactly equal cells: 3 across on desktop so siblings + spouses align */
 .card-grid-uniform {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.15rem;
@@ -338,9 +337,7 @@ input, select, textarea { font-size: 16px; }
   height: 100%;
   min-width: 0;
 }
-.card-equal {
-  height: 100%;
-}
+.card-equal { height: 100%; }
 .card-body {
   padding: 1.2rem 1.15rem 1.35rem;
   flex: 1;
@@ -354,12 +351,6 @@ input, select, textarea { font-size: 16px; }
   color: var(--burgundy);
   margin: 0.4rem 0 0.3rem;
   line-height: 1.2;
-  /* equal title area — up to 2 lines */
-  min-height: 2.5em;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 .card .meta {
   font-family: var(--font-ui);
@@ -367,22 +358,11 @@ input, select, textarea { font-size: 16px; }
   color: var(--green);
   font-weight: 600;
   margin-bottom: 0.55rem;
-  min-height: 2.4em;
   line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 .card p { color: var(--ink-soft); font-size: 0.95rem; }
 .card-excerpt {
   flex: 1;
-  min-height: 5.5em;
-  max-height: 5.5em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
   line-height: 1.45;
   margin: 0 0 0.75rem;
 }
@@ -390,7 +370,6 @@ input, select, textarea { font-size: 16px; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  min-height: 1.6rem;
 }
 .card-cta {
   margin-top: auto !important;
@@ -398,7 +377,6 @@ input, select, textarea { font-size: 16px; }
   align-self: stretch;
 }
 .card-portrait {
-  /* Fixed equal photo box — never stretches larger for fewer cards */
   aspect-ratio: 4 / 5;
   width: 100%;
   max-height: 280px;
@@ -441,6 +419,122 @@ input, select, textarea { font-size: 16px; }
 .badge-miotto { background: rgba(47, 93, 58, 0.12); color: var(--green); }
 .badge-both { background: rgba(196, 163, 90, 0.2); color: #7a5c20; }
 .badge-memory { background: rgba(43, 33, 28, 0.08); color: var(--ink-soft); }
+
+/* Six equal family tribute cards */
+.tribute-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.35rem;
+  align-items: stretch;
+  margin-top: 0.5rem;
+}
+.tribute-card {
+  background: var(--parchment);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px var(--shadow);
+  border: 1px solid rgba(196, 163, 90, 0.18);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.tribute-card:hover {
+  box-shadow: 0 16px 40px var(--shadow-md);
+  transform: translateY(-2px);
+}
+.tribute-card-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 200px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.tribute-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+.tribute-card-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(155deg, #f3ebe0, #e4d4c2);
+}
+.tribute-card-photo-placeholder span {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  color: var(--burgundy);
+  background: rgba(255, 253, 248, 0.85);
+  border: 1px solid rgba(196, 163, 90, 0.35);
+}
+.tribute-card-body {
+  padding: 1.15rem 1.15rem 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tribute-card-memory {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.35rem;
+  min-height: 1.1em;
+}
+.tribute-card-memory--spacer {
+  visibility: hidden;
+}
+.tribute-card-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  color: var(--burgundy);
+  margin: 0 0 0.3rem;
+  line-height: 1.25;
+  min-height: 2.5em;
+}
+.tribute-card-role {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green);
+  margin: 0 0 0.75rem;
+  min-height: 1.35em;
+  line-height: 1.35;
+}
+.tribute-card-bio {
+  flex: 1;
+  margin: 0 0 1rem;
+}
+.tribute-card-bio p {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0 0 0.55rem;
+}
+.tribute-card-bio p:last-child { margin-bottom: 0; }
+.tribute-card-cta {
+  margin-top: auto !important;
+  width: 100%;
+  text-align: center;
+}
 
 /* Invite banner */
 .invite {
@@ -684,6 +778,11 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   .nav-links a { font-size: 0.74rem; gap: 0.15rem; }
 }
 @media (max-width: 960px) {
+  .tribute-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .tribute-card-photo { max-height: 180px; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -734,25 +833,38 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   .hero .btn-row { flex-direction: column; align-items: center; }
 }
 @media (max-width: 640px) {
+  .tribute-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .tribute-card-photo { max-height: 150px; }
+  .tribute-card-body { padding: 0.9rem 0.8rem 1rem; }
+  .tribute-card-name { font-size: 1.08rem; min-height: 2.4em; }
+  .tribute-card-bio { min-height: 7em; }
+  .tribute-card-bio p { font-size: 0.84rem; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
   .card-portrait { max-height: 200px; }
   .card-body { padding: 0.9rem 0.75rem 1rem; }
-  .card h3 { font-size: 1.05rem; min-height: 2.4em; }
-  .card-excerpt { min-height: 4.2em; max-height: 4.2em; -webkit-line-clamp: 3; font-size: 0.88rem; }
+  .card h3 { font-size: 1.05rem; }
   .card-cta { font-size: 0.8rem; padding: 0.55rem 0.5rem; }
 }
 @media (max-width: 480px) {
   .timeline { grid-template-columns: repeat(3, 1fr); }
   .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .tribute-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .tribute-card-photo { max-height: 220px; aspect-ratio: 4 / 3; }
   .card-grid-uniform {
     grid-template-columns: 1fr;
   }
   .card-portrait { max-height: 280px; }
 }
 @media (hover: none) {
-  .btn:hover, .year-card:hover { transform: none; }
+  .btn:hover, .year-card:hover, .tribute-card:hover { transform: none; }
 }
 body.menu-open { overflow: hidden; }

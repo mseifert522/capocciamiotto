@@ -2,62 +2,14 @@
 <section class="section">
   <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">People in our family history</p>
-      <h2 class="section-title">Family Members</h2>
+      <p class="section-eyebrow">Capoccia · Miotto</p>
+      <h2 class="section-title">Honoring Our Family Leaders</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">
-        Every tribute card is the same size. Anna Miotto is shown with her Capoccia brothers Tony and George—equal members of one generation—alongside the spouses who completed both families.
-      </p>
     </header>
 
-    <% 
-      function memberOrder(list) {
-        const rank = (m) => {
-          const n = (m.full_name || '') + (m.preferred_name || '');
-          if (/George/i.test(n) && /Capoccia/i.test(n)) return 1;
-          if (/Tony|Anthony/i.test(n) && /Capoccia/i.test(n)) return 2;
-          if (/Anna/i.test(n) && /Miotto/i.test(n)) return 3;
-          if (/Christine/i.test(n)) return 4;
-          if (/Fran|Frances/i.test(n)) return 5;
-          if (/Mickey|Amerigo/i.test(n)) return 6;
-          return 50 + (m.sort_order || 0);
-        };
-        return (list || []).slice().sort((a, b) => rank(a) - rank(b));
-      }
-      const ordered = memberOrder(members);
-    %>
+    <%- include('partials/family-tribute-grid') %>
 
-    <div class="card-grid card-grid-uniform">
-      <% ordered.forEach(function(m) { %>
-        <article class="card card-equal">
-          <div class="card-portrait">
-            <% if (m.portrait_path) { %>
-              <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
-            <% } else { %>
-              <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
-            <% } %>
-          </div>
-          <div class="card-body">
-            <div class="card-badges">
-              <% if (/Anna/i.test(m.full_name || '') && /Miotto/i.test(m.full_name || '')) { %>
-                <span class="badge badge-capoccia">Capoccia</span>
-                <span class="badge badge-miotto">Miotto</span>
-              <% } else { %>
-                <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %></span>
-              <% } %>
-              <% if (m.is_memorial) { %><span class="badge badge-memory">In loving memory</span><% } %>
-              <% if (m.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
-              <% if (m.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
-            </div>
-            <h3><%= m.display_name %></h3>
-            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
-            <a class="btn btn-outline card-cta" href="/family-members/<%= m.id %>">Open profile</a>
-          </div>
-        </article>
-      <% }) %>
-    </div>
-
-    <div class="empty" style="margin-top:2rem">
+    <div class="empty" style="margin-top:2.5rem">
       <h3>Add a family member</h3>
       <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
     </div>

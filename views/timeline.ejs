@@ -61,24 +61,29 @@
             <span class="tl-node"></span>
             <span class="tl-segment"></span>
           </div>
-          <a class="tl-card" href="/reunion/<%= r.year %>">
+          <div class="tl-card">
             <div class="tl-card-accent" aria-hidden="true"></div>
-            <div class="tl-card-top">
-              <span class="tl-year"><%= r.year %></span>
-              <span class="tl-badge tl-badge--<%= state %>">
-                <% if (state === "has") { %>In the archive
-                <% } else if (state === "none") { %>No reunion
-                <% } else { %>Open chapter
-                <% } %>
-              </span>
+            <a class="tl-card-main" href="/reunion/<%= r.year %>">
+              <div class="tl-card-top">
+                <span class="tl-year"><%= r.year %></span>
+                <span class="tl-badge tl-badge--<%= state %>">
+                  <% if (state === "has") { %>In the archive
+                  <% } else if (state === "none") { %>No reunion
+                  <% } else { %>Open chapter
+                  <% } %>
+                </span>
+              </div>
+              <h3 class="tl-card-title"><%= r.title || (r.year + " Family Reunion") %></h3>
+              <% if (metaBits.length) { %>
+                <p class="tl-card-meta"><%= metaBits.join(" · ") %></p>
+              <% } %>
+              <p class="tl-card-status"><%= statusText %></p>
+            </a>
+            <div class="tl-card-actions">
+              <a class="tl-card-cta" href="/reunion/<%= r.year %>">View <%= r.year %> <span aria-hidden="true">→</span></a>
+              <a class="tl-card-add" href="/contribute?year=<%= r.year %>">Add photos</a>
             </div>
-            <h3 class="tl-card-title"><%= r.title || (r.year + " Family Reunion") %></h3>
-            <% if (metaBits.length) { %>
-              <p class="tl-card-meta"><%= metaBits.join(" · ") %></p>
-            <% } %>
-            <p class="tl-card-status"><%= statusText %></p>
-            <span class="tl-card-cta">View <%= r.year %> <span aria-hidden="true">→</span></span>
-          </a>
+          </div>
         </article>
       <% }) %>
 

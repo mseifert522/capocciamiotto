@@ -1809,19 +1809,55 @@ main { overflow-x: clip; }
 }
 
 .tl-card-cover {
+  position: relative;
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
+  min-height: 150px;
+  max-height: 220px;
   overflow: hidden;
-  background: var(--cream-deep);
-  border-radius: 10px 10px 0 0;
-  margin: -0.15rem 0 0.75rem;
+  background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
+  border-radius: 14px 14px 0 0;
+  margin: 0;
+  flex-shrink: 0;
 }
 .tl-card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 30%;
+  object-position: center 32%;
   display: block;
+  transition: transform 0.35s var(--ease);
+}
+.tl-card:hover .tl-card-cover img {
+  transform: scale(1.04);
+}
+.tl-card-cover-label {
+  position: absolute;
+  left: 0.65rem;
+  bottom: 0.55rem;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1f1712;
+  background: linear-gradient(160deg, var(--gold-soft), var(--gold));
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.tl-card--has-cover {
+  padding: 0;
+}
+.tl-card-body {
+  padding: 1.1rem 1.2rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+.tl-card:not(.tl-card--has-cover) .tl-card-body {
+  padding: 0;
 }
 .year-cover {
   margin: 0 auto 0.5rem;
@@ -1902,7 +1938,7 @@ main { overflow-x: clip; }
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(100%, 380px);
+  width: min(100%, 400px);
   background: var(--parchment);
   border-radius: 14px;
   padding: 1.1rem 1.2rem 1.05rem;
@@ -1910,6 +1946,9 @@ main { overflow-x: clip; }
   box-shadow: 0 10px 28px var(--shadow);
   overflow: hidden;
   transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.25s;
+}
+.tl-card.tl-card--has-cover {
+  padding: 0;
 }
 .tl-card-main {
   display: block;

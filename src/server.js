@@ -667,15 +667,27 @@ app.get("/reunion-timeline", (req, res) => {
   const countMap = Object.fromEntries(counts.map((r) => [r.year, r.c]));
   reunions.forEach((r) => {
     r.photo_count = countMap[r.year] || 0;
-    // Prefer stored cover, else featured/first approved photo for the year
-    if (!r.cover_photo_path) {
-      const coverRow = db.prepare(`
-        SELECT web_path, thumb_path FROM photos
-        WHERE reunion_year = ? AND status = 'approved' AND may_display_public = 1
-        ORDER BY featured DESC, submitted_at DESC, id DESC
-        LIMIT 1
-      `).get(r.year);
-      if (coverRow) r.cover_photo_path = coverRow.web_path || coverRow.thumb_path;
+    // Always resolve cover for timeline: stored path, else featured/first approved photo
+    const coverRow = db.prepare(`
+      SELECT web_path, thumb_path, original_path FROM photos
+      WHERE reunion_year = ? AND status = 'approved' AND may_display_public = 1
+      ORDER BY
+        CASE WHEN web_path = ? OR thumb_path = ? OR original_path = ? THEN 0 ELSE 1 END,
+        featured DESC,
+        submitted_at DESC,
+        id DESC
+      LIMIT 1
+    `).get(
+      r.year,
+      r.cover_photo_path || "",
+      r.cover_photo_path || "",
+      r.cover_photo_path || ""
+    );
+    if (coverRow) {
+      r.cover_photo_path = coverRow.web_path || coverRow.thumb_path || r.cover_photo_path;
+      r.cover_thumb_path = coverRow.thumb_path || coverRow.web_path || r.cover_photo_path;
+    } else if (r.cover_photo_path) {
+      r.cover_thumb_path = r.cover_photo_path;
     }
   });
   const data = localsBase(req);

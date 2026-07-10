@@ -62,32 +62,41 @@
             <span class="tl-node"></span>
             <span class="tl-segment"></span>
           </div>
-          <div class="tl-card">
+          <div class="tl-card<%= r.cover_photo_path ? ' tl-card--has-cover' : '' %>">
             <div class="tl-card-accent" aria-hidden="true"></div>
-            <a class="tl-card-main" href="/reunion/<%= r.year %>">
-              <% if (r.cover_photo_path) { %>
-                <div class="tl-card-cover">
-                  <img src="<%= r.cover_photo_path %>" alt="<%= r.year %> reunion cover" loading="lazy" />
+            <% if (r.cover_photo_path) { %>
+              <a class="tl-card-cover" href="/reunion/<%= r.year %>" aria-label="<%= r.year %> reunion cover photo">
+                <img
+                  src="<%= r.cover_thumb_path || r.cover_photo_path %>"
+                  alt="<%= r.year %> Capoccia–Miotto Family Reunion group photo"
+                  loading="lazy"
+                  width="760"
+                  height="380"
+                />
+                <span class="tl-card-cover-label"><%= r.year %> cover</span>
+              </a>
+            <% } %>
+            <div class="tl-card-body">
+              <a class="tl-card-main" href="/reunion/<%= r.year %>">
+                <div class="tl-card-top">
+                  <span class="tl-year"><%= r.year %></span>
+                  <span class="tl-badge tl-badge--<%= state %>">
+                    <% if (state === "has") { %>In the archive
+                    <% } else if (state === "none") { %>No reunion
+                    <% } else { %>Open chapter
+                    <% } %>
+                  </span>
                 </div>
-              <% } %>
-              <div class="tl-card-top">
-                <span class="tl-year"><%= r.year %></span>
-                <span class="tl-badge tl-badge--<%= state %>">
-                  <% if (state === "has") { %>In the archive
-                  <% } else if (state === "none") { %>No reunion
-                  <% } else { %>Open chapter
-                  <% } %>
-                </span>
+                <h3 class="tl-card-title"><%= r.title || (r.year + " Family Reunion") %></h3>
+                <% if (metaBits.length) { %>
+                  <p class="tl-card-meta"><%= metaBits.join(" · ") %></p>
+                <% } %>
+                <p class="tl-card-status"><%= statusText %></p>
+              </a>
+              <div class="tl-card-actions">
+                <a class="tl-card-cta" href="/reunion/<%= r.year %>">View <%= r.year %> <span aria-hidden="true">→</span></a>
+                <a class="tl-card-add" href="/contribute?year=<%= r.year %>">Add photos</a>
               </div>
-              <h3 class="tl-card-title"><%= r.title || (r.year + " Family Reunion") %></h3>
-              <% if (metaBits.length) { %>
-                <p class="tl-card-meta"><%= metaBits.join(" · ") %></p>
-              <% } %>
-              <p class="tl-card-status"><%= statusText %></p>
-            </a>
-            <div class="tl-card-actions">
-              <a class="tl-card-cta" href="/reunion/<%= r.year %>">View <%= r.year %> <span aria-hidden="true">→</span></a>
-              <a class="tl-card-add" href="/contribute?year=<%= r.year %>">Add photos</a>
             </div>
           </div>
         </article>

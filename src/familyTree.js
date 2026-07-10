@@ -281,7 +281,7 @@ function buildLivingTree(db) {
   return {
     root: {
       title: "Capoccia Parents",
-      names: "Costanzo & Madeline",
+      names: "Costanzo & Maddalena (Madeline) Capoccia",
     },
     lines,
     leaders,

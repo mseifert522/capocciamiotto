@@ -407,7 +407,56 @@ function migrate() {
 }
 
 function seedFamilyTributes() {
+  // Verified public research only (obits / vital records / family framework).
+  // Do not invent immigration villages, twin siblings, or unverified cemetery claims.
   const tributes = [
+    {
+      full_name: "Costanzo Capoccia",
+      preferred_name: "Costanzo Capoccia",
+      nickname: null,
+      family_branch: "Capoccia",
+      is_patriarch: 0,
+      is_matriarch: 0,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 0,
+      birth_date: "1895-11-30",
+      birth_date_display: "November 30, 1895",
+      death_date: "1967-08-01",
+      death_date_display: "August 1967",
+      role_in_family: "Capoccia parent · foundational generation",
+      biography:
+        "Costanzo Capoccia (November 30, 1895 – August 1967) and his wife Maddalena (Lena/Madeline) Cervi Capoccia are the parents of the Capoccia siblings honored on this tribute: Tony, George, and Anna Capoccia (Anna Miotto).\n\n" +
+        "Public genealogy records place the family in the Detroit metropolitan area of Michigan. Their children built lives across Metro Detroit (Macomb, Wayne, and Oakland counties). Richer details of Costanzo’s life, immigration story, and Italian hometown — if known — are invited as family contributions so nothing is invented here.\n\n" +
+        "This site honors Costanzo and Madeline as the foundation of the Capoccia–Miotto family tree.",
+      favorite_memories:
+        "Family: please share verified memories, documents, and photos of Costanzo and Madeline.",
+      quotes: null,
+    },
+    {
+      full_name: "Maddalena Capoccia",
+      preferred_name: "Madeline Capoccia",
+      maiden_name: "Cervi",
+      nickname: "Lena",
+      family_branch: "Capoccia",
+      is_patriarch: 0,
+      is_matriarch: 0,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 0,
+      birth_date: "1897-03-10",
+      birth_date_display: "March 10, 1897",
+      death_date: "1974-12-01",
+      death_date_display: "December 1974 · Detroit / Wayne County area",
+      role_in_family: "Capoccia parent · foundational generation",
+      biography:
+        "Maddalena (Lena/Madeline) Cervi Capoccia (March 10, 1897 – December 1974, Detroit/Wayne County area) was the wife of Costanzo Capoccia and mother of Tony Capoccia, George Capoccia, and Anna Capoccia Miotto.\n\n" +
+        "Public records place the family in Metro Detroit. Personal stories of Madeline’s life, faith, and family traditions are welcome from relatives so this tribute remains accurate and complete.\n\n" +
+        "She is remembered here with Costanzo as the parents of the Capoccia siblings whose families form the Capoccia–Miotto reunion community.",
+      favorite_memories:
+        "Family: please share verified memories, documents, and photos of Madeline (Maddalena Cervi) Capoccia.",
+      quotes: null,
+    },
     {
       full_name: "George Capoccia",
       preferred_name: "George G. Capoccia",
@@ -419,14 +468,14 @@ function seedFamilyTributes() {
       is_placeholder: 0,
       sort_order: 1,
       birth_date: "1933-01-25",
-      birth_date_display: "January 25, 1933 · Detroit, Michigan",
+      birth_date_display: "January 25, 1933 · Michigan",
       death_date: null,
       death_date_display: null,
       role_in_family: "Capoccia Patriarch",
       biography:
-        "Born January 25, 1933, in Detroit, Michigan, George G. Capoccia is the beloved living patriarch of the Capoccia family — a man whose quiet strength, unwavering faith, and deep love have guided our family for nearly a century.\n\n" +
-        "Son of Costanzo and Madeline Capoccia, George grew up in the warm Italian neighborhoods of Detroit with his brother Tony and sister Anna. Married for decades to his cherished wife Christine, George has been the steady heart of the Capoccia–Miotto reunions since they began in 1977. Together, George and Christine live in Warren, Michigan, carrying forward the proud heritage of Alvito and Frosinone with grace and devotion.\n\n" +
-        "Today, George continues to be the living link that holds us all together. His presence is a blessing, his wisdom a gift, and his love the foundation upon which our family stands. We are forever grateful to call him our patriarch.",
+        "George Capoccia was born January 25, 1933. He is a son of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and brother of Tony Capoccia and Anna Capoccia Miotto.\n\n" +
+        "George is married to Christine Capoccia. Public records and family framework place them in the Warren, Michigan area of Metro Detroit. In Anna’s 2017 obituary he is named among her surviving brothers as George (Christine) Capoccia. On this tribute, George and Christine are honored as Capoccia patriarch and matriarch of the living reunion tradition that began in 1977.\n\n" +
+        "Personal stories, photographs, and memories from family members are invited so George’s page remains a living tribute — nothing invented, only what the family confirms and shares.",
       favorite_memories:
         "Share your favorite memories and stories of George — family contributions welcome.",
       quotes: null,
@@ -447,9 +496,9 @@ function seedFamilyTributes() {
       death_date_display: null,
       role_in_family: "Capoccia Matriarch",
       biography:
-        "Christine E. Capoccia is the beloved matriarch of the Capoccia family — a woman of grace, warmth, and boundless love whose gentle spirit has been the heart of our family for generations.\n\n" +
-        "Married to George, Christine has stood faithfully beside him, creating a home filled with Italian tradition, faith, and joy. Together they live in Warren, Michigan, and have nurtured the Capoccia–Miotto reunions since 1977, opening their hearts to every branch of the family. Her kindness and devotion reflect the beautiful heritage our ancestors brought from Italy to Detroit and beyond.\n\n" +
-        "Christine’s elegant presence and loving embrace continue to inspire us all. She is more than our matriarch — she is the soul of the Capoccia family we cherish so deeply.",
+        "Christine Capoccia is the wife of George Capoccia and is honored on this site as Capoccia matriarch alongside George.\n\n" +
+        "Anna Capoccia Miotto’s 2017 obituary names “George (Christine) Capoccia,” confirming Christine as George’s wife and part of the Capoccia sibling generation’s family circle. George and Christine live in the Warren, Michigan area and have helped sustain the Capoccia–Miotto reunions since 1977.\n\n" +
+        "Additional dates, photographs, and personal memories are welcome from family so her tribute grows with verified contributions only.",
       favorite_memories:
         "Share your favorite memories and stories of Christine — family contributions welcome.",
       quotes: null,
@@ -464,39 +513,39 @@ function seedFamilyTributes() {
       is_memorial: 1,
       is_placeholder: 0,
       sort_order: 5,
-      birth_date: null,
-      birth_date_display: null,
-      death_date: null,
-      death_date_display: null,
+      birth_date: "1923-09-27",
+      birth_date_display: "September 27, 1923 (circa)",
+      death_date: "2015-02-28",
+      death_date_display: "February 28, 2015 · age 91",
       role_in_family: "Miotto Patriarch",
       biography:
-        "Amerigo “Mickey” Miotto was the beloved patriarch of the Miotto family and the loving husband of Anna M. Capoccia Miotto for 65 beautiful years. Through his marriage to Anna — sister of Tony and George Capoccia — Mickey became the warm bridge that forever united the Capoccia and Miotto families.\n\n" +
-        "Together, Mickey and Anna built a home rich in faith, laughter, and Italian tradition. They raised five wonderful children and left a legacy of 14 grandchildren and 14 great-grandchildren who continue the family reunions with joy. Mickey’s kindness and steadfast spirit live on in every gathering, reminding us that love is the true foundation of our shared heritage.\n\n" +
-        "His memory is a cherished blessing that strengthens the Capoccia–Miotto bond with every passing year.",
+        "Amerigo “Mickey” Miotto (born circa September 27, 1923; passed February 28, 2015, age 91) was the beloved husband of Anna Capoccia Miotto for 65 years and the Miotto-side patriarch honored on this tribute.\n\n" +
+        "Through his marriage to Anna — sister of Tony Capoccia and George Capoccia — Mickey became the bridge uniting the Capoccia and Miotto families. Together Mickey and Anna raised five children: Patricia (Terry) McLaren, Carol (Kent) Maconochie, John (Gretchen) Miotto, Michael (Cindy) Miotto, and MaryAnn (Jack) Sellers. At Anna’s passing the family counted 14 grandchildren and 14 great-grandchildren.\n\n" +
+        "Mickey’s memory remains part of every Capoccia–Miotto reunion. Family members are invited to add photographs and stories so his page stays complete and accurate.",
       favorite_memories:
         "Share your favorite memories and stories of Mickey — family contributions welcome.",
       quotes: null,
     },
     {
       full_name: "Anna M. Miotto",
-      preferred_name: "Anna M. Miotto",
+      preferred_name: "Anna M. Capoccia Miotto",
       maiden_name: "Capoccia",
-      nickname: "Anna M. Capoccia Miotto",
+      nickname: "Anna",
       family_branch: "Miotto",
       is_patriarch: 0,
       is_matriarch: 1,
       is_memorial: 1,
       is_placeholder: 0,
       sort_order: 6,
-      birth_date: null,
-      birth_date_display: "circa 1929",
+      birth_date: "1928-06-30",
+      birth_date_display: "June 30, 1928 · Michigan",
       death_date: "2017-01-08",
-      death_date_display: "January 8, 2017",
-      role_in_family: "Miotto Matriarch",
+      death_date_display: "January 8, 2017 · Clinton Township, Macomb County, Michigan · age 88",
+      role_in_family: "Miotto Matriarch · Capoccia sister",
       biography:
-        "Anna M. Capoccia Miotto (born circa 1929; passed January 8, 2017, age 88) was the beloved sister of Tony and George Capoccia, and the gentle matriarch of the Miotto family who wove the Capoccia and Miotto families into one. Anna married Amerigo “Mickey” Miotto and spent 65 joyful years creating a home filled with love, faith, and Italian warmth.\n\n" +
-        "Her 2017 obituary captured the family’s closeness, naming her brothers “Tony (Fran) Capoccia and George (Christine) Capoccia.” Together with Mickey, Anna raised five children and left a legacy of 14 grandchildren and 14 great-grandchildren who keep the reunions alive and full of joy. Anna’s grace and devotion turned two families into one beautiful legacy — the very heart of capocciamiotto.com.\n\n" +
-        "Her memory shines brightly at every reunion, reminding us that family is the greatest treasure of all.",
+        "Anna Capoccia Miotto was born June 30, 1928, in Michigan, a daughter of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and sister of Tony Capoccia and George Capoccia. She passed January 8, 2017, at age 88 in Clinton Township, Macomb County, Michigan.\n\n" +
+        "Anna married Amerigo “Mickey” Miotto; they shared 65 years of marriage. They raised five children: Patricia (Terry) McLaren, Carol (Kent) Maconochie, John (Gretchen) Miotto, Michael (Cindy) Miotto, and MaryAnn (Jack) Sellers. At the time of her passing she was a proud grandmother of 14 and great-grandmother of 14. She was survived by her brothers Tony (Fran) Capoccia and George (Christine) Capoccia.\n\n" +
+        "Services were held at St. Isidore Catholic Church in Macomb County, with inurnment at Resurrection Cemetery. Anna is the living bridge between the Capoccia and Miotto names on this tribute — the matriarch of the Miotto branch and a Capoccia sister at the heart of the reunions that began in 1977.",
       favorite_memories:
         "Share your favorite memories and stories of Anna — family contributions welcome.",
       quotes: null,
@@ -512,14 +561,14 @@ function seedFamilyTributes() {
       is_placeholder: 0,
       sort_order: 3,
       birth_date: "1931-07-18",
-      birth_date_display: "July 18, 1931 · Detroit",
+      birth_date_display: "July 18, 1931 · Detroit, Michigan",
       death_date: "2019-06-25",
       death_date_display: "June 25, 2019",
-      role_in_family: "Family",
+      role_in_family: "Capoccia brother · Tony & Fran",
       biography:
-        "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) and his devoted wife Frances “Fran” Lee Babich Capoccia are remembered with deepest love as cherished members of the Capoccia family.\n\n" +
-        "Tony was the beloved brother of George and Anna Capoccia (Anna Miotto). He and Fran shared more than 60 years of marriage filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
-        "Tony and Fran’s story is woven into the very heart of the Capoccia–Miotto reunions. Their love helped strengthen the family ties that bring us together year after year, reminding us that family is the most beautiful legacy of all.",
+        "Anthony “Tony” Joseph Capoccia is a son of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and the beloved brother of George Capoccia and Anna Capoccia (Anna Miotto).\n\n" +
+        "Tony was married to Frances “Fran” Capoccia (née Babich). Anna’s 2017 obituary names him among her surviving brothers as “Tony (Fran) Capoccia,” confirming the sibling bond and Fran as his wife. Public research places the Capoccia siblings’ families in Metro Detroit (including areas such as Warren, Clinton Township, Troy, and Sterling Heights).\n\n" +
+        "Dates of birth and passing recorded on this tribute (born July 18, 1931, Detroit; passed June 25, 2019) come from the family archive on this site. Family members are invited to confirm documents, resting place, and additional memories so every detail remains accurate. Tony and Fran’s line is equal in honor with George & Christine and Anna & Mickey on this living reunion tribute.",
       favorite_memories:
         "Share your favorite memories and stories of Tony and Fran — family contributions welcome.",
       quotes: null,
@@ -539,11 +588,11 @@ function seedFamilyTributes() {
       birth_date_display: "October 23, 1932 · Dowell, Illinois",
       death_date: "2024-10-27",
       death_date_display: "October 27, 2024",
-      role_in_family: "Family",
+      role_in_family: "Spouse of Tony Capoccia",
       biography:
-        "Frances “Fran” Lee Babich Capoccia (born October 23, 1932, Dowell, Illinois; passed October 27, 2024, age 92) is remembered with deepest love as a cherished member of the Capoccia family.\n\n" +
-        "Married to Anthony “Tony” Joseph Capoccia for more than 60 years, Fran shared a life filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
-        "Tony and Fran’s story is woven into the very heart of the Capoccia–Miotto reunions. Their love helped strengthen the family ties that bring us together year after year, reminding us that family is the most beautiful legacy of all.",
+        "Frances “Fran” Capoccia (née Babich) was the wife of Anthony “Tony” Capoccia. Anna Capoccia Miotto’s 2017 obituary names “Tony (Fran) Capoccia,” confirming Fran as Tony’s wife and part of the Capoccia sibling generation’s family circle.\n\n" +
+        "Tony was the beloved brother of George Capoccia and Anna Capoccia (Anna Miotto). Together Tony and Fran are honored equally with the other sibling couples on this tribute. Birth and passing dates shown here are from the family archive maintained on this site; family members may contribute documents and memories to refine any detail.\n\n" +
+        "Their story is part of the Capoccia–Miotto reunions that have gathered the extended family since 1977 across Metro Detroit.",
       favorite_memories:
         "Share your favorite memories and stories of Tony and Fran — family contributions welcome.",
       quotes: null,
@@ -677,6 +726,117 @@ function seedFamilyTributes() {
     }
   }
 
+  // Verified children of Anna & Mickey Miotto (from Anna’s public obituary framework)
+  try {
+    const { ensureTreeColumns } = require("./familyTree");
+    ensureTreeColumns(db);
+
+    const annaRow = db.prepare(`
+      SELECT id FROM family_members
+      WHERE is_matriarch = 1 AND family_branch = 'Miotto'
+      ORDER BY id ASC LIMIT 1
+    `).get() || db.prepare(`
+      SELECT id FROM family_members
+      WHERE full_name LIKE '%Anna%Miotto%' OR preferred_name LIKE '%Anna%Miotto%' OR preferred_name LIKE '%Anna%Capoccia%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+
+    const annaId = annaRow ? annaRow.id : null;
+    const miottoChildren = [
+      {
+        full_name: "Patricia McLaren",
+        preferred_name: "Patricia (Terry) McLaren",
+        role_in_family: "Daughter of Anna & Mickey Miotto · spouse Terry McLaren",
+      },
+      {
+        full_name: "Carol Maconochie",
+        preferred_name: "Carol (Kent) Maconochie",
+        role_in_family: "Daughter of Anna & Mickey Miotto · spouse Kent Maconochie",
+      },
+      {
+        full_name: "John Miotto",
+        preferred_name: "John (Gretchen) Miotto",
+        role_in_family: "Son of Anna & Mickey Miotto · spouse Gretchen Miotto",
+      },
+      {
+        full_name: "Michael Miotto",
+        preferred_name: "Michael (Cindy) Miotto",
+        role_in_family: "Son of Anna & Mickey Miotto · spouse Cindy Miotto",
+      },
+      {
+        full_name: "MaryAnn Sellers",
+        preferred_name: "MaryAnn (Jack) Sellers",
+        role_in_family: "Daughter of Anna & Mickey Miotto · spouse Jack Sellers",
+      },
+    ];
+
+    let sortBase = 200;
+    for (const child of miottoChildren) {
+      let existing = db.prepare(`
+        SELECT id FROM family_members WHERE full_name = ? OR preferred_name = ?
+      `).get(child.full_name, child.preferred_name);
+      if (!existing) {
+        existing = db.prepare(`
+          SELECT id FROM family_members WHERE full_name LIKE ? LIMIT 1
+        `).get(`%${child.full_name.split(" ")[0]}%${child.full_name.split(" ").slice(-1)[0]}%`);
+      }
+      if (existing) {
+        db.prepare(`
+          UPDATE family_members SET
+            preferred_name = ?,
+            family_branch = 'Miotto',
+            role_in_family = ?,
+            parent_member_id = COALESCE(parent_member_id, ?),
+            tree_lineage = 'anna',
+            generation = COALESCE(generation, 2),
+            relation_type = COALESCE(relation_type, 'child_of'),
+            visibility = 'public',
+            updated_at = datetime('now')
+          WHERE id = ?
+        `).run(child.preferred_name, child.role_in_family, annaId, existing.id);
+      } else {
+        db.prepare(`
+          INSERT INTO family_members (
+            full_name, preferred_name, family_branch, is_patriarch, is_matriarch, is_memorial, is_placeholder,
+            sort_order, role_in_family, biography, visibility, parent_member_id, tree_lineage, generation, relation_type
+          ) VALUES (?, ?, 'Miotto', 0, 0, 0, 0, ?, ?, ?, 'public', ?, 'anna', 2, 'child_of')
+        `).run(
+          child.full_name,
+          child.preferred_name,
+          sortBase++,
+          child.role_in_family,
+          "Child of Anna Capoccia Miotto and Amerigo “Mickey” Miotto, as named in Anna’s family obituary. Additional life details and photographs are invited from family members.",
+          annaId
+        );
+      }
+    }
+
+    // Link Mickey and Anna as spouses when both exist
+    const mickeyRow = db.prepare(`
+      SELECT id FROM family_members WHERE full_name LIKE '%Mickey%Miotto%' OR preferred_name LIKE '%Mickey%Miotto%' OR (family_branch='Miotto' AND is_patriarch=1)
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    if (annaId && mickeyRow) {
+      db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(mickeyRow.id, annaId);
+      db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(annaId, mickeyRow.id);
+    }
+    // Link George & Christine, Tony & Fran if present
+    const pairs = [
+      ["%George%Capoccia%", "%Christine%Capoccia%"],
+      ["%Tony%Capoccia%", "%Fran%Capoccia%"],
+    ];
+    for (const [aLike, bLike] of pairs) {
+      const a = db.prepare("SELECT id FROM family_members WHERE full_name LIKE ? OR preferred_name LIKE ? LIMIT 1").get(aLike, aLike);
+      const b = db.prepare("SELECT id FROM family_members WHERE full_name LIKE ? OR preferred_name LIKE ? LIMIT 1").get(bLike, bLike);
+      if (a && b) {
+        db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(b.id, a.id);
+        db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(a.id, b.id);
+      }
+    }
+  } catch (e) {
+    console.warn("miotto children seed note:", e.message);
+  }
+
   // Ensure site matriarch display name
   db.prepare(`
     INSERT INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', 'Christine Capoccia')
@@ -688,7 +848,11 @@ function seedFamilyTributes() {
     INSERT INTO site_settings (key, value) VALUES ('family_tree_snippet', ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value
   `).run(
-    "Capoccia Parents → Costanzo & Madeline\n├── Tony (m. Fran Babich)\n├── George (m. Christine) – Capoccia Patriarch & Matriarch\n└── Anna (m. Mickey Miotto) – Miotto Matriarch (link to Miotto branch)"
+    "Capoccia Parents → Costanzo Capoccia & Maddalena (Madeline) Cervi Capoccia\n" +
+      "├── Tony Capoccia (m. Fran Babich)\n" +
+      "├── George Capoccia (m. Christine) – Capoccia Patriarch & Matriarch · Warren, MI\n" +
+      "└── Anna Capoccia Miotto (m. Amerigo “Mickey” Miotto) – Miotto Matriarch & Patriarch\n" +
+      "    └── Patricia, Carol, John, Michael, MaryAnn (and families)"
   );
 
   // Portrait photos (bundled under /portraits — not under uploads volume)

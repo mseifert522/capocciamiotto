@@ -1565,6 +1565,14 @@ main { overflow-x: clip; }
 .year-card.empty { opacity: 0.85; }
 .year-card.no-reunion { opacity: 0.55; }
 
+.fs-intro-note {
+  font-size: 0.98rem;
+  color: var(--ink-muted);
+  border-left: 3px solid var(--gold);
+  padding-left: 0.9rem;
+  margin-top: 0.75rem;
+}
+
 /* —— Reunion Timeline: vertical spine + alternating year cards —— */
 .tl-section {
   background:

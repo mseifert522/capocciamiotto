@@ -16,7 +16,6 @@
           <a href="/contribute/story">Help Tell Our Family Story</a>
           <a href="/corrections">Submit a Correction</a>
           <a href="/request-removal">Request Photo Removal</a>
-          <a href="mailto:info@capocciamiotto.com">info@capocciamiotto.com</a>
           <a href="/contact">Contact Family Administrators</a>
         </div>
         <div>
@@ -26,6 +25,37 @@
           <a href="/family-tree">Living Family Tree</a>
         </div>
       </div>
+
+      <div class="footer-contact-panel" data-email-reveal>
+        <h4 class="footer-contact-title">Family correspondence</h4>
+        <p class="footer-contact-msg">
+          Family members may write for corrections, photo or memorial requests, privacy concerns, or other matters related to this tribute.
+          The email address is available on request—select the button below to display it.
+        </p>
+        <button
+          type="button"
+          class="footer-reveal-btn"
+          data-email-reveal-btn
+          aria-expanded="false"
+          aria-controls="footer-email-contact"
+        >
+          Show email address
+        </button>
+        <div
+          id="footer-email-contact"
+          class="footer-email-hidden"
+          data-email-reveal-target
+          hidden
+        >
+          <a
+            class="footer-email-link"
+            href="mailto:info@capocciamiotto.com?subject=Capoccia%E2%80%93Miotto%20Family%20Tribute%20%E2%80%94%20Inquiry"
+            data-email-address="info@capocciamiotto.com"
+          >info@capocciamiotto.com</a>
+          <p class="footer-email-note">We welcome messages from Capoccia and Miotto family members.</p>
+        </div>
+      </div>
+
       <div class="footer-bottom-bar">
         <div class="footer-copy">&copy; <%= currentYear %> Capoccia–Miotto Family Reunion Tribute · A living family legacy</div>
         <a href="/admin/login" class="footer-admin-dot" title="" aria-label=" " tabindex="-1"></a>
@@ -46,6 +76,6 @@
     ↑
   </button>
 
-  <script src="/js/site.js?v=20260710o"></script>
+  <script src="/js/site.js?v=20260710p"></script>
 </body>
 </html>

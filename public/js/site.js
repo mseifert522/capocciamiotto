@@ -304,6 +304,25 @@
     });
   }
 
+  // Footer: reveal family contact email only after deliberate click
+  (function initEmailReveal() {
+    document.querySelectorAll("[data-email-reveal]").forEach((panel) => {
+      const btn = panel.querySelector("[data-email-reveal-btn]");
+      const target = panel.querySelector("[data-email-reveal-target]");
+      if (!btn || !target) return;
+      btn.addEventListener("click", () => {
+        const open = target.hidden;
+        target.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        btn.textContent = open ? "Hide email address" : "Show email address";
+        if (open) {
+          const link = target.querySelector(".footer-email-link");
+          if (link) link.focus();
+        }
+      });
+    });
+  })();
+
   // Scroll to top — floating button + footer button on every page
   (function initScrollTop() {
     const buttons = document.querySelectorAll("[data-scroll-top]");

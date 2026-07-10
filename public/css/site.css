@@ -2445,6 +2445,84 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   font-size: 0.82rem;
   text-align: center;
 }
+/* Footer email contact — reveal on request */
+.footer-contact-panel {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.footer-contact-title {
+  font-family: var(--font-display);
+  color: #fff;
+  font-size: 1.25rem;
+  margin: 0 0 0.55rem;
+  font-weight: 600;
+}
+.footer-contact-msg {
+  margin: 0 0 1rem;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: rgba(250, 246, 240, 0.78);
+}
+.footer-reveal-btn {
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #1f1712;
+  background: linear-gradient(160deg, var(--gold-soft), var(--gold));
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 1.15rem;
+  min-height: 42px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s, opacity 0.2s;
+}
+.footer-reveal-btn:hover,
+.footer-reveal-btn:focus-visible {
+  transform: translateY(-1px);
+  outline: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+.footer-reveal-btn[aria-expanded="true"] {
+  opacity: 0.85;
+  background: rgba(250, 246, 240, 0.12);
+  color: rgba(250, 246, 240, 0.9);
+  border: 1px solid rgba(250, 246, 240, 0.2);
+  box-shadow: none;
+}
+.footer-email-hidden {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.footer-email-link {
+  display: inline-block !important;
+  font-family: var(--font-ui);
+  font-size: 1.05rem !important;
+  font-weight: 700;
+  color: var(--gold-soft) !important;
+  padding: 0.2rem 0 !important;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+.footer-email-link:hover {
+  color: #fff !important;
+}
+.footer-email-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(250, 246, 240, 0.55);
+  font-family: var(--font-ui);
+}
 /* Quiet admin entry — small dark-blue dot in footer (not labeled) */
 .footer-admin-dot {
   display: inline-block !important;

@@ -274,9 +274,20 @@ function buildLivingTree(db) {
     };
   });
 
+  // Root parents are shown as the tree root only — never "awaiting branch placement"
+  function isRootParent(m) {
+    const n = nameBlob(m);
+    const role = (m.role_in_family || "").toLowerCase();
+    if (/foundational generation/.test(role)) return true;
+    if (/costanzo/.test(n) && /capoccia/.test(n)) return true;
+    if ((/madeline|maddalena|\blena\b/.test(n)) && /capoccia/.test(n) && !/christine|tony|fran|anna|george/.test(n)) return true;
+    return false;
+  }
+
   const unplaced = members
-    .filter((m) => !leaderIds.has(m.id) && !usedAsChild.has(m.id))
-    .map((m) => byId.get(m.id));
+    .filter((m) => !leaderIds.has(m.id) && !usedAsChild.has(m.id) && !isRootParent(m))
+    .map((m) => byId.get(m.id))
+    .filter(Boolean);
 
   return {
     root: {

@@ -1,20 +1,21 @@
 <%- include('partials/header', { pageTitle: 'Reunion Timeline' }) %>
 <%
-  const list = (reunions || []).slice().sort(function (a, b) { return a.year - b.year; });
+  // Newest years first (e.g. 2026 at top), then back through history
+  const list = (reunions || []).slice().sort(function (a, b) { return b.year - a.year; });
   const withPhotos = list.filter(function (r) { return r.photo_count > 0; }).length;
-  const firstYear = list.length ? list[0].year : 1977;
-  const lastYear = list.length ? list[list.length - 1].year : currentYear;
+  const newestYear = list.length ? list[0].year : currentYear;
+  const oldestYear = list.length ? list[list.length - 1].year : 1977;
 %>
 <section class="section tl-section">
   <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">1977 → today → future</p>
+      <p class="section-eyebrow">Newest first · then back through history</p>
       <h2 class="section-title">Reunion Timeline</h2>
       <div class="section-rule"></div>
       <p class="section-lead">
-        Follow our family reunions year by year — from the first gathering in
-        <strong><%= firstYear %></strong> through
-        <strong><%= lastYear %></strong>. Every year is a chapter; open one to view photographs and memories.
+        Start with the newest reunions at the top
+        (<strong><%= newestYear %></strong>) and scroll back through our history to
+        <strong><%= oldestYear %></strong>. Every year is a chapter; open one to view photographs and memories.
       </p>
     </header>
 
@@ -33,7 +34,7 @@
         <span class="tl-stat-l">Years with photos</span>
       </div>
       <div class="tl-stat">
-        <span class="tl-stat-n"><%= firstYear %>–<%= lastYear %></span>
+        <span class="tl-stat-n"><%= oldestYear %>–<%= newestYear %></span>
         <span class="tl-stat-l">Living tradition</span>
       </div>
     </div>
@@ -41,7 +42,7 @@
     <div class="tl-rail" role="list">
       <div class="tl-origin" aria-hidden="true">
         <span class="tl-origin-dot"></span>
-        <span class="tl-origin-label">Tradition begins</span>
+        <span class="tl-origin-label">Today · newest years first</span>
       </div>
 
       <% list.forEach(function(r, i) {
@@ -89,7 +90,7 @@
 
       <div class="tl-today" aria-hidden="true">
         <span class="tl-today-dot"></span>
-        <span class="tl-today-label">Living history · keep adding memories</span>
+        <span class="tl-today-label">1977 · where our reunion tradition began</span>
       </div>
     </div>
 

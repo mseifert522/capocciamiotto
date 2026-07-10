@@ -1,28 +1,98 @@
 <%- include('partials/header', { pageTitle: 'Reunion Timeline' }) %>
-<section class="section">
+<%
+  const list = (reunions || []).slice().sort(function (a, b) { return a.year - b.year; });
+  const withPhotos = list.filter(function (r) { return r.photo_count > 0; }).length;
+  const firstYear = list.length ? list[0].year : 1977;
+  const lastYear = list.length ? list[list.length - 1].year : currentYear;
+%>
+<section class="section tl-section">
   <div class="container">
     <header class="section-header">
       <p class="section-eyebrow">1977 → today → future</p>
       <h2 class="section-title">Reunion Timeline</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">Browse every Capoccia–Miotto reunion year. Years without photographs still welcome your contribution.</p>
+      <p class="section-lead">
+        Follow our family reunions year by year — from the first gathering in
+        <strong><%= firstYear %></strong> through
+        <strong><%= lastYear %></strong>. Every year is a chapter; open one to view photographs and memories.
+      </p>
     </header>
-    <div class="invite">
+
+    <div class="invite tl-invite">
       <p><strong>Do you have photographs from any reunion year?</strong> Even one photograph can preserve a moment for future generations.</p>
       <a class="btn btn-primary" href="/contribute">Contribute Family Photos</a>
     </div>
-    <div class="timeline">
-      <% reunions.forEach(function(r) { %>
-        <a class="year-card <%= r.no_reunion ? 'no-reunion' : (r.photo_count ? '' : 'empty') %>" href="/reunion/<%= r.year %>">
-          <div class="y"><%= r.year %></div>
-          <div class="c">
-            <% if (r.no_reunion) { %>No reunion noted
-            <% } else if (r.photo_count) { %><%= r.photo_count %> photo<%= r.photo_count === 1 ? '' : 's' %>
-            <% } else { %>Waiting for photos
-            <% } %>
+
+    <div class="tl-stats" aria-label="Timeline summary">
+      <div class="tl-stat">
+        <span class="tl-stat-n"><%= list.length %></span>
+        <span class="tl-stat-l">Years on the timeline</span>
+      </div>
+      <div class="tl-stat">
+        <span class="tl-stat-n"><%= withPhotos %></span>
+        <span class="tl-stat-l">Years with photos</span>
+      </div>
+      <div class="tl-stat">
+        <span class="tl-stat-n"><%= firstYear %>–<%= lastYear %></span>
+        <span class="tl-stat-l">Living tradition</span>
+      </div>
+    </div>
+
+    <div class="tl-rail" role="list">
+      <div class="tl-origin" aria-hidden="true">
+        <span class="tl-origin-dot"></span>
+        <span class="tl-origin-label">Tradition begins</span>
+      </div>
+
+      <% list.forEach(function(r, i) {
+        const side = i % 2 === 0 ? "left" : "right";
+        const hasPhotos = r.photo_count > 0;
+        const state = r.no_reunion ? "none" : (hasPhotos ? "has" : "wait");
+        let statusText = "Waiting for photos";
+        if (r.no_reunion) statusText = "No reunion noted";
+        else if (hasPhotos) statusText = r.photo_count + " photo" + (r.photo_count === 1 ? "" : "s");
+        const metaBits = [];
+        if (r.location) metaBits.push(r.location);
+        if (r.host_family) metaBits.push("Host: " + r.host_family);
+        if (r.date_text) metaBits.push(r.date_text);
+      %>
+        <article class="tl-item tl-item--<%= side %> tl-item--<%= state %>" role="listitem">
+          <div class="tl-spine" aria-hidden="true">
+            <span class="tl-node"></span>
+            <span class="tl-segment"></span>
           </div>
-        </a>
+          <a class="tl-card" href="/reunion/<%= r.year %>">
+            <div class="tl-card-accent" aria-hidden="true"></div>
+            <div class="tl-card-top">
+              <span class="tl-year"><%= r.year %></span>
+              <span class="tl-badge tl-badge--<%= state %>">
+                <% if (state === "has") { %>In the archive
+                <% } else if (state === "none") { %>No reunion
+                <% } else { %>Open chapter
+                <% } %>
+              </span>
+            </div>
+            <h3 class="tl-card-title"><%= r.title || (r.year + " Family Reunion") %></h3>
+            <% if (metaBits.length) { %>
+              <p class="tl-card-meta"><%= metaBits.join(" · ") %></p>
+            <% } %>
+            <p class="tl-card-status"><%= statusText %></p>
+            <span class="tl-card-cta">View <%= r.year %> <span aria-hidden="true">→</span></span>
+          </a>
+        </article>
       <% }) %>
+
+      <div class="tl-today" aria-hidden="true">
+        <span class="tl-today-dot"></span>
+        <span class="tl-today-label">Living history · keep adding memories</span>
+      </div>
+    </div>
+
+    <div class="empty tl-footer-cta" style="margin-top:2.5rem">
+      <h3>Help complete a reunion year</h3>
+      <p>If a year is waiting for photographs, your album may hold the missing piece.</p>
+      <a class="btn btn-secondary" href="/contribute">Share family photos</a>
+      <a class="btn btn-outline" href="/photo-archive" style="margin-left:0.5rem">Browse photo archive</a>
     </div>
   </div>
 </section>

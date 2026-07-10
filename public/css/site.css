@@ -1068,8 +1068,21 @@ main { overflow-x: clip; }
   font-size: clamp(1.5rem, 3vw, 1.95rem);
   color: var(--burgundy);
   text-align: center;
-  margin: 0 0 1.35rem;
+  margin: 0 0 0.5rem;
   font-weight: 700;
+}
+.fs-order-note {
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin: 0 0 1.5rem;
+}
+.couple-gallery--story {
+  max-width: 720px;
+}
+.couple-gallery--story .couple-photo {
+  height: 160px;
 }
 
 /* Equal 6 cards — always same structure */

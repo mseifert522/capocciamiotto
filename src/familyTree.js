@@ -23,6 +23,7 @@ function classifyLeader(m) {
   return null;
 }
 
+/* Branch order: Tony line, George line, Anna line (siblings with spouses) */
 const LINEAGE_META = {
   tony: {
     key: "tony",
@@ -43,6 +44,7 @@ const LINEAGE_META = {
     coupleKeys: ["anna", "mickey"],
   },
 };
+const LINEAGE_ORDER = ["tony", "george", "anna"];
 
 function ensureTreeColumns(db) {
   const memberCols = [
@@ -217,7 +219,7 @@ function buildLivingTree(db) {
   }
   Object.values(leaders).forEach((n) => sortKids(n.children || []));
 
-  const lines = ["tony", "george", "anna"].map((key) => {
+  const lines = LINEAGE_ORDER.map((key) => {
     const meta = LINEAGE_META[key];
     const primary = leaders[meta.coupleKeys[0]] || null;
     const spouse = leaders[meta.coupleKeys[1]] || null;

@@ -1,30 +1,57 @@
 <%- include('partials/header', { pageTitle: 'Our Family Story' }) %>
 <%
-  function findLeader(list, tests) {
+  function findOne(list, tests) {
     for (let i = 0; i < (list || []).length; i++) {
       const m = list[i];
-      const full = (m.full_name || "");
-      const pref = (m.preferred_name || "");
-      const blob = (full + " " + pref).toLowerCase();
+      const blob = ((m.full_name || "") + " " + (m.preferred_name || "")).toLowerCase();
       if (tests.every(function (t) { return t.test(blob); })) return m;
     }
     return null;
   }
   const all = (typeof members !== "undefined" && members) ? members : [];
-  const leaders = [
-    { m: findLeader(all, [/george/, /capoccia/]), fallbackRole: "Capoccia Patriarch" },
-    { m: findLeader(all, [/christine/, /capoccia/]), fallbackRole: "Capoccia Matriarch" },
-    { m: findLeader(all, [/tony|anthony/, /capoccia/]), fallbackRole: "Honored Elder" },
-    { m: findLeader(all, [/fran|frances/, /capoccia/]), fallbackRole: "Honored Elder" },
-    { m: findLeader(all, [/mickey|amerigo/]), fallbackRole: "Miotto Patriarch" },
-    { m: findLeader(all, [/anna/, /miotto/]), fallbackRole: "Miotto Matriarch" },
-  ].filter(function (x) { return x && x.m; });
+  const tony = findOne(all, [/tony|anthony/, /capoccia/]);
+  const fran = findOne(all, [/fran|frances/, /capoccia/]);
+  const george = findOne(all, [/george/, /capoccia/]);
+  const christine = findOne(all, [/christine/, /capoccia/]);
+  const anna = findOne(all, [/anna/, /miotto/]);
+  const mickey = findOne(all, [/mickey|amerigo/]);
 
-  function personName(m) {
-    return m.display_name || m.preferred_name || m.full_name || "Family member";
-  }
+  // Correct order: each sibling with their spouse
+  const couples = [
+    {
+      label: "Honored Elders",
+      left: tony,
+      right: fran,
+      leftName: "Tony Capoccia",
+      rightName: "Fran Capoccia",
+      leftRole: "Honored Elder",
+      rightRole: "Honored Elder",
+    },
+    {
+      label: "Capoccia Patriarch & Matriarch",
+      left: george,
+      right: christine,
+      leftName: "George Capoccia",
+      rightName: "Christine Capoccia",
+      leftRole: "Capoccia Patriarch",
+      rightRole: "Capoccia Matriarch",
+    },
+    {
+      label: "Miotto Matriarch & Patriarch",
+      left: anna,
+      right: mickey,
+      leftName: "Anna Miotto",
+      rightName: "Mickey Miotto",
+      leftRole: "Miotto Matriarch",
+      rightRole: "Miotto Patriarch",
+    },
+  ];
+
   function initial(s) {
     return String(s || "?").charAt(0).toUpperCase();
+  }
+  function roleOf(m, fallback) {
+    return (m && m.role_in_family) ? m.role_in_family : fallback;
   }
 %>
 
@@ -38,37 +65,55 @@
 
     <p class="fs-intro">
       The Capoccia and Miotto families share Italian heritage. Their reunion tradition began in <strong>1977</strong>
-      and continues as a gift to every generation. The branches were joined when <strong>Anna M. Capoccia</strong>
-      married <strong>Amerigo “Mickey” Miotto</strong>. Anna’s brothers, <strong>George</strong> and <strong>Tony Capoccia</strong>,
-      remain central to that living connection.
+      and continues as a gift to every generation. The Capoccia siblings — <strong>Tony</strong>, <strong>George</strong>, and <strong>Anna</strong> —
+      with their spouses <strong>Fran</strong>, <strong>Christine</strong>, and <strong>Mickey</strong>, form the heart of this living tribute.
     </p>
 
     <h3 class="fs-subhead">Our Patriarchs &amp; Matriarchs</h3>
-    <div class="fs-grid">
-      <% leaders.forEach(function(item) {
-        const m = item.m;
-        const name = personName(m);
-        const role = m.role_in_family || item.fallbackRole;
-      %>
-        <article class="fs-card">
-          <a class="fs-card-link" href="/family-members/<%= m.id %>">
-            <div class="fs-card-photo">
-              <% if (m.portrait_path) { %>
-                <img src="<%= m.portrait_path %>" alt="<%= name %>" loading="lazy" />
-              <% } else { %>
-                <div class="fs-card-ph"><%= initial(name) %></div>
-              <% } %>
+    <p class="fs-order-note">Tony &amp; Fran · George &amp; Christine · Anna &amp; Mickey</p>
+
+    <div class="couple-gallery couple-gallery--story">
+      <% couples.forEach(function(c) { %>
+        <article class="couple-unit">
+          <p class="couple-unit-label"><%= c.label %></p>
+          <div class="couple-pair">
+            <% if (c.left) { %>
+              <a class="couple-person" href="/family-members/<%= c.left.id %>">
+                <div class="couple-photo">
+                  <% if (c.left.portrait_path) { %>
+                    <img src="<%= c.left.portrait_path %>" alt="<%= c.leftName %>" loading="lazy" />
+                  <% } else { %>
+                    <div class="couple-ph" aria-hidden="true"><%= initial(c.leftName) %></div>
+                  <% } %>
+                </div>
+                <h3><%= c.leftName %></h3>
+                <p><%= roleOf(c.left, c.leftRole) %></p>
+              </a>
+            <% } %>
+
+            <div class="couple-join" aria-hidden="true">
+              <span class="couple-heart">&amp;</span>
             </div>
-            <div class="fs-card-body">
-              <h4 class="fs-card-name"><%= name %></h4>
-              <p class="fs-card-role"><%= role %></p>
-            </div>
-          </a>
+
+            <% if (c.right) { %>
+              <a class="couple-person" href="/family-members/<%= c.right.id %>">
+                <div class="couple-photo">
+                  <% if (c.right.portrait_path) { %>
+                    <img src="<%= c.right.portrait_path %>" alt="<%= c.rightName %>" loading="lazy" />
+                  <% } else { %>
+                    <div class="couple-ph" aria-hidden="true"><%= initial(c.rightName) %></div>
+                  <% } %>
+                </div>
+                <h3><%= c.rightName %></h3>
+                <p><%= roleOf(c.right, c.rightRole) %></p>
+              </a>
+            <% } %>
+          </div>
         </article>
       <% }) %>
     </div>
 
-    <h3 class="fs-subhead">Our Family Tree</h3>
+    <h3 class="fs-subhead" style="margin-top:2.75rem">Our Family Tree</h3>
     <div class="fs-tree">
       <div class="fs-tree-root">
         <p class="fs-tree-label">Capoccia Parents</p>
@@ -76,57 +121,50 @@
       </div>
       <div class="fs-tree-stem" aria-hidden="true"></div>
       <div class="fs-tree-branches">
-        <% if (typeof tree !== "undefined" && tree && tree.lines && tree.lines.length) { %>
-          <% tree.lines.forEach(function(line) { %>
-            <div class="fs-tree-branch">
-              <div class="fs-tree-couple">
-                <p class="fs-tree-label"><%= line.role %></p>
-                <p class="fs-tree-names">
-                  <% if (line.primary) { %>
-                    <a href="/family-members/<%= line.primary.id %>"><%= line.primary.name %></a>
-                  <% } %>
-                  <% if (line.spouse) { %>
-                    <span class="fs-tree-and">&amp;</span>
-                    <a href="/family-members/<%= line.spouse.id %>"><%= line.spouse.name %></a>
-                  <% } else if (!line.primary) { %>
-                    <%= line.title %>
-                  <% } %>
-                </p>
-              </div>
-              <% if (line.children && line.children.length) { %>
-                <ul class="fs-tree-kids">
-                  <% line.children.forEach(function(c) { %>
-                    <li>
-                      <a href="/family-members/<%= c.id %>"><%= c.name %></a>
-                      <% if (c.role) { %><span><%= c.role %></span><% } %>
-                    </li>
-                  <% }) %>
-                </ul>
-              <% } else { %>
-                <p class="fs-tree-empty">Descendants will appear here as family names are added.</p>
-              <% } %>
-            </div>
-          <% }) %>
-        <% } else { %>
+        <% 
+          // Force correct branch order: Tony line, George line, Anna line
+          const lineOrder = ["tony", "george", "anna"];
+          const linesByKey = {};
+          if (typeof tree !== "undefined" && tree && tree.lines) {
+            tree.lines.forEach(function(l) { linesByKey[l.key] = l; });
+          }
+          const orderedLines = lineOrder.map(function(k) {
+            if (linesByKey[k]) return linesByKey[k];
+            if (k === "tony") return { key: "tony", role: "Honored Elders", title: "Tony & Fran Capoccia", primary: tony ? { id: tony.id, name: "Tony Capoccia" } : null, spouse: fran ? { id: fran.id, name: "Fran Capoccia" } : null, children: [] };
+            if (k === "george") return { key: "george", role: "Capoccia Patriarch & Matriarch", title: "George & Christine", primary: george ? { id: george.id, name: "George Capoccia" } : null, spouse: christine ? { id: christine.id, name: "Christine Capoccia" } : null, children: [] };
+            return { key: "anna", role: "Miotto Matriarch & Patriarch", title: "Anna & Mickey", primary: anna ? { id: anna.id, name: "Anna Miotto" } : null, spouse: mickey ? { id: mickey.id, name: "Mickey Miotto" } : null, children: [] };
+          });
+        %>
+        <% orderedLines.forEach(function(line) { %>
           <div class="fs-tree-branch">
             <div class="fs-tree-couple">
-              <p class="fs-tree-label">Honored Elders</p>
-              <p class="fs-tree-names">Tony &amp; Fran Capoccia</p>
+              <p class="fs-tree-label"><%= line.role %></p>
+              <p class="fs-tree-names">
+                <% if (line.primary) { %>
+                  <a href="/family-members/<%= line.primary.id %>"><%= line.primary.name %></a>
+                <% } %>
+                <% if (line.spouse) { %>
+                  <span class="fs-tree-and">&amp;</span>
+                  <a href="/family-members/<%= line.spouse.id %>"><%= line.spouse.name %></a>
+                <% } else if (!line.primary) { %>
+                  <%= line.title %>
+                <% } %>
+              </p>
             </div>
+            <% if (line.children && line.children.length) { %>
+              <ul class="fs-tree-kids">
+                <% line.children.forEach(function(c) { %>
+                  <li>
+                    <a href="/family-members/<%= c.id %>"><%= c.name %></a>
+                    <% if (c.role) { %><span><%= c.role %></span><% } %>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="fs-tree-empty">Descendants will appear here as family names are added.</p>
+            <% } %>
           </div>
-          <div class="fs-tree-branch">
-            <div class="fs-tree-couple">
-              <p class="fs-tree-label">Capoccia Patriarch &amp; Matriarch</p>
-              <p class="fs-tree-names">George &amp; Christine Capoccia</p>
-            </div>
-          </div>
-          <div class="fs-tree-branch">
-            <div class="fs-tree-couple">
-              <p class="fs-tree-label">Miotto Matriarch &amp; Patriarch</p>
-              <p class="fs-tree-names">Anna &amp; Mickey Miotto</p>
-            </div>
-          </div>
-        <% } %>
+        <% }) %>
       </div>
     </div>
 

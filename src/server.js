@@ -1,7 +1,9 @@
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const express = require("express");
 const session = require("express-session");
+const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
@@ -30,6 +32,11 @@ const SECRET = process.env.SESSION_SECRET || "Capoccia-Miotto-tribute-change-in-
 const MODERATION_ENABLED = process.env.MODERATION_ENABLED === "true";
 const CONTENT_STATUS = MODERATION_ENABLED ? "pending" : "approved";
 
+/** Remember family PIN in this browser for up to 90 days (signed cookie). */
+const PIN_COOKIE_NAME = "cmfr.family";
+const PIN_REMEMBER_DAYS = 90;
+const PIN_REMEMBER_MS = PIN_REMEMBER_DAYS * 24 * 60 * 60 * 1000;
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
 app.set("trust proxy", 1);
@@ -41,6 +48,7 @@ app.use(helmet({
 app.use(compression());
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(express.json({ limit: "2mb" }));
+app.use(cookieParser());
 app.use(session({
   name: "cmfr.sid",
   secret: SECRET,
@@ -50,7 +58,7 @@ app.use(session({
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 1000 * 60 * 60 * 12,
+    maxAge: PIN_REMEMBER_MS, // keep session aligned with PIN remember window
   },
 }));
 
@@ -131,6 +139,81 @@ function requireRole(...roles) {
 /** Family contributor PIN — required before contribute forms */
 function hasValidContributorPin(req) {
   return !!(req.session.contributorPin && req.session.contributorPin.pinId);
+}
+
+function signPinRememberToken(payload) {
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const sig = crypto.createHmac("sha256", SECRET).update(body).digest("base64url");
+  return `${body}.${sig}`;
+}
+
+function verifyPinRememberToken(token) {
+  try {
+    if (!token || typeof token !== "string" || !token.includes(".")) return null;
+    const [body, sig] = token.split(".");
+    if (!body || !sig) return null;
+    const expected = crypto.createHmac("sha256", SECRET).update(body).digest("base64url");
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+    const data = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (!data || !data.pinId || !data.exp || Date.now() > Number(data.exp)) return null;
+    const row = db.prepare(`
+      SELECT id, assigned_name, active FROM family_pins WHERE id = ? AND active = 1
+    `).get(data.pinId);
+    if (!row) return null;
+    return {
+      pinId: row.id,
+      assignedName: row.assigned_name || data.assignedName || "Family member",
+      verifiedAt: data.verifiedAt || Date.now(),
+      rememberUntil: Number(data.exp),
+      fromRememberCookie: true,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function setPinRememberCookie(res, pinRow) {
+  const exp = Date.now() + PIN_REMEMBER_MS;
+  const token = signPinRememberToken({
+    pinId: pinRow.id,
+    assignedName: pinRow.assigned_name,
+    verifiedAt: Date.now(),
+    exp,
+  });
+  res.cookie(PIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: PIN_REMEMBER_MS,
+    path: "/",
+  });
+  return exp;
+}
+
+function clearPinRememberCookie(res) {
+  res.clearCookie(PIN_COOKIE_NAME, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+/** Restore contributor PIN from 90-day browser cookie when session is empty. */
+function restorePinFromCookie(req, res, next) {
+  if (req.session.contributorPin && req.session.contributorPin.pinId) {
+    return next();
+  }
+  const remembered = verifyPinRememberToken(req.cookies && req.cookies[PIN_COOKIE_NAME]);
+  if (remembered) {
+    req.session.contributorPin = remembered;
+  } else if (req.cookies && req.cookies[PIN_COOKIE_NAME]) {
+    // Invalid / expired / revoked PIN cookie
+    clearPinRememberCookie(res);
+  }
+  return next();
 }
 
 function requireContributorPin(req, res, next) {
@@ -296,6 +379,9 @@ function publishPendingBacklog() {
 }
 
 publishPendingBacklog();
+
+// Restore family PIN from 90-day browser cookie on every request
+app.use(restorePinFromCookie);
 
 // ---------- Public pages ----------
 app.get("/", (req, res) => {
@@ -675,13 +761,23 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     UPDATE family_pins SET use_count = use_count + 1, last_used_at = datetime('now') WHERE id = ?
   `).run(row.id);
 
+  const rememberUntil = setPinRememberCookie(res, row);
   req.session.contributorPin = {
     pinId: row.id,
     assignedName: row.assigned_name,
     verifiedAt: Date.now(),
+    rememberUntil,
+    fromRememberCookie: false,
   };
+  // Touch session so cookie maxAge is issued with the longer remember window
+  req.session.cookie.maxAge = PIN_REMEMBER_MS;
 
-  setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted.`);
+  setFlash(
+    req,
+    "success",
+    `Welcome, ${row.assigned_name}. Your PIN was accepted. ` +
+      `This browser is remembered — you will not have to enter the family PIN again for up to ${PIN_REMEMBER_DAYS} days.`
+  );
   if (next === "story") return res.redirect("/contribute/story");
   if (next === "member") return res.redirect("/contribute/member");
   if (next === "board") return res.redirect("/community-board");
@@ -691,7 +787,8 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
 
 app.post("/contribute/pin/clear", (req, res) => {
   delete req.session.contributorPin;
-  setFlash(req, "success", "Contributor PIN cleared on this device.");
+  clearPinRememberCookie(res);
+  setFlash(req, "success", "This browser will no longer remember your family PIN. You can enter it again anytime.");
   res.redirect("/contribute/pin");
 });
 

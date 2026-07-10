@@ -19,9 +19,12 @@
     </div>
 
     <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
-      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+      <p style="margin-bottom:0.5rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
         Contributing as: <%= pinHolder.assignedName %>
-        · <a href="#" onclick="document.getElementById('clear-pin-form').submit();return false;" style="color:var(--burgundy)">Use a different PIN</a>
+        · <a href="#" onclick="document.getElementById('clear-pin-form').submit();return false;" style="color:var(--burgundy)">Forget this browser</a>
+      </p>
+      <p class="hint" style="margin-bottom:1rem">
+        You won’t have to enter the family PIN again on this browser for up to 90 days.
       </p>
       <form id="clear-pin-form" method="post" action="/contribute/pin/clear" style="display:none"></form>
     <% } %>

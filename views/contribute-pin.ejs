@@ -10,6 +10,11 @@
       </p>
     </header>
 
+    <div class="invite" style="max-width:420px;margin:0 auto 1.25rem">
+      <p><strong>This browser will be remembered automatically.</strong></p>
+      <p>After you enter the family PIN once, you will not have to enter it again on this device for up to <strong>90 days</strong>.</p>
+    </div>
+
     <form class="form-card" method="post" action="/contribute/pin" style="max-width:420px;margin:0 auto">
       <input type="hidden" name="year" value="<%= prefillYear || '' %>" />
       <input type="hidden" name="next" value="<%= next || 'photos' %>" />
@@ -33,7 +38,7 @@
         <p class="hint">Numbers only. Don’t have a PIN yet? Request it by email below.</p>
       </div>
 
-      <button class="btn btn-primary btn-block" type="submit">Continue to Contribute</button>
+      <button class="btn btn-primary btn-block" type="submit">Continue — remember this browser 90 days</button>
     </form>
 
     <div style="text-align:center;margin-top:1.5rem">

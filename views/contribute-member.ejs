@@ -8,8 +8,11 @@
     </header>
 
     <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
-      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+      <p style="margin-bottom:0.35rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
         Contributing as: <%= pinHolder.assignedName %>
+      </p>
+      <p class="hint" style="margin-bottom:1rem">
+        You won’t have to enter the family PIN again on this browser for up to 90 days.
       </p>
     <% } %>
 

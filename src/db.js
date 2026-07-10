@@ -475,7 +475,7 @@ function seedFamilyTributes() {
       biography:
         "George Capoccia was born January 25, 1933. He is a son of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and brother of Tony Capoccia and Anna Capoccia Miotto.\n\n" +
         "George is married to Christine Capoccia. Public records and family framework place them in the Warren, Michigan area of Metro Detroit. In Anna’s 2017 obituary he is named among her surviving brothers as George (Christine) Capoccia. On this tribute, George and Christine are honored as Capoccia patriarch and matriarch of the living reunion tradition that began in 1977.\n\n" +
-        "Personal stories, photographs, and memories from family members are invited so George’s page remains a living tribute — nothing invented, only what the family confirms and shares.",
+        "Their descendants include David Capoccia, Debbie Capoccia Falluca, and Jeanette Capoccia Seifert. Personal stories, photographs, and memories from family members are invited so George’s page remains a living tribute — nothing invented, only what the family confirms and shares.",
       favorite_memories:
         "Share your favorite memories and stories of George — family contributions welcome.",
       quotes: null,
@@ -498,7 +498,7 @@ function seedFamilyTributes() {
       biography:
         "Christine Capoccia is the wife of George Capoccia and is honored on this site as Capoccia matriarch alongside George.\n\n" +
         "Anna Capoccia Miotto’s 2017 obituary names “George (Christine) Capoccia,” confirming Christine as George’s wife and part of the Capoccia sibling generation’s family circle. George and Christine live in the Warren, Michigan area and have helped sustain the Capoccia–Miotto reunions since 1977.\n\n" +
-        "Additional dates, photographs, and personal memories are welcome from family so her tribute grows with verified contributions only.",
+        "Their descendants include David Capoccia, Debbie Capoccia Falluca, and Jeanette Capoccia Seifert. Additional dates, photographs, and personal memories are welcome from family so her tribute grows with verified contributions only.",
       favorite_memories:
         "Share your favorite memories and stories of Christine — family contributions welcome.",
       quotes: null,
@@ -820,6 +820,116 @@ function seedFamilyTributes() {
       db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(mickeyRow.id, annaId);
       db.prepare("UPDATE family_members SET spouse_member_id = COALESCE(spouse_member_id, ?) WHERE id = ?").run(annaId, mickeyRow.id);
     }
+
+    // Descendants of George & Christine Capoccia (family-provided names)
+    const georgeRow = db.prepare(`
+      SELECT id FROM family_members
+      WHERE is_patriarch = 1 AND family_branch = 'Capoccia' AND full_name LIKE '%George%'
+      ORDER BY id ASC LIMIT 1
+    `).get() || db.prepare(`
+      SELECT id FROM family_members WHERE full_name LIKE 'George%Capoccia%' OR preferred_name LIKE 'George%Capoccia%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    const georgeId = georgeRow ? georgeRow.id : null;
+
+    const georgeChildren = [
+      {
+        full_name: "David Capoccia",
+        preferred_name: "David Capoccia",
+        maiden_name: null,
+        role_in_family: "Son of George & Christine Capoccia",
+        biography:
+          "David Capoccia is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
+      },
+      {
+        full_name: "Debbie Falluca",
+        preferred_name: "Debbie Capoccia Falluca",
+        maiden_name: "Capoccia",
+        role_in_family: "Daughter of George & Christine Capoccia · Falluca",
+        biography:
+          "Debbie Capoccia Falluca is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
+      },
+      {
+        full_name: "Jeanette Seifert",
+        preferred_name: "Jeanette Capoccia Seifert",
+        maiden_name: "Capoccia",
+        role_in_family: "Daughter of George & Christine Capoccia · Seifert",
+        biography:
+          "Jeanette Capoccia Seifert is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
+      },
+    ];
+
+    let georgeSort = 150;
+    for (const child of georgeChildren) {
+      let existing = db.prepare(`
+        SELECT id FROM family_members WHERE full_name = ? OR preferred_name = ?
+      `).get(child.full_name, child.preferred_name);
+      if (!existing && child.full_name.includes("Debbie")) {
+        existing = db.prepare(`
+          SELECT id FROM family_members
+          WHERE full_name LIKE '%Debbie%Capoccia%' OR preferred_name LIKE '%Debbie%Capoccia%'
+             OR full_name LIKE '%Debbie%Falluca%' OR preferred_name LIKE '%Debbie%Falluca%'
+          LIMIT 1
+        `).get();
+      }
+      if (!existing && child.full_name.includes("Jeanette")) {
+        existing = db.prepare(`
+          SELECT id FROM family_members
+          WHERE full_name LIKE '%Jeanette%Capoccia%' OR preferred_name LIKE '%Jeanette%Capoccia%'
+             OR full_name LIKE '%Jeanette%Seifert%' OR preferred_name LIKE '%Jeanette%Seifert%'
+          LIMIT 1
+        `).get();
+      }
+      if (!existing && child.full_name.includes("David")) {
+        existing = db.prepare(`
+          SELECT id FROM family_members
+          WHERE full_name LIKE '%David%Capoccia%' OR preferred_name LIKE '%David%Capoccia%'
+          LIMIT 1
+        `).get();
+      }
+      if (existing) {
+        db.prepare(`
+          UPDATE family_members SET
+            full_name = ?,
+            preferred_name = ?,
+            maiden_name = COALESCE(?, maiden_name),
+            family_branch = 'Capoccia',
+            role_in_family = ?,
+            biography = COALESCE(NULLIF(biography, ''), ?),
+            parent_member_id = COALESCE(parent_member_id, ?),
+            tree_lineage = 'george',
+            generation = COALESCE(generation, 2),
+            relation_type = COALESCE(relation_type, 'child_of'),
+            visibility = 'public',
+            updated_at = datetime('now')
+          WHERE id = ?
+        `).run(
+          child.full_name,
+          child.preferred_name,
+          child.maiden_name,
+          child.role_in_family,
+          child.biography,
+          georgeId,
+          existing.id
+        );
+      } else {
+        db.prepare(`
+          INSERT INTO family_members (
+            full_name, preferred_name, maiden_name, family_branch, is_patriarch, is_matriarch, is_memorial, is_placeholder,
+            sort_order, role_in_family, biography, visibility, parent_member_id, tree_lineage, generation, relation_type
+          ) VALUES (?, ?, ?, 'Capoccia', 0, 0, 0, 0, ?, ?, ?, 'public', ?, 'george', 2, 'child_of')
+        `).run(
+          child.full_name,
+          child.preferred_name,
+          child.maiden_name,
+          georgeSort++,
+          child.role_in_family,
+          child.biography,
+          georgeId
+        );
+      }
+    }
+
     // Link George & Christine, Tony & Fran if present
     const pairs = [
       ["%George%Capoccia%", "%Christine%Capoccia%"],
@@ -834,7 +944,7 @@ function seedFamilyTributes() {
       }
     }
   } catch (e) {
-    console.warn("miotto children seed note:", e.message);
+    console.warn("descendant seed note:", e.message);
   }
 
   // Ensure site matriarch display name
@@ -851,6 +961,7 @@ function seedFamilyTributes() {
     "Capoccia Parents → Costanzo Capoccia & Maddalena (Madeline) Cervi Capoccia\n" +
       "├── Tony Capoccia (m. Fran Babich) – Capoccia Patriarch & Matriarch\n" +
       "├── George Capoccia (m. Christine) – Capoccia Patriarch & Matriarch · Warren, MI\n" +
+      "│   └── David Capoccia; Debbie Capoccia Falluca; Jeanette Capoccia Seifert\n" +
       "└── Anna Capoccia Miotto (m. Amerigo “Mickey” Miotto) – Miotto Matriarch & Patriarch\n" +
       "    └── Patricia, Carol, John, Michael, MaryAnn (and families)"
   );

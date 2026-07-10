@@ -1,18 +1,23 @@
 /**
  * Outbound email for Capoccia–Miotto tribute.
- * Prefers SMTP when configured; falls back to FormSubmit auto-response so PIN requests still work.
+ * Prefer Resend API → SMTP (Resend) → FormSubmit fallback.
  */
 
 const FAMILY_PIN = process.env.FAMILY_PIN || "29765240";
 const MAIL_FROM = process.env.MAIL_FROM || "info@capocciamiotto.com";
 const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || "Capoccia–Miotto Family Tribute";
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "info@capocciamiotto.com";
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASS || "";
 
 let nodemailer = null;
 try {
   nodemailer = require("nodemailer");
 } catch (_) {
   nodemailer = null;
+}
+
+function resendConfigured() {
+  return !!(RESEND_API_KEY && String(RESEND_API_KEY).startsWith("re_"));
 }
 
 function smtpConfigured() {
@@ -76,6 +81,46 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+async function sendViaResendApi(toEmail, requesterName) {
+  if (!resendConfigured()) {
+    return { ok: false, method: "resend", error: "Resend API key not configured" };
+  }
+  const { subject, text, html } = pinEmailBodies(toEmail, requesterName);
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `${MAIL_FROM_NAME} <${MAIL_FROM}>`,
+      to: [toEmail],
+      reply_to: CONTACT_EMAIL,
+      subject,
+      text,
+      html,
+    }),
+  });
+
+  const bodyText = await res.text();
+  let data = null;
+  try {
+    data = JSON.parse(bodyText);
+  } catch (_) {
+    data = { raw: bodyText };
+  }
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      method: "resend",
+      error: (data && (data.message || data.name)) || `HTTP ${res.status}`,
+      data,
+    };
+  }
+  return { ok: true, method: "resend", id: (data && data.id) || null };
+}
+
 async function sendViaSmtp(toEmail, requesterName) {
   const transport = createTransport();
   if (!transport) return { ok: false, method: "smtp", error: "SMTP not configured" };
@@ -92,11 +137,11 @@ async function sendViaSmtp(toEmail, requesterName) {
 }
 
 /**
- * FormSubmit fallback: notifies info@capocciamiotto.com and auto-responds to the requester with the PIN.
+ * FormSubmit fallback: notifies info@ and auto-responds to the requester with the PIN.
  * First use may require one-time activation of the inbox.
  */
 async function sendViaFormSubmit(toEmail, requesterName) {
-  const { subject, text } = pinEmailBodies(toEmail, requesterName);
+  const { text } = pinEmailBodies(toEmail, requesterName);
   const endpoint = `https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_EMAIL)}`;
   const payload = {
     name: requesterName || "Family member",
@@ -147,16 +192,27 @@ async function sendFamilyPinEmail({ toEmail, requesterName }) {
     return { ok: false, error: "Invalid email address." };
   }
 
-  // Prefer real SMTP when secrets are present
+  // 1) Resend HTTP API (preferred)
+  if (resendConfigured()) {
+    try {
+      const result = await sendViaResendApi(email, requesterName);
+      if (result.ok) return result;
+      console.error("Resend API pin email failed:", result.error || result);
+    } catch (err) {
+      console.error("Resend API pin email error:", err.message);
+    }
+  }
+
+  // 2) SMTP (Resend or other)
   if (smtpConfigured()) {
     try {
       return await sendViaSmtp(email, requesterName);
     } catch (err) {
       console.error("SMTP pin email failed:", err.message);
-      // fall through to FormSubmit
     }
   }
 
+  // 3) FormSubmit last resort
   try {
     return await sendViaFormSubmit(email, requesterName);
   } catch (err) {
@@ -171,4 +227,5 @@ module.exports = {
   CONTACT_EMAIL,
   sendFamilyPinEmail,
   smtpConfigured,
+  resendConfigured,
 };

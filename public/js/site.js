@@ -20,6 +20,86 @@
     });
   }
 
+  // Full-size photo lightbox (home + any [data-lightbox] trigger)
+  (function initLightbox() {
+    let overlay = null;
+    let imgEl = null;
+    let capEl = null;
+    let lastFocus = null;
+
+    const ensure = () => {
+      if (overlay) return overlay;
+      overlay = document.createElement("div");
+      overlay.className = "lightbox";
+      overlay.hidden = true;
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-label", "Full size photograph");
+      overlay.innerHTML =
+        '<button type="button" class="lightbox-close" aria-label="Close photo">&times;</button>' +
+        '<figure class="lightbox-figure">' +
+        '<img class="lightbox-img" alt="" />' +
+        '<figcaption class="lightbox-caption"></figcaption>' +
+        "</figure>";
+      document.body.appendChild(overlay);
+      imgEl = overlay.querySelector(".lightbox-img");
+      capEl = overlay.querySelector(".lightbox-caption");
+      const closeBtn = overlay.querySelector(".lightbox-close");
+
+      const close = () => {
+        overlay.hidden = true;
+        overlay.classList.remove("is-open");
+        document.body.classList.remove("lightbox-open");
+        if (imgEl) {
+          imgEl.removeAttribute("src");
+          imgEl.alt = "";
+        }
+        if (capEl) capEl.textContent = "";
+        if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+        lastFocus = null;
+      };
+
+      closeBtn.addEventListener("click", close);
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) close();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay && !overlay.hidden) {
+          e.preventDefault();
+          close();
+        }
+      });
+      overlay._close = close;
+      return overlay;
+    };
+
+    const open = (src, caption, alt) => {
+      if (!src) return;
+      const box = ensure();
+      lastFocus = document.activeElement;
+      imgEl.src = src;
+      imgEl.alt = alt || caption || "Family photograph";
+      capEl.textContent = caption || "";
+      capEl.hidden = !caption;
+      box.hidden = false;
+      box.classList.add("is-open");
+      document.body.classList.add("lightbox-open");
+      const closeBtn = box.querySelector(".lightbox-close");
+      if (closeBtn) closeBtn.focus();
+    };
+
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest("[data-lightbox]");
+      if (!trigger) return;
+      e.preventDefault();
+      const src = trigger.getAttribute("data-lightbox");
+      const caption = trigger.getAttribute("data-lightbox-caption") || "";
+      const img = trigger.querySelector("img");
+      const alt = (img && img.getAttribute("alt")) || caption;
+      open(src, caption, alt);
+    });
+  })();
+
   // Multi person-name fields on contribute form
   const addPersonBtn = document.getElementById("add-person-field");
   const peopleFields = document.getElementById("people-fields");

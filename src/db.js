@@ -518,7 +518,7 @@ function seedFamilyTributes() {
       role_in_family: "Family",
       biography:
         "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) and his devoted wife Frances “Fran” Lee Babich Capoccia are remembered with deepest love as cherished members of the Capoccia family.\n\n" +
-        "Tony was the beloved brother of George and Anna Miotto. He and Fran shared more than 60 years of marriage filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
+        "Tony was the beloved brother of George and Anna Capoccia (Anna Miotto). He and Fran shared more than 60 years of marriage filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
         "Tony and Fran’s story is woven into the very heart of the Capoccia–Miotto reunions. Their love helped strengthen the family ties that bring us together year after year, reminding us that family is the most beautiful legacy of all.",
       favorite_memories:
         "Share your favorite memories and stories of Tony and Fran — family contributions welcome.",

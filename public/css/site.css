@@ -2367,7 +2367,80 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   color: #fff;
   margin-bottom: 0.5rem;
 }
-.footer-copy { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; text-align: center; }
+.footer-bottom-bar {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+}
+.footer-copy {
+  margin: 0;
+  font-size: 0.82rem;
+  text-align: center;
+}
+.scroll-top-footer {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1f1712;
+  background: linear-gradient(160deg, var(--gold-soft), var(--gold));
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  min-height: 36px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.scroll-top-footer:hover,
+.scroll-top-footer:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 2px;
+}
+
+/* Floating scroll-to-top (appears after scrolling) */
+.scroll-top-fab {
+  position: fixed;
+  right: max(0.9rem, var(--safe-right));
+  bottom: max(1rem, calc(var(--safe-bottom) + 0.85rem));
+  z-index: 90;
+  width: 2.65rem;
+  height: 2.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--burgundy);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(107, 31, 42, 0.35);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), background 0.15s;
+}
+.scroll-top-fab.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.scroll-top-fab:hover,
+.scroll-top-fab:focus-visible {
+  background: #5a1a24;
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
+}
+.scroll-top-fab[hidden] {
+  display: none !important;
+}
 
 /* ===== Responsive: tablets & phones ===== */
 

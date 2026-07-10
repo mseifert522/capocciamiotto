@@ -298,4 +298,40 @@
       }
     });
   }
+
+  // Scroll to top — floating button + footer button on every page
+  (function initScrollTop() {
+    const buttons = document.querySelectorAll("[data-scroll-top]");
+    if (!buttons.length) return;
+    const fab = document.querySelector(".scroll-top-fab");
+
+    const goTop = () => {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    };
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        goTop();
+      });
+    });
+
+    if (!fab) return;
+    const onScroll = () => {
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      if (y > 280) {
+        fab.hidden = false;
+        fab.classList.add("is-visible");
+      } else {
+        fab.classList.remove("is-visible");
+        // keep focusable only when visible
+        window.setTimeout(() => {
+          if (!fab.classList.contains("is-visible")) fab.hidden = true;
+        }, 200);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  })();
 })();

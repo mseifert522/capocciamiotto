@@ -28,7 +28,7 @@ const LINEAGE_META = {
   tony: {
     key: "tony",
     title: "Tony & Fran Capoccia",
-    role: "Honored Elders",
+    role: "Tony & Fran Capoccia",
     coupleKeys: ["tony", "fran"],
   },
   george: {

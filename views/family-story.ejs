@@ -19,13 +19,13 @@
   // Correct order: each sibling with their spouse
   const couples = [
     {
-      label: "Honored Elders",
+      label: "Tony & Fran Capoccia",
       left: tony,
       right: fran,
       leftName: "Tony Capoccia",
       rightName: "Fran Capoccia",
-      leftRole: "Honored Elder",
-      rightRole: "Honored Elder",
+      leftRole: "Family",
+      rightRole: "Family",
     },
     {
       label: "Capoccia Patriarch & Matriarch",
@@ -130,7 +130,7 @@
           }
           const orderedLines = lineOrder.map(function(k) {
             if (linesByKey[k]) return linesByKey[k];
-            if (k === "tony") return { key: "tony", role: "Honored Elders", title: "Tony & Fran Capoccia", primary: tony ? { id: tony.id, name: "Tony Capoccia" } : null, spouse: fran ? { id: fran.id, name: "Fran Capoccia" } : null, children: [] };
+            if (k === "tony") return { key: "tony", role: "Tony & Fran Capoccia", title: "Tony & Fran Capoccia", primary: tony ? { id: tony.id, name: "Tony Capoccia" } : null, spouse: fran ? { id: fran.id, name: "Fran Capoccia" } : null, children: [] };
             if (k === "george") return { key: "george", role: "Capoccia Patriarch & Matriarch", title: "George & Christine", primary: george ? { id: george.id, name: "George Capoccia" } : null, spouse: christine ? { id: christine.id, name: "Christine Capoccia" } : null, children: [] };
             return { key: "anna", role: "Miotto Matriarch & Patriarch", title: "Anna & Mickey", primary: anna ? { id: anna.id, name: "Anna Miotto" } : null, spouse: mickey ? { id: mickey.id, name: "Mickey Miotto" } : null, children: [] };
           });

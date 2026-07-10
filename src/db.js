@@ -493,9 +493,9 @@ function seedFamilyTributes() {
       birth_date_display: "July 18, 1931 · Detroit",
       death_date: "2019-06-25",
       death_date_display: "June 25, 2019",
-      role_in_family: "Honored Elder",
+      role_in_family: "Family",
       biography:
-        "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) and his devoted wife Frances “Fran” Lee Babich Capoccia are remembered with deepest love as cherished elders of the Capoccia family.\n\n" +
+        "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) and his devoted wife Frances “Fran” Lee Babich Capoccia are remembered with deepest love as cherished members of the Capoccia family.\n\n" +
         "Tony was the beloved brother of George and Anna Miotto. He and Fran shared more than 60 years of marriage filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
         "Tony and Fran’s story is woven into the very heart of the Capoccia–Miotto reunions. Their love helped strengthen the family ties that bring us together year after year, reminding us that family is the most beautiful legacy of all.",
       favorite_memories:
@@ -517,9 +517,9 @@ function seedFamilyTributes() {
       birth_date_display: "October 23, 1932 · Dowell, Illinois",
       death_date: "2024-10-27",
       death_date_display: "October 27, 2024",
-      role_in_family: "Honored Elder",
+      role_in_family: "Family",
       biography:
-        "Frances “Fran” Lee Babich Capoccia (born October 23, 1932, Dowell, Illinois; passed October 27, 2024, age 92) is remembered with deepest love as a cherished elder of the Capoccia family.\n\n" +
+        "Frances “Fran” Lee Babich Capoccia (born October 23, 1932, Dowell, Illinois; passed October 27, 2024, age 92) is remembered with deepest love as a cherished member of the Capoccia family.\n\n" +
         "Married to Anthony “Tony” Joseph Capoccia for more than 60 years, Fran shared a life filled with faith, laughter, and quiet strength. They lived in the Farmington Hills and Southfield area and now rest together at Holy Sepulchre Catholic Cemetery in Southfield — a peaceful symbol of their lifelong bond.\n\n" +
         "Tony and Fran’s story is woven into the very heart of the Capoccia–Miotto reunions. Their love helped strengthen the family ties that bring us together year after year, reminding us that family is the most beautiful legacy of all.",
       favorite_memories:
@@ -666,7 +666,7 @@ function seedFamilyTributes() {
     INSERT INTO site_settings (key, value) VALUES ('family_tree_snippet', ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value
   `).run(
-    "Capoccia Parents → Costanzo & Madeline\n├── Tony (m. Fran Babich) – honored elder\n├── George (m. Christine) – Capoccia Patriarch & Matriarch\n└── Anna (m. Mickey Miotto) – Miotto Matriarch (link to Miotto branch)"
+    "Capoccia Parents → Costanzo & Madeline\n├── Tony (m. Fran Babich)\n├── George (m. Christine) – Capoccia Patriarch & Matriarch\n└── Anna (m. Mickey Miotto) – Miotto Matriarch (link to Miotto branch)"
   );
 
   // Portrait photos (bundled under /portraits — not under uploads volume)

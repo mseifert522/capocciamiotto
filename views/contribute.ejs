@@ -29,15 +29,38 @@
       <form id="clear-pin-form" method="post" action="/contribute/pin/clear" style="display:none"></form>
     <% } %>
 
-    <form class="form-card" action="/contribute/photos" method="post" enctype="multipart/form-data">
+    <form class="form-card" action="/contribute/photos" method="post" enctype="multipart/form-data" id="contribute-photos-form">
       <div class="form-row">
-        <label>Photographs *</label>
-        <div class="dropzone" id="dropzone">
-          <strong>Tap to choose photos, or drag and drop</strong>
-          <span class="hint">On a phone you can also take a new picture. JPEG, PNG, or WebP · up to 25MB each · up to 20 files</span>
+        <label>Photographs * <span class="bulk-label-note">(bulk upload supported)</span></label>
+        <div
+          class="dropzone bulk-dropzone"
+          data-bulk-upload
+          data-bulk-max="50"
+          data-bulk-accept="image"
+          data-bulk-required="1"
+        >
+          <div class="bulk-dropzone-main" data-bulk-trigger>
+            <strong>Drag &amp; drop many photos here</strong>
+            <span class="hint">Or tap / click to choose from your camera roll or computer. Add more in batches — they stack until you publish.</span>
+            <span class="bulk-dropzone-limits">JPEG, PNG, WebP, HEIC · up to 25MB each · up to 50 photos per upload</span>
+          </div>
+          <input
+            id="photos-input"
+            type="file"
+            name="photos"
+            accept="image/*,.heic,.heif"
+            multiple
+            required
+            data-bulk-input
+            style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+          />
+          <div class="bulk-toolbar">
+            <button type="button" class="btn btn-secondary" data-bulk-add>Add more photos</button>
+            <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear all</button>
+          </div>
+          <p class="bulk-count" data-bulk-count>No photos selected yet.</p>
+          <div class="bulk-previews" data-bulk-previews aria-live="polite"></div>
         </div>
-        <input id="photos-input" type="file" name="photos" accept="image/*,.heic,.heif" multiple capture="environment" required style="position:absolute;left:-9999px" />
-        <p class="hint" id="file-list">No files selected yet.</p>
       </div>
 
       <div class="form-row two">

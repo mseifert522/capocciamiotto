@@ -119,36 +119,195 @@
     });
   }
 
-  // Dropzone file input
-  const drop = document.getElementById("dropzone");
-  const fileInput = document.getElementById("photos-input");
-  const fileList = document.getElementById("file-list");
-  if (drop && fileInput) {
-    const showFiles = () => {
-      if (!fileList) return;
-      const files = Array.from(fileInput.files || []);
-      fileList.textContent = files.length
-        ? files.map((f) => f.name).join(", ")
-        : "No files selected yet.";
-    };
-    drop.addEventListener("click", () => fileInput.click());
-    drop.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      drop.style.borderColor = "#6b1f2a";
-    });
-    drop.addEventListener("dragleave", () => {
-      drop.style.borderColor = "";
-    });
-    drop.addEventListener("drop", (e) => {
-      e.preventDefault();
-      drop.style.borderColor = "";
-      if (e.dataTransfer.files?.length) {
-        fileInput.files = e.dataTransfer.files;
-        showFiles();
+  // Bulk photo/video upload zones — drag & drop + multi-select + accumulate batches
+  (function initBulkUploads() {
+    const zones = document.querySelectorAll("[data-bulk-upload]");
+    if (!zones.length) return;
+
+    const isImage = (f) =>
+      (f && f.type && f.type.startsWith("image/")) ||
+      /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(f && f.name ? f.name : "");
+    const isVideo = (f) =>
+      (f && f.type && f.type.startsWith("video/")) ||
+      /\.(mp4|webm|mov|m4v)$/i.test(f && f.name ? f.name : "");
+
+    zones.forEach((zone) => {
+      const input = zone.querySelector("[data-bulk-input]") || zone.querySelector('input[type="file"]');
+      if (!input) return;
+      const countEl = zone.querySelector("[data-bulk-count]");
+      const previews = zone.querySelector("[data-bulk-previews]");
+      const clearBtn = zone.querySelector("[data-bulk-clear]");
+      const addBtn = zone.querySelector("[data-bulk-add]");
+      const trigger = zone.querySelector("[data-bulk-trigger]") || zone;
+      const max = Math.max(1, parseInt(zone.getAttribute("data-bulk-max") || "50", 10) || 50);
+      const accept = (zone.getAttribute("data-bulk-accept") || "image").toLowerCase();
+      const required = zone.getAttribute("data-bulk-required") === "1";
+      let files = [];
+      let objectUrls = [];
+
+      const filterIncoming = (list) =>
+        Array.from(list || []).filter((f) => {
+          if (accept === "video") return isVideo(f);
+          if (accept === "image") return isImage(f);
+          return isImage(f) || isVideo(f);
+        });
+
+      const keyOf = (f) => `${f.name}::${f.size}::${f.lastModified}`;
+
+      const revokeUrls = () => {
+        objectUrls.forEach((u) => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch (_) { /* ignore */ }
+        });
+        objectUrls = [];
+      };
+
+      const syncInput = () => {
+        const dt = new DataTransfer();
+        files.forEach((f) => dt.items.add(f));
+        input.files = dt.files;
+        if (required) {
+          if (files.length) input.removeAttribute("required");
+          else input.setAttribute("required", "required");
+        }
+        if (clearBtn) clearBtn.hidden = files.length === 0;
+        if (countEl) {
+          if (!files.length) {
+            countEl.textContent =
+              accept === "video" ? "No videos selected." : "No photos selected yet.";
+          } else {
+            const totalMb = (files.reduce((s, f) => s + (f.size || 0), 0) / (1024 * 1024)).toFixed(1);
+            const label = accept === "video" ? "video" : "photo";
+            countEl.textContent =
+              `${files.length} ${label}${files.length === 1 ? "" : "s"} ready` +
+              (files.length >= max ? ` (max ${max})` : ` · room for ${max - files.length} more`) +
+              ` · ~${totalMb} MB`;
+          }
+        }
+        if (previews) {
+          revokeUrls();
+          previews.innerHTML = "";
+          files.forEach((f, idx) => {
+            const card = document.createElement("div");
+            card.className = "bulk-preview-card";
+            if (isImage(f)) {
+              const url = URL.createObjectURL(f);
+              objectUrls.push(url);
+              const img = document.createElement("img");
+              img.src = url;
+              img.alt = f.name;
+              card.appendChild(img);
+            } else {
+              const vid = document.createElement("div");
+              vid.className = "bulk-preview-video";
+              vid.textContent = "▶ " + (f.name || "Video");
+              card.appendChild(vid);
+            }
+            const meta = document.createElement("div");
+            meta.className = "bulk-preview-meta";
+            meta.title = f.name;
+            meta.textContent = f.name.length > 28 ? f.name.slice(0, 25) + "…" : f.name;
+            card.appendChild(meta);
+            const rm = document.createElement("button");
+            rm.type = "button";
+            rm.className = "bulk-preview-remove";
+            rm.setAttribute("aria-label", "Remove " + f.name);
+            rm.textContent = "×";
+            rm.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              files = files.filter((_, i) => i !== idx);
+              syncInput();
+            });
+            card.appendChild(rm);
+            previews.appendChild(card);
+          });
+        }
+      };
+
+      const addFiles = (list) => {
+        const incoming = filterIncoming(list);
+        if (!incoming.length) return;
+        const seen = new Set(files.map(keyOf));
+        incoming.forEach((f) => {
+          const k = keyOf(f);
+          if (seen.has(k)) return;
+          if (files.length >= max) return;
+          seen.add(k);
+          files.push(f);
+        });
+        if (files.length > max) files = files.slice(0, max);
+        syncInput();
+      };
+
+      const openPicker = () => input.click();
+      if (trigger) {
+        trigger.addEventListener("click", (e) => {
+          if (e.target.closest("button") || e.target.closest("input")) return;
+          openPicker();
+        });
       }
+      if (addBtn) addBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openPicker();
+      });
+      if (clearBtn) {
+        clearBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          files = [];
+          syncInput();
+        });
+      }
+
+      // Native file picker adds (does not wipe previous selection)
+      input.addEventListener("change", () => {
+        if (input.files && input.files.length) {
+          addFiles(input.files);
+          // reset so same file can be re-added after remove
+          try {
+            input.value = "";
+          } catch (_) { /* ignore */ }
+          // re-sync DataTransfer files onto input
+          syncInput();
+        }
+      });
+
+      ["dragenter", "dragover"].forEach((ev) => {
+        zone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          zone.classList.add("is-dragover");
+        });
+      });
+      ["dragleave", "dragend"].forEach((ev) => {
+        zone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          zone.classList.remove("is-dragover");
+        });
+      });
+      zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.remove("is-dragover");
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+          addFiles(e.dataTransfer.files);
+        }
+      });
+
+      // Prevent browser opening file when dropped outside zone accidentally on form
+      const form = zone.closest("form");
+      if (form && !form._bulkDropGuard) {
+        form._bulkDropGuard = true;
+        form.addEventListener("dragover", (e) => e.preventDefault());
+        form.addEventListener("drop", (e) => {
+          if (!e.target.closest("[data-bulk-upload]")) e.preventDefault();
+        });
+      }
+
+      syncInput();
     });
-    fileInput.addEventListener("change", showFiles);
-  }
+  })();
 
   const yearUnknown = document.getElementById("year_unknown");
   const yearSelect = document.getElementById("reunion_year");

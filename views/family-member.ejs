@@ -24,14 +24,16 @@
             <% if (canUploadPhoto) { %>
               <form class="portrait-add-form" method="post" action="/family-members/<%= member.id %>/portrait" enctype="multipart/form-data">
                 <label class="btn btn-primary portrait-add-btn">
-                  Add photo
+                  Add portrait photo
                   <input type="file" name="portrait" accept="image/jpeg,image/png,image/webp,image/gif" required hidden onchange="this.form.submit()" />
                 </label>
               </form>
+              <a class="btn btn-outline portrait-add-btn" href="/contribute" style="margin-top:0.4rem">Bulk upload many photos</a>
             <% } else { %>
               <a class="btn btn-primary portrait-add-btn" href="/contribute/pin?next=portrait&amp;member=<%= member.id %>">
-                Add photo
+                Add portrait photo
               </a>
+              <a class="btn btn-outline portrait-add-btn" href="/contribute/pin" style="margin-top:0.4rem">Bulk upload many photos</a>
               <span class="placeholder-pin-note">Family PIN required to upload</span>
             <% } %>
           </div>

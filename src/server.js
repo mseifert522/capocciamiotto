@@ -88,9 +88,10 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "public", "uploads
 }));
 app.use(express.static(path.join(__dirname, "..", "public"), { maxAge: "1d" }));
 
+const BULK_PHOTO_MAX = 50;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024, files: 20 },
+  limits: { fileSize: 25 * 1024 * 1024, files: BULK_PHOTO_MAX },
   fileFilter: (_req, file, cb) => {
     if (isAllowedMime(file.mimetype)) cb(null, true);
     else cb(new Error("Only image files are allowed."));
@@ -109,7 +110,7 @@ const audioUpload = multer({
 /** Community board: photos + videos with a message */
 const boardUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024, files: 12 },
+  limits: { fileSize: 100 * 1024 * 1024, files: 40 },
   fileFilter: (_req, file, cb) => {
     if (isBoardMediaMime(file.mimetype)) cb(null, true);
     else cb(new Error("Only photo and video files are allowed on the community board."));
@@ -929,8 +930,8 @@ app.post(
   contributeLimiter,
   requireContributorPin,
   boardUpload.fields([
-    { name: "photos", maxCount: 8 },
-    { name: "videos", maxCount: 3 },
+    { name: "photos", maxCount: 30 },
+    { name: "videos", maxCount: 5 },
   ]),
   async (req, res) => {
     try {
@@ -1531,7 +1532,7 @@ app.get("/contribute", requireContributorPin, (req, res) => {
 
 app.get("/contribute/photos", (req, res) => res.redirect(`/contribute${req.query.year ? `?year=${req.query.year}` : ""}`));
 
-app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.array("photos", 20), async (req, res) => {
+app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.array("photos", BULK_PHOTO_MAX), async (req, res) => {
   try {
     const files = req.files || [];
     if (!files.length) {

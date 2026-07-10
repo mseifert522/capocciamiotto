@@ -49,26 +49,63 @@
           </div>
 
           <div class="form-row">
-            <label for="board-photos">Photos</label>
-            <input
-              id="board-photos"
-              type="file"
-              name="photos"
-              accept="image/*,.heic,.heif"
-              multiple
-            />
-            <p class="hint">JPEG, PNG, WebP, GIF · up to 8 photos · 100MB each max</p>
+            <label>Photos <span class="bulk-label-note">(bulk / drag &amp; drop)</span></label>
+            <div
+              class="dropzone bulk-dropzone bulk-dropzone--board"
+              data-bulk-upload
+              data-bulk-max="30"
+              data-bulk-accept="image"
+            >
+              <div class="bulk-dropzone-main" data-bulk-trigger>
+                <strong>Drag &amp; drop photos here</strong>
+                <span class="hint">Or tap to choose many photos at once. You can add more before posting.</span>
+                <span class="bulk-dropzone-limits">JPEG, PNG, WebP, GIF · up to 30 photos · 100MB each</span>
+              </div>
+              <input
+                id="board-photos"
+                type="file"
+                name="photos"
+                accept="image/*,.heic,.heif"
+                multiple
+                data-bulk-input
+                style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+              />
+              <div class="bulk-toolbar">
+                <button type="button" class="btn btn-secondary" data-bulk-add>Add more photos</button>
+                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear photos</button>
+              </div>
+              <p class="bulk-count" data-bulk-count>No photos selected.</p>
+              <div class="bulk-previews" data-bulk-previews aria-live="polite"></div>
+            </div>
           </div>
           <div class="form-row">
-            <label for="board-videos">Videos</label>
-            <input
-              id="board-videos"
-              type="file"
-              name="videos"
-              accept="video/mp4,video/webm,video/quicktime,video/*,.mp4,.webm,.mov,.m4v"
-              multiple
-            />
-            <p class="hint">MP4, WebM, MOV · up to 3 videos · 100MB each max</p>
+            <label>Videos <span class="bulk-label-note">(optional bulk)</span></label>
+            <div
+              class="dropzone bulk-dropzone bulk-dropzone--board"
+              data-bulk-upload
+              data-bulk-max="5"
+              data-bulk-accept="video"
+            >
+              <div class="bulk-dropzone-main" data-bulk-trigger>
+                <strong>Drag &amp; drop videos here</strong>
+                <span class="hint">Or tap to choose videos. MP4, WebM, MOV · up to 5 · 100MB each</span>
+              </div>
+              <input
+                id="board-videos"
+                type="file"
+                name="videos"
+                accept="video/mp4,video/webm,video/quicktime,video/*,.mp4,.webm,.mov,.m4v"
+                multiple
+                data-bulk-input
+                style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+              />
+              <div class="bulk-toolbar">
+                <button type="button" class="btn btn-secondary" data-bulk-add>Add more videos</button>
+                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear videos</button>
+              </div>
+              <p class="bulk-count" data-bulk-count>No videos selected.</p>
+              <div class="bulk-previews bulk-previews--video" data-bulk-previews aria-live="polite"></div>
+            </div>
           </div>
 
           <div class="form-row">

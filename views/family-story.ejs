@@ -8,20 +8,24 @@
     </header>
     <p style="margin-bottom:1rem">The Capoccia and Miotto families share Italian heritage. Their reunion tradition began in <strong>1977</strong> and continues as a gift to every generation.</p>
     <p style="margin-bottom:1.5rem">The Capoccia and Miotto branches were joined when <strong>Anna M. Capoccia</strong> married <strong>Amerigo “Mickey” Miotto</strong>, creating the family bond this website proudly honors. Anna’s brothers, <strong>George Capoccia</strong> and <strong>Tony Capoccia</strong>, remain central to that living connection.</p>
+  </div>
 
+  <div class="container" style="margin-top:0.5rem">
     <%- include('partials/family-tree-snippet') %>
 
+    <div style="text-align:center;margin:1.5rem 0 0.25rem">
+      <a class="btn btn-primary" href="/family-tree">Open the Living Family Tree</a>
+      <a class="btn btn-outline" href="/contribute/member" style="margin-left:0.5rem">Add My Name to the Tree</a>
+    </div>
     <% if (typeof tree !== 'undefined' && tree) { %>
-      <div style="text-align:center;margin:1.25rem 0 0.5rem">
-        <a class="btn btn-primary" href="/family-tree">Open the Living Family Tree</a>
-        <a class="btn btn-outline" href="/contribute/member" style="margin-left:0.5rem">Add My Name to the Tree</a>
-      </div>
       <p style="text-align:center;color:var(--ink-muted);font-size:0.95rem;margin-top:0.75rem">
         <%= tree.memberCount %> family members on the tree
         <% if (tree.growingCount) { %> · growing as names are approved<% } %>.
       </p>
     <% } %>
+  </div>
 
+  <div class="container narrow">
     <div class="empty" style="margin-top:2rem">
       <h3>Help us complete the next chapters.</h3>
       <p>Share names, photographs, dates, stories, documents, recipes, traditions, and memories of the Capoccia and Miotto families.</p>
@@ -30,3 +34,4 @@
   </div>
 </section>
 <%- include('partials/footer') %>
+

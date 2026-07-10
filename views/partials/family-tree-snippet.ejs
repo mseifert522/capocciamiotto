@@ -1,5 +1,4 @@
 <%
-  /* Resolve member profile links when available */
   function findMemberId(list, tests) {
     const members = list || [];
     for (let i = 0; i < members.length; i++) {
@@ -17,61 +16,67 @@
   const idAnna = findMemberId(all, [/anna/, /miotto/]);
   const idMickey = findMemberId(all, [/mickey|amerigo/, /miotto/]);
 
-  function personLink(id, label) {
-    if (id) return '<a class="tree-link" href="/family-members/' + id + '">' + label + '</a>';
-    return '<span class="tree-name">' + label + '</span>';
+  function hrefFor(id) {
+    return id ? "/family-members/" + id : null;
   }
+
+  function childCount(key) {
+    if (typeof tree === "undefined" || !tree || !tree.lines) return 0;
+    const line = tree.lines.find(function (l) { return l.key === key; });
+    return line && line.children ? line.children.length : 0;
+  }
+
+  const tonyKids = childCount("tony");
+  const georgeKids = childCount("george");
+  const annaKids = childCount("anna");
 %>
 
-<div class="family-tree-snippet">
-  <h3 class="family-tree-snippet-title">Family Tree Snippet</h3>
-
-  <div class="tree-root">
-    <div class="tree-node tree-node--parents">
-      <p class="tree-node-label">Capoccia Parents</p>
-      <p class="tree-node-names">Costanzo &amp; Madeline</p>
-    </div>
+<div class="fts">
+  <div class="fts-header">
+    <p class="fts-eyebrow">Capoccia · Miotto</p>
+    <h3 class="fts-title">Family Tree Snippet</h3>
+    <div class="fts-rule"></div>
   </div>
 
-  <div class="tree-connector" aria-hidden="true"></div>
+  <div class="fts-root">
+    <p class="fts-label">Capoccia Parents</p>
+    <p class="fts-names">Costanzo &amp; Madeline</p>
+  </div>
 
-  <div class="tree-children">
-    <div class="tree-branch">
-      <div class="tree-node">
-        <p class="tree-node-names">
-          <%- personLink(idTony, "Tony") %>
-          <span class="tree-with">(m. <%- personLink(idFran, "Fran Babich") %>)</span>
-        </p>
-        <p class="tree-node-role">Honored Elders</p>
-        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'tony'; }); if (line && line.children && line.children.length) { %>
-          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
-        <% } } %>
-      </div>
-    </div>
-    <div class="tree-branch">
-      <div class="tree-node">
-        <p class="tree-node-names">
-          <%- personLink(idGeorge, "George") %>
-          <span class="tree-with">(m. <%- personLink(idChristine, "Christine") %>)</span>
-        </p>
-        <p class="tree-node-role">Capoccia Patriarch &amp; Matriarch</p>
-        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'george'; }); if (line && line.children && line.children.length) { %>
-          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
-        <% } } %>
-      </div>
-    </div>
-    <div class="tree-branch">
-      <div class="tree-node">
-        <p class="tree-node-names">
-          <%- personLink(idAnna, "Anna") %>
-          <span class="tree-with">(m. <%- personLink(idMickey, "Mickey Miotto") %>)</span>
-        </p>
-        <p class="tree-node-role">Miotto Matriarch</p>
-        <p class="tree-node-note">Capoccia · Miotto branch</p>
-        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'anna'; }); if (line && line.children && line.children.length) { %>
-          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
-        <% } } %>
-      </div>
-    </div>
+  <div class="fts-stem" aria-hidden="true"></div>
+
+  <div class="fts-branches">
+    <article class="fts-card">
+      <p class="fts-role">Honored Elders</p>
+      <p class="fts-names">
+        <% if (hrefFor(idTony)) { %><a href="<%= hrefFor(idTony) %>">Tony</a><% } else { %><span>Tony</span><% } %>
+        <span class="fts-muted">(m.
+          <% if (hrefFor(idFran)) { %><a href="<%= hrefFor(idFran) %>">Fran Babich</a><% } else { %><span>Fran Babich</span><% } %>)
+        </span>
+      </p>
+      <% if (tonyKids) { %><p class="fts-meta"><%= tonyKids %> family under this line</p><% } %>
+    </article>
+
+    <article class="fts-card fts-card--accent">
+      <p class="fts-role">Capoccia Patriarch &amp; Matriarch</p>
+      <p class="fts-names">
+        <% if (hrefFor(idGeorge)) { %><a href="<%= hrefFor(idGeorge) %>">George</a><% } else { %><span>George</span><% } %>
+        <span class="fts-muted">(m.
+          <% if (hrefFor(idChristine)) { %><a href="<%= hrefFor(idChristine) %>">Christine</a><% } else { %><span>Christine</span><% } %>)
+        </span>
+      </p>
+      <% if (georgeKids) { %><p class="fts-meta"><%= georgeKids %> family under this line</p><% } %>
+    </article>
+
+    <article class="fts-card">
+      <p class="fts-role">Miotto Matriarch &amp; Patriarch</p>
+      <p class="fts-names">
+        <% if (hrefFor(idAnna)) { %><a href="<%= hrefFor(idAnna) %>">Anna</a><% } else { %><span>Anna</span><% } %>
+        <span class="fts-muted">(m.
+          <% if (hrefFor(idMickey)) { %><a href="<%= hrefFor(idMickey) %>">Mickey Miotto</a><% } else { %><span>Mickey Miotto</span><% } %>)
+        </span>
+      </p>
+      <p class="fts-meta">Capoccia · Miotto branch<% if (annaKids) { %> · <%= annaKids %> family listed<% } %></p>
+    </article>
   </div>
 </div>

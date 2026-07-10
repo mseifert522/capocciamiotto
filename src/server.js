@@ -188,7 +188,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/our-family-story", (req, res) => {
-  const members = db.prepare("SELECT id, full_name, preferred_name FROM family_members").all();
+  const members = db.prepare(`
+    SELECT id, full_name, preferred_name, role_in_family, portrait_path,
+           is_patriarch, is_matriarch, is_memorial, family_branch, tree_lineage, biography
+    FROM family_members
+    WHERE visibility = 'public' OR visibility IS NULL
+    ORDER BY sort_order ASC, full_name ASC
+  `).all();
+  members.forEach((m) => {
+    m.display_name = m.preferred_name || m.full_name;
+  });
   const tree = buildLivingTree(db);
   const data = localsBase(req);
   clearFlash(req);

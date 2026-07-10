@@ -1,0 +1,22 @@
+<% if (nodes && nodes.length) { %>
+<ul>
+  <% nodes.forEach(function(n) { %>
+    <li>
+      <div class="vt-node">
+        <% if (n.portrait_path) { %>
+          <img src="<%= n.portrait_path %>" alt="<%= n.name %>" loading="lazy" />
+        <% } else { %>
+          <div class="vt-avatar-ph" aria-hidden="true"><%= (n.name || "?").charAt(0) %></div>
+        <% } %>
+        <p>
+          <a href="/family-members/<%= n.id %>"><%= n.name %></a>
+          <% if (n.role) { %><br /><small><%= n.role %></small><% } %>
+        </p>
+      </div>
+      <% if (n.children && n.children.length) { %>
+        <%- include('visual-tree-children', { nodes: n.children }) %>
+      <% } %>
+    </li>
+  <% }) %>
+</ul>
+<% } %>

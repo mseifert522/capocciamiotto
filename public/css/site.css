@@ -916,6 +916,244 @@ main { overflow-x: clip; }
   .living-tree-line::before { display: none; }
 }
 
+/* ===== Our Family Story — equal 6-photo grid + branching tree ===== */
+.family-story-page { padding-top: clamp(2rem, 5vw, 3rem); }
+.family-story {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+.family-story-intro {
+  max-width: 42em;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+.family-story-subhead {
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  color: var(--burgundy);
+  text-align: center;
+  margin: 0 0 1.5rem;
+  font-weight: 700;
+}
+.story-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3.5rem;
+}
+.story-photo-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(43, 33, 28, 0.1);
+  border: 1px solid rgba(196, 163, 90, 0.22);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  text-align: center;
+  height: 100%;
+}
+.story-photo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(107, 31, 42, 0.14);
+}
+.story-photo-link { display: block; color: inherit; text-decoration: none; height: 100%; }
+.story-photo-card img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+  background: var(--cream-deep);
+}
+.story-photo-ph {
+  width: 100%;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #f3ebe0, #e4d4c2);
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  color: var(--burgundy);
+  font-weight: 700;
+}
+.story-photo-card p {
+  margin: 0.95rem 0.75rem 1.15rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--burgundy);
+  line-height: 1.3;
+}
+.story-photo-card small {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.visual-family-tree {
+  margin: 1rem 0 2.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+}
+.vt-tree {
+  position: relative;
+  padding: 1rem 0 1.5rem;
+  min-width: min(100%, 760px);
+}
+.vt-tree ul {
+  padding: 1.25rem 0 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  gap: 0.5rem 0;
+}
+.vt-tree > ul { padding-top: 0; }
+.vt-tree ul ul { padding-top: 1.75rem; }
+.vt-tree ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 3px solid var(--gold);
+  height: 1.5rem;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.vt-tree li {
+  position: relative;
+  padding: 0.75rem 0.65rem 0;
+  text-align: center;
+  list-style: none;
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+.vt-tree li::before,
+.vt-tree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  border-top: 3px solid var(--gold);
+  width: 50%;
+  height: 0;
+  z-index: 1;
+}
+.vt-tree li::before { left: 0; right: 50%; }
+.vt-tree li::after { left: 50%; right: 0; }
+.vt-tree li:only-child::before,
+.vt-tree li:only-child::after { display: none; }
+.vt-tree li:first-child::before { border: 0; }
+.vt-tree li:last-child::after { border: 0; }
+.vt-tree > ul > li::before,
+.vt-tree > ul > li::after { display: none; }
+
+.vt-node {
+  display: inline-block;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem 1.1rem 1.05rem;
+  box-shadow: 0 6px 20px rgba(43, 33, 28, 0.1);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+  position: relative;
+  z-index: 2;
+  min-width: 180px;
+  max-width: 240px;
+  vertical-align: top;
+}
+.vt-node--root {
+  min-width: 220px;
+  border-color: rgba(107, 31, 42, 0.28);
+  box-shadow: 0 8px 24px rgba(107, 31, 42, 0.12);
+}
+.vt-node img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  object-position: center 15%;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  margin: 0 auto 0.65rem;
+  display: block;
+  background: var(--cream-deep);
+}
+.vt-avatar-ph {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(155deg, #f3ebe0, #e4d4c2);
+  border: 3px solid var(--gold);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--burgundy);
+}
+.vt-avatar-ph--root {
+  background: linear-gradient(155deg, #6b1f2a, #8b2e2e);
+  color: #fff;
+  border-color: var(--gold-soft);
+}
+.vt-node p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--burgundy);
+  line-height: 1.3;
+}
+.vt-node p a {
+  color: var(--burgundy);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.45);
+}
+.vt-node p a:hover { color: var(--red); }
+.vt-node small {
+  display: inline-block;
+  margin-top: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.family-story-actions { text-align: center; margin: 1.5rem 0 0.5rem; }
+.family-story-actions .btn { margin: 0.25rem; }
+.family-story-count { margin-top: 1rem; color: var(--ink-muted); font-size: 0.95rem; }
+
+@media (max-width: 900px) {
+  .story-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.15rem; }
+  .story-photo-card img,
+  .story-photo-ph { height: 240px; }
+}
+@media (max-width: 560px) {
+  .story-photo-grid { grid-template-columns: 1fr; }
+  .story-photo-card img,
+  .story-photo-ph { height: 260px; }
+  .vt-tree { min-width: 0; }
+  .vt-tree ul { flex-direction: column; align-items: center; }
+  .vt-tree ul ul::before { left: 20px; transform: none; }
+  .vt-tree li { width: 100%; max-width: 280px; min-width: 0; }
+  .vt-tree li::before,
+  .vt-tree li::after { display: none; }
+  .vt-node { max-width: 100%; width: 100%; }
+}
+
 /* Family tree snippet (fts) — clear visual hierarchy */
 .fts {
   background: linear-gradient(180deg, #fffefb 0%, #faf4eb 100%);

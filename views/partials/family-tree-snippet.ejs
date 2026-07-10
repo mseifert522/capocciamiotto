@@ -42,7 +42,10 @@
           <%- personLink(idTony, "Tony") %>
           <span class="tree-with">(m. <%- personLink(idFran, "Fran Babich") %>)</span>
         </p>
-        <p class="tree-node-role">Honored Elder</p>
+        <p class="tree-node-role">Honored Elders</p>
+        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'tony'; }); if (line && line.children && line.children.length) { %>
+          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
+        <% } } %>
       </div>
     </div>
     <div class="tree-branch">
@@ -52,6 +55,9 @@
           <span class="tree-with">(m. <%- personLink(idChristine, "Christine") %>)</span>
         </p>
         <p class="tree-node-role">Capoccia Patriarch &amp; Matriarch</p>
+        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'george'; }); if (line && line.children && line.children.length) { %>
+          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
+        <% } } %>
       </div>
     </div>
     <div class="tree-branch">
@@ -62,6 +68,9 @@
         </p>
         <p class="tree-node-role">Miotto Matriarch</p>
         <p class="tree-node-note">Capoccia · Miotto branch</p>
+        <% if (typeof tree !== 'undefined' && tree && tree.lines) { const line = tree.lines.find(function(l){ return l.key === 'anna'; }); if (line && line.children && line.children.length) { %>
+          <p class="tree-node-note"><%= line.children.length %> family listed under this line</p>
+        <% } } %>
       </div>
     </div>
   </div>

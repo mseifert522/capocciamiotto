@@ -39,7 +39,13 @@
                   </td>
                   <td>
                     <%= s.relation_to_family || '—' %><br />
-                    <span style="color:var(--ink-muted)"><%= s.family_branch %> · <%= s.role_in_family || '' %></span>
+                    <span style="color:var(--ink-muted)">
+                      <%= s.family_branch %>
+                      <% if (s.relation_type) { %> · <%= s.relation_type.replace(/_/g, ' ') %><% } %>
+                      <% if (s.tree_lineage) { %> · line: <%= s.tree_lineage %><% } %>
+                      <% if (s.parent_member_id) { %> · under #<%= s.parent_member_id %><% } %>
+                      <% if (s.role_in_family) { %> · <%= s.role_in_family %><% } %>
+                    </span>
                   </td>
                   <td><%= s.status %></td>
                   <td class="inline-actions">

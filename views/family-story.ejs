@@ -11,6 +11,17 @@
 
     <%- include('partials/family-tree-snippet') %>
 
+    <% if (typeof tree !== 'undefined' && tree) { %>
+      <div style="text-align:center;margin:1.25rem 0 0.5rem">
+        <a class="btn btn-primary" href="/family-tree">Open the Living Family Tree</a>
+        <a class="btn btn-outline" href="/contribute/member" style="margin-left:0.5rem">Add My Name to the Tree</a>
+      </div>
+      <p style="text-align:center;color:var(--ink-muted);font-size:0.95rem;margin-top:0.75rem">
+        <%= tree.memberCount %> family members on the tree
+        <% if (tree.growingCount) { %> · growing as names are approved<% } %>.
+      </p>
+    <% } %>
+
     <div class="empty" style="margin-top:2rem">
       <h3>Help us complete the next chapters.</h3>
       <p>Share names, photographs, dates, stories, documents, recipes, traditions, and memories of the Capoccia and Miotto families.</p>

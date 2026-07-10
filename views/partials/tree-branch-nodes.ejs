@@ -1,0 +1,20 @@
+<ul class="living-tree-list living-tree-depth-<%= typeof depth !== 'undefined' ? depth : 2 %>">
+  <% (nodes || []).forEach(function(n) { %>
+    <li class="living-tree-item">
+      <div class="living-tree-person">
+        <% if (n.portrait_path) { %>
+          <img class="living-tree-avatar" src="<%= n.portrait_path %>" alt="" loading="lazy" />
+        <% } else { %>
+          <span class="living-tree-avatar living-tree-avatar--ph" aria-hidden="true"><%= (n.name || "?").charAt(0) %></span>
+        <% } %>
+        <div class="living-tree-person-text">
+          <a class="living-tree-name" href="/family-members/<%= n.id %>"><%= n.name %></a>
+          <% if (n.role) { %><p class="living-tree-role"><%= n.role %></p><% } %>
+        </div>
+      </div>
+      <% if (n.children && n.children.length) { %>
+        <%- include('tree-branch-nodes', { nodes: n.children, depth: (typeof depth !== 'undefined' ? depth : 2) + 1 }) %>
+      <% } %>
+    </li>
+  <% }) %>
+</ul>

@@ -2,7 +2,7 @@
 <section class="section">
   <div class="container narrow">
     <header class="section-header">
-      <p class="section-eyebrow">Family Members</p>
+      <p class="section-eyebrow">Family Members · Living tree</p>
       <h2 class="section-title">Add Your Name to This Tribute</h2>
       <div class="section-rule"></div>
     </header>
@@ -47,9 +47,42 @@
       </div>
 
       <div class="form-row">
-        <label for="relation_to_family">How are you related? *</label>
+        <label for="relation_type">How do you connect to the family tree? *</label>
+        <select id="relation_type" name="relation_type" required>
+          <option value="child_of">I am a child of…</option>
+          <option value="grandchild_of">I am a grandchild of…</option>
+          <option value="great_grandchild_of">I am a great-grandchild of…</option>
+          <option value="spouse_of">I am the spouse of…</option>
+          <option value="other">Other family connection</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="parent_member_id">Place me under this patriarch / matriarch / family member *</label>
+        <select id="parent_member_id" name="parent_member_id" required>
+          <option value="">Select who you descend from or connect to…</option>
+          <optgroup label="Patriarchs &amp; Matriarchs">
+            <% (treeAnchors || []).filter(function(m){ return m.is_patriarch || m.is_matriarch || (m.generation === 1); }).forEach(function(m) { %>
+              <option value="<%= m.id %>">
+                <%= m.preferred_name || m.full_name %><%= m.role_in_family ? ' — ' + m.role_in_family : '' %>
+              </option>
+            <% }) %>
+          </optgroup>
+          <optgroup label="Other family members already on the tree">
+            <% (treeAnchors || []).filter(function(m){ return !(m.is_patriarch || m.is_matriarch || m.generation === 1); }).forEach(function(m) { %>
+              <option value="<%= m.id %>">
+                <%= m.preferred_name || m.full_name %><%= m.role_in_family ? ' — ' + m.role_in_family : '' %>
+              </option>
+            <% }) %>
+          </optgroup>
+        </select>
+        <p class="hint">Your name will appear on the living family tree under this person once approved.</p>
+      </div>
+
+      <div class="form-row">
+        <label for="relation_to_family">Describe your relationship *</label>
         <input type="text" id="relation_to_family" name="relation_to_family" required maxlength="300"
-          placeholder="Example: Daughter of … / Cousin of …" />
+          placeholder="Example: Daughter of … / Son of … / Grandson of George &amp; Christine" />
       </div>
 
       <div class="form-row">
@@ -78,8 +111,8 @@
     </form>
 
     <div class="btn-row" style="margin-top:1.5rem;justify-content:center">
+      <a class="btn btn-outline" href="/family-tree">View Living Family Tree</a>
       <a class="btn btn-outline" href="/contribute">Contribute Photos</a>
-      <a class="btn btn-outline" href="/contribute/story">Share a Story</a>
       <a class="btn btn-outline" href="/family-members">View Family Members</a>
     </div>
   </div>

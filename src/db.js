@@ -281,6 +281,15 @@ function migrate() {
   // Seed / refresh patriarch & matriarch tributes (idempotent)
   seedFamilyTributes();
 
+  // Living family tree columns + patriarch/matriarch lineage anchors
+  try {
+    const { ensureTreeColumns, seedLeaderTreeMeta } = require("./familyTree");
+    ensureTreeColumns(db);
+    seedLeaderTreeMeta(db);
+  } catch (e) {
+    console.warn("family tree migration note:", e.message);
+  }
+
   // Super admin
   const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
   const adminPass = process.env.ADMIN_PASSWORD || "ChangeMe-Capoccia2026!";

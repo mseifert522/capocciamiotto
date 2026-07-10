@@ -728,6 +728,208 @@ input, select, textarea { font-size: 16px; }
   text-align: center;
 }
 
+/* Living family tree page */
+.living-tree {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.living-tree-root {
+  text-align: center;
+  background: linear-gradient(160deg, #fffdf8, #f3e8d8);
+  border: 1px solid rgba(196, 163, 90, 0.35);
+  border-radius: 16px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 10px 28px var(--shadow);
+  max-width: 320px;
+  margin: 0 auto;
+}
+.living-tree-root-label {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.25rem;
+}
+.living-tree-root-names {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  color: var(--burgundy);
+  margin: 0;
+  font-weight: 700;
+}
+.living-tree-stem {
+  width: 2px;
+  height: 1.25rem;
+  background: rgba(196, 163, 90, 0.55);
+  margin: 0 auto;
+}
+.living-tree-lines {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  position: relative;
+  padding-top: 1rem;
+}
+.living-tree-lines::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16%;
+  right: 16%;
+  height: 2px;
+  background: rgba(196, 163, 90, 0.4);
+}
+.living-tree-line {
+  background: var(--parchment);
+  border: 1px solid rgba(196, 163, 90, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px var(--shadow);
+  padding: 1rem 0.9rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+.living-tree-line::before {
+  content: "";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  width: 2px;
+  height: 1rem;
+  background: rgba(196, 163, 90, 0.5);
+  transform: translateX(-50%);
+}
+.living-tree-couple {
+  text-align: center;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.18);
+  margin-bottom: 0.85rem;
+}
+.living-tree-couple-role {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 0.35rem;
+}
+.living-tree-couple-names {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--burgundy);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.living-tree-couple-names a {
+  color: var(--burgundy);
+  text-decoration: underline;
+  text-decoration-color: rgba(196, 163, 90, 0.45);
+  text-underline-offset: 0.12em;
+}
+.living-tree-amp {
+  display: inline-block;
+  margin: 0 0.25rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+.living-tree-desc-label {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.55rem;
+  text-align: center;
+}
+.living-tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.65rem;
+  border-left: 2px solid rgba(196, 163, 90, 0.28);
+}
+.living-tree-item {
+  margin: 0 0 0.65rem;
+  padding: 0;
+}
+.living-tree-person {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: linear-gradient(180deg, #fffefb, #f7efe4);
+  border: 1px solid rgba(196, 163, 90, 0.2);
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+}
+.living-tree-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 253, 248, 0.95);
+}
+.living-tree-avatar--ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #efe4d6;
+  color: var(--burgundy);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.living-tree-person-text { min-width: 0; }
+.living-tree-name {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  line-height: 1.2;
+  display: block;
+}
+.living-tree-role {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.3;
+}
+.living-tree-empty-branch {
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  padding: 0.5rem 0.25rem 0.25rem;
+}
+.living-tree-empty-branch p { margin: 0 0 0.65rem; }
+.living-tree-unplaced {
+  margin-top: 1.75rem;
+  padding: 1.15rem;
+  background: var(--parchment);
+  border-radius: 14px;
+  border: 1px dashed rgba(196, 163, 90, 0.4);
+}
+.living-tree-unplaced h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--burgundy);
+  margin: 0 0 0.75rem;
+  text-align: center;
+}
+@media (max-width: 900px) {
+  .living-tree-lines {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding-top: 0.5rem;
+  }
+  .living-tree-lines::before { display: none; }
+  .living-tree-line::before { display: none; }
+}
+
 /* Family tree snippet — equal-weight branches */
 .family-tree-snippet {
   background: var(--parchment);

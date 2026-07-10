@@ -10,6 +10,12 @@ const bcrypt = require("bcryptjs");
 const db = require("./db");
 const { processUpload, isAllowedMime } = require("./photos");
 const { saveAudioUpload, isAllowedAudioMime } = require("./audio");
+const {
+  listTreeAnchors,
+  buildLivingTree,
+  lineageFromMember,
+  generationFromParent,
+} = require("./familyTree");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -180,9 +186,10 @@ app.get("/", (req, res) => {
 
 app.get("/our-family-story", (req, res) => {
   const members = db.prepare("SELECT id, full_name, preferred_name FROM family_members").all();
+  const tree = buildLivingTree(db);
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-story", { ...data, members });
+  res.render("family-story", { ...data, members, tree });
 });
 
 app.get("/reunion-timeline", (req, res) => {
@@ -353,9 +360,10 @@ app.get("/in-loving-memory", (req, res) => {
 
 app.get("/family-tree", (req, res) => {
   const members = db.prepare("SELECT id, full_name, preferred_name FROM family_members").all();
+  const tree = buildLivingTree(db);
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-tree", { ...data, members });
+  res.render("family-tree", { ...data, members, tree });
 });
 
 app.get("/upcoming-reunion", (req, res) => {
@@ -570,10 +578,12 @@ app.get("/contribute/thanks", (req, res) => {
 });
 
 app.get("/contribute/member", requireContributorPin, (req, res) => {
+  const treeAnchors = listTreeAnchors(db);
   const data = localsBase(req);
   clearFlash(req);
   res.render("contribute-member", {
     ...data,
+    treeAnchors,
     pinHolder: req.session.contributorPin || null,
   });
 });
@@ -686,6 +696,9 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
   const role_in_family = (req.body.role_in_family || "").trim() || null;
   const relation_to_family = (req.body.relation_to_family || "").trim();
   const short_bio = (req.body.short_bio || "").trim() || null;
+  const relation_type = (req.body.relation_type || "child_of").trim();
+  let parent_member_id = req.body.parent_member_id ? parseInt(req.body.parent_member_id, 10) : null;
+  if (parent_member_id && Number.isNaN(parent_member_id)) parent_member_id = null;
   const contributor_name = (req.body.contributor_name || "").trim()
     || (req.session.contributorPin && req.session.contributorPin.assignedName)
     || "";
@@ -695,20 +708,29 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     ? req.session.contributorPin.pinId
     : null;
 
-  if (!full_name || !relation_to_family || !contributor_name) {
-    setFlash(req, "error", "Please include your full name, how you are related, and your name for the submission.");
+  if (!full_name || !relation_to_family || !contributor_name || !parent_member_id) {
+    setFlash(req, "error", "Please include your name, relationship, and which family member to place you under on the tree.");
+    return res.redirect("/contribute/member");
+  }
+
+  const parent = db.prepare("SELECT id FROM family_members WHERE id = ?").get(parent_member_id);
+  if (!parent) {
+    setFlash(req, "error", "Please choose a valid family member for your place on the tree.");
     return res.redirect("/contribute/member");
   }
 
   const allowedBranches = ["Capoccia", "Miotto", "both"];
   const branch = allowedBranches.includes(family_branch) ? family_branch : "both";
+  const allowedRelations = ["child_of", "grandchild_of", "great_grandchild_of", "spouse_of", "other"];
+  const relType = allowedRelations.includes(relation_type) ? relation_type : "child_of";
+  const tree_lineage = lineageFromMember(db, parent_member_id);
 
   const info = db.prepare(`
     INSERT INTO family_member_submissions (
       full_name, preferred_name, maiden_name, family_branch, role_in_family,
       relation_to_family, short_bio, contributor_name, contributor_email, contributor_phone,
-      pin_id, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      pin_id, parent_member_id, tree_lineage, relation_type, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(
     full_name,
     preferred_name,
@@ -720,7 +742,10 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     contributor_name,
     contributor_email,
     contributor_phone,
-    pinId
+    pinId,
+    parent_member_id,
+    tree_lineage,
+    relType
   );
 
   db.prepare(`
@@ -728,12 +753,12 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     VALUES ('family_member', ?, ?, ?, ?, 'pending')
   `).run(
     info.lastInsertRowid,
-    JSON.stringify({ full_name, family_branch: branch, relation_to_family }),
+    JSON.stringify({ full_name, family_branch: branch, relation_to_family, parent_member_id, tree_lineage, relType }),
     contributor_name,
     contributor_email
   );
 
-  setFlash(req, "success", "Thank you. Your name was submitted and will appear under Family Members after a family administrator reviews it.");
+  setFlash(req, "success", "Thank you. Your name was submitted and will appear on the family tree after a family administrator reviews it.");
   res.redirect("/contribute/thanks");
 });
 
@@ -951,13 +976,19 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
   const bio = sub.short_bio || null;
   const maxSort = db.prepare("SELECT COALESCE(MAX(sort_order), 50) AS m FROM family_members").get().m;
   const sortOrder = Math.max(100, (maxSort || 50) + 1);
+  const parentId = sub.parent_member_id || null;
+  const tree_lineage = sub.tree_lineage || (parentId ? lineageFromMember(db, parentId) : null);
+  const generation = generationFromParent(db, parentId, sub.relation_type || "child_of");
+  const spouseId = sub.relation_type === "spouse_of" ? parentId : null;
+  const parentForTree = sub.relation_type === "spouse_of" ? null : parentId;
 
   const insert = db.prepare(`
     INSERT INTO family_members (
       full_name, preferred_name, maiden_name, family_branch,
       is_patriarch, is_matriarch, is_memorial, is_placeholder,
-      role_in_family, biography, visibility, sort_order
-    ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?)
+      role_in_family, biography, visibility, sort_order,
+      parent_member_id, spouse_member_id, tree_lineage, generation, relation_type
+    ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, 'public', ?, ?, ?, ?, ?, ?)
   `).run(
     sub.full_name,
     sub.preferred_name || sub.full_name,
@@ -965,7 +996,12 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
     sub.family_branch || "both",
     role,
     bio,
-    sortOrder
+    sortOrder,
+    parentForTree,
+    spouseId,
+    tree_lineage,
+    generation,
+    sub.relation_type || "child_of"
   );
 
   db.prepare(`
@@ -983,7 +1019,7 @@ app.post("/admin/member-submissions/:id/approve", requireRole("super_admin", "fa
   `).run(sub.id);
 
   logActivity(req.session.user.id, "approve_member_submission", `Approved family member submission #${sub.id}: ${sub.full_name}`);
-  setFlash(req, "success", `${sub.full_name} was approved and added to Family Members.`);
+  setFlash(req, "success", `${sub.full_name} was approved, added to Family Members, and placed on the living family tree.`);
   res.redirect("/admin/members");
 });
 

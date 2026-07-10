@@ -1,17 +1,86 @@
 <%- include('partials/header', { pageTitle: 'Family Tree' }) %>
 <section class="section">
-  <div class="container narrow">
+  <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">Capoccia · Miotto</p>
+      <p class="section-eyebrow">Living family tree</p>
       <h2 class="section-title">Capoccia–Miotto Family Tree</h2>
       <div class="section-rule"></div>
+      <p class="section-lead">
+        Our tree grows as family members add their names under Tony &amp; Fran, George &amp; Christine, and Anna &amp; Mickey.
+        <% if (tree) { %>
+          <strong><%= tree.memberCount %></strong> people on the tree
+          <% if (tree.growingCount) { %> · <strong><%= tree.growingCount %></strong> added by the family<% } %>.
+        <% } %>
+      </p>
     </header>
 
-    <%- include('partials/family-tree-snippet') %>
+    <div class="living-tree">
+      <div class="living-tree-root">
+        <p class="living-tree-root-label"><%= tree.root.title %></p>
+        <p class="living-tree-root-names"><%= tree.root.names %></p>
+      </div>
 
-    <div style="text-align:center;margin-top:2rem">
-      <a class="btn btn-primary" href="/family-members">View Family Tributes</a>
-      <a class="btn btn-outline" href="/contribute/story" style="margin-left:0.5rem">Submit Family Information</a>
+      <div class="living-tree-stem" aria-hidden="true"></div>
+
+      <div class="living-tree-lines">
+        <% (tree.lines || []).forEach(function(line) { %>
+          <section class="living-tree-line living-tree-line--<%= line.key %>">
+            <div class="living-tree-couple">
+              <p class="living-tree-couple-role"><%= line.role %></p>
+              <div class="living-tree-couple-names">
+                <% if (line.primary) { %>
+                  <a href="/family-members/<%= line.primary.id %>"><%= line.primary.name %></a>
+                <% } else { %>
+                  <span><%= line.title.split('&')[0].trim() %></span>
+                <% } %>
+                <span class="living-tree-amp">&amp;</span>
+                <% if (line.spouse) { %>
+                  <a href="/family-members/<%= line.spouse.id %>"><%= line.spouse.name %></a>
+                <% } else { %>
+                  <span><%= (line.title.split('&')[1] || '').trim() %></span>
+                <% } %>
+              </div>
+            </div>
+
+            <% if (line.children && line.children.length) { %>
+              <div class="living-tree-descendants">
+                <p class="living-tree-desc-label">Family under this line</p>
+                <%- include('partials/tree-branch-nodes', { nodes: line.children, depth: 2 }) %>
+              </div>
+            <% } else { %>
+              <div class="living-tree-empty-branch">
+                <p>No descendants listed yet.</p>
+                <a class="btn btn-outline" href="/contribute/member">Add a name here</a>
+              </div>
+            <% } %>
+          </section>
+        <% }) %>
+      </div>
+
+      <% if (tree.unplaced && tree.unplaced.length) { %>
+        <div class="living-tree-unplaced">
+          <h3>Awaiting branch placement</h3>
+          <ul class="living-tree-list">
+            <% tree.unplaced.forEach(function(n) { %>
+              <li class="living-tree-item">
+                <div class="living-tree-person">
+                  <div class="living-tree-person-text">
+                    <a class="living-tree-name" href="/family-members/<%= n.id %>"><%= n.name %></a>
+                    <% if (n.role) { %><p class="living-tree-role"><%= n.role %></p><% } %>
+                  </div>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="empty" style="margin-top:2.25rem">
+      <h3>Grow our family tree</h3>
+      <p>Add your name and choose the patriarch or matriarch line you belong to.</p>
+      <a class="btn btn-primary" href="/contribute/member">Add My Name to the Tree</a>
+      <a class="btn btn-outline" href="/family-members" style="margin-left:0.5rem">Family Members</a>
     </div>
   </div>
 </section>

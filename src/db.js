@@ -475,7 +475,7 @@ function seedFamilyTributes() {
       biography:
         "George Capoccia was born January 25, 1933. He is a son of Costanzo Capoccia and Maddalena (Madeline) Cervi Capoccia, and brother of Tony Capoccia and Anna Capoccia Miotto.\n\n" +
         "George is married to Christine Capoccia. Public records and family framework place them in the Warren, Michigan area of Metro Detroit. In Anna’s 2017 obituary he is named among her surviving brothers as George (Christine) Capoccia. On this tribute, George and Christine are honored as Capoccia patriarch and matriarch of the living reunion tradition that began in 1977.\n\n" +
-        "Their descendants include David Capoccia, Debbie Capoccia Falluca, and Jeanette Capoccia Seifert. Personal stories, photographs, and memories from family members are invited so George’s page remains a living tribute — nothing invented, only what the family confirms and shares.",
+        "Their descendants include David Capoccia, Debbie Capoccia Fallucca, and Jeanette Capoccia Seifert. Personal stories, photographs, and memories from family members are invited so George’s page remains a living tribute — nothing invented, only what the family confirms and shares.",
       favorite_memories:
         "Share your favorite memories and stories of George — family contributions welcome.",
       quotes: null,
@@ -498,7 +498,7 @@ function seedFamilyTributes() {
       biography:
         "Christine Capoccia is the wife of George Capoccia and is honored on this site as Capoccia matriarch alongside George.\n\n" +
         "Anna Capoccia Miotto’s 2017 obituary names “George (Christine) Capoccia,” confirming Christine as George’s wife and part of the Capoccia sibling generation’s family circle. George and Christine live in the Warren, Michigan area and have helped sustain the Capoccia–Miotto reunions since 1977.\n\n" +
-        "Their descendants include David Capoccia, Debbie Capoccia Falluca, and Jeanette Capoccia Seifert. Additional dates, photographs, and personal memories are welcome from family so her tribute grows with verified contributions only.",
+        "Their descendants include David Capoccia, Debbie Capoccia Fallucca, and Jeanette Capoccia Seifert. Additional dates, photographs, and personal memories are welcome from family so her tribute grows with verified contributions only.",
       favorite_memories:
         "Share your favorite memories and stories of Christine — family contributions welcome.",
       quotes: null,
@@ -842,18 +842,18 @@ function seedFamilyTributes() {
           "David Capoccia is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
       },
       {
-        full_name: "Debbie Falluca",
-        preferred_name: "Debbie Capoccia Falluca",
+        full_name: "Debbie Fallucca",
+        preferred_name: "Debbie Capoccia Fallucca",
         maiden_name: "Capoccia",
-        role_in_family: "Daughter of George & Christine Capoccia · Falluca",
+        role_in_family: "Daughter of George & Christine Capoccia",
         biography:
-          "Debbie Capoccia Falluca is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
+          "Debbie Capoccia Fallucca is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
       },
       {
         full_name: "Jeanette Seifert",
         preferred_name: "Jeanette Capoccia Seifert",
         maiden_name: "Capoccia",
-        role_in_family: "Daughter of George & Christine Capoccia · Seifert",
+        role_in_family: "Daughter of George & Christine Capoccia",
         biography:
           "Jeanette Capoccia Seifert is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
       },
@@ -868,7 +868,7 @@ function seedFamilyTributes() {
         existing = db.prepare(`
           SELECT id FROM family_members
           WHERE full_name LIKE '%Debbie%Capoccia%' OR preferred_name LIKE '%Debbie%Capoccia%'
-             OR full_name LIKE '%Debbie%Falluca%' OR preferred_name LIKE '%Debbie%Falluca%'
+             OR full_name LIKE '%Debbie%Falluc%' OR preferred_name LIKE '%Debbie%Falluc%'
           LIMIT 1
         `).get();
       }
@@ -961,7 +961,7 @@ function seedFamilyTributes() {
     "Capoccia Parents → Costanzo Capoccia & Maddalena (Madeline) Cervi Capoccia\n" +
       "├── Tony Capoccia (m. Fran Babich) – Capoccia Patriarch & Matriarch\n" +
       "├── George Capoccia (m. Christine) – Capoccia Patriarch & Matriarch · Warren, MI\n" +
-      "│   └── David Capoccia; Debbie Capoccia Falluca; Jeanette Capoccia Seifert\n" +
+      "│   └── David Capoccia; Debbie Capoccia Fallucca; Jeanette Capoccia Seifert\n" +
       "└── Anna Capoccia Miotto (m. Amerigo “Mickey” Miotto) – Miotto Matriarch & Patriarch\n" +
       "    └── Patricia, Carol, John, Michael, MaryAnn (and families)"
   );

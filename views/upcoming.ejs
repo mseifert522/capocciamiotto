@@ -10,7 +10,7 @@
       </p>
     </header>
 
-    <% if (upcoming && (upcoming.event_date || upcoming.event_time || upcoming.place_name || upcoming.address || upcoming.date_text || upcoming.location)) { %>
+    <% if (hasDetails && upcoming) { %>
       <article class="card upcoming-card">
         <div class="card-body">
           <p class="upcoming-year-badge"><%= upcoming.year %> Family Reunion</p>
@@ -76,71 +76,88 @@
         </div>
       </article>
     <% } else { %>
-      <div class="empty upcoming-empty">
-        <h3>Details for the next reunion will appear here.</h3>
-        <p>When the family member in charge is ready, they can enter the date, time, place name, and address using the family PIN.</p>
-      </div>
+      <article class="card upcoming-card upcoming-card--pending">
+        <div class="card-body">
+          <p class="upcoming-year-badge"><%= focusYear %> Family Reunion</p>
+          <h3 class="upcoming-title"><%= focusTitle || (focusYear + ' Capoccia–Miotto Family Reunion') %></h3>
+          <p class="upcoming-pending-lead">
+            <strong><%= focusYear %> reunion details still need to be posted.</strong>
+            Date, time, place name, and address have not been entered yet.
+          </p>
+          <ul class="upcoming-missing-list">
+            <% (missingFields || ['date','time','place name','address']).forEach(function(item) { %>
+              <li>Still needed: <strong><%= item %></strong></li>
+            <% }) %>
+          </ul>
+          <p class="upcoming-pending-note">
+            When the family member in charge is ready, use the form below with the family PIN to publish the <%= focusYear %> details for everyone.
+          </p>
+          <p style="margin-top:1rem;text-align:center">
+            <a class="btn btn-primary" href="#reunion-details-form">Enter <%= focusYear %> details</a>
+          </p>
+        </div>
+      </article>
     <% } %>
 
     <div class="upcoming-organizer" id="reunion-details-form">
-      <h3 class="upcoming-organizer-title">Post or update reunion details</h3>
+      <h3 class="upcoming-organizer-title">Post <%= focusYear %> reunion details</h3>
       <p class="upcoming-organizer-lead">
-        If you are organizing this year’s reunion, sign in with the family PIN and enter the details below.
-        The information will display at the top of this page for all family members.
+        If you are organizing the <%= focusYear %> reunion, sign in with the family PIN and enter the date, time, name of place, and address.
+        Your update will appear at the top of this page for all family members.
       </p>
 
       <% if (!canEdit) { %>
         <div class="invite" style="max-width:480px;margin:0 auto 1rem">
-          <p>Family PIN required to post reunion details.</p>
+          <p>Family PIN required to post <%= focusYear %> reunion details.</p>
           <a class="btn btn-primary" href="/contribute/pin?next=upcoming">Enter family PIN</a>
           <a class="btn btn-outline" href="/contribute/request-pin" style="margin-left:0.5rem">Request PIN #</a>
         </div>
       <% } else { %>
         <p class="upcoming-pin-ok">
           Signed in as <strong><%= (pinHolder && pinHolder.assignedName) || (user && (user.name || user.email)) || 'family organizer' %></strong>.
-          You may post or update the upcoming reunion.
+          You may post or update the <%= focusYear %> reunion.
         </p>
         <form class="form-card" method="post" action="/upcoming-reunion" style="max-width:520px;margin:0 auto">
           <div class="form-row">
             <label for="year">Reunion year *</label>
             <select id="year" name="year" required>
               <% yearOptions.forEach(function(y) { %>
-                <option value="<%= y %>" <%= (editYear == y) ? 'selected' : '' %>><%= y %></option>
+                <option value="<%= y %>" <%= (editYear == y) ? 'selected' : '' %>><%= y %><%= y == focusYear && !hasDetails ? ' — details needed' : '' %></option>
               <% }) %>
             </select>
           </div>
           <div class="form-row">
             <label for="title">Title (optional)</label>
-            <input id="title" name="title" type="text" maxlength="160" placeholder="e.g. 2026 Capoccia–Miotto Family Reunion" value="<%= upcoming && upcoming.year == editYear ? (upcoming.title || '') : '' %>" />
+            <input id="title" name="title" type="text" maxlength="160" placeholder="e.g. <%= focusYear %> Capoccia–Miotto Family Reunion" value="<%= focusTitle || '' %>" />
           </div>
           <div class="form-row two">
             <div>
               <label for="event_date">Date *</label>
-              <input id="event_date" name="event_date" type="date" value="<%= upcoming && upcoming.event_date ? upcoming.event_date : '' %>" />
+              <input id="event_date" name="event_date" type="date" value="<%= hasDetails && upcoming && upcoming.event_date ? upcoming.event_date : '' %>" />
             </div>
             <div>
               <label for="event_time">Time *</label>
-              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. 1:00 PM – 6:00 PM" value="<%= upcoming && upcoming.event_time ? upcoming.event_time : '' %>" />
+              <input id="event_time" name="event_time" type="text" maxlength="80" placeholder="e.g. 1:00 PM – 6:00 PM" value="<%= hasDetails && upcoming && upcoming.event_time ? upcoming.event_time : '' %>" />
             </div>
           </div>
           <div class="form-row">
             <label for="place_name">Name of place *</label>
-            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="e.g. Metro Beach Park Pavilion" value="<%= upcoming && upcoming.place_name ? upcoming.place_name : '' %>" />
+            <input id="place_name" name="place_name" type="text" maxlength="200" placeholder="e.g. park pavilion, hall, or family home" value="<%= hasDetails && upcoming && upcoming.place_name ? upcoming.place_name : '' %>" />
           </div>
           <div class="form-row">
             <label for="address">Address *</label>
-            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" value="<%= upcoming && upcoming.address ? upcoming.address : '' %>" />
+            <input id="address" name="address" type="text" maxlength="300" placeholder="Street, city, state, ZIP" value="<%= hasDetails && upcoming && upcoming.address ? upcoming.address : '' %>" />
           </div>
           <div class="form-row">
             <label for="host_family">Organizer / host name</label>
-            <input id="host_family" name="host_family" type="text" maxlength="120" placeholder="Your name" value="<%= (pinHolder && pinHolder.assignedName) || (upcoming && upcoming.host_family) || '' %>" />
+            <input id="host_family" name="host_family" type="text" maxlength="120" placeholder="Your name" value="<%= (pinHolder && pinHolder.assignedName) || (hasDetails && upcoming && upcoming.host_family) || '' %>" />
           </div>
           <div class="form-row">
             <label for="summary">Additional notes (optional)</label>
-            <textarea id="summary" name="summary" rows="3" maxlength="2000" placeholder="Bring a dish, park in lot B, rain location, etc."><%= upcoming && upcoming.summary ? upcoming.summary : '' %></textarea>
+            <textarea id="summary" name="summary" rows="3" maxlength="2000" placeholder="Bring a dish, parking, rain location, etc."><%= hasDetails && upcoming && upcoming.summary ? upcoming.summary : '' %></textarea>
           </div>
           <p class="hint" style="margin-bottom:1rem">Please include date, time, place name, and address so the family can plan to attend.</p>
-          <button class="btn btn-primary btn-block" type="submit">Publish reunion details</button>
+          <button class="btn btn-primary btn-block" type="submit">Publish <%= focusYear %> reunion details</button>
         </form>
       <% } %>
     </div>

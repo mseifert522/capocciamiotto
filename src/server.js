@@ -1020,10 +1020,30 @@ function formatReunionDisplayDate(isoDate) {
 
 app.get("/upcoming-reunion", (req, res) => {
   ensureUpcomingReunionColumns();
+  // Ensure current year row exists so organizers can post 2026 (etc.) details
+  let focusYear = CURRENT_YEAR;
+  if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(focusYear)) {
+    db.prepare("INSERT INTO reunions (year, title, is_upcoming) VALUES (?, ?, 1)").run(
+      focusYear,
+      `${focusYear} Capoccia–Miotto Family Reunion`
+    );
+  }
   const upcoming = getUpcomingReunion();
   if (upcoming) {
     upcoming.display_date = formatReunionDisplayDate(upcoming.event_date) || upcoming.date_text || null;
+    focusYear = upcoming.year;
   }
+  const focusRow = db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear);
+  const hasDetails = !!(
+    upcoming &&
+    (upcoming.event_date || upcoming.event_time || upcoming.place_name || upcoming.address || upcoming.date_text || upcoming.location)
+  );
+  const missing = [];
+  if (!hasDetails || !(upcoming && upcoming.event_date)) missing.push("date");
+  if (!hasDetails || !(upcoming && upcoming.event_time)) missing.push("time");
+  if (!hasDetails || !(upcoming && upcoming.place_name)) missing.push("place name");
+  if (!hasDetails || !(upcoming && upcoming.address)) missing.push("address");
+
   const yearOptions = [];
   for (let y = CURRENT_YEAR; y <= CURRENT_YEAR + 3; y++) yearOptions.push(y);
   const canEdit =
@@ -1032,11 +1052,15 @@ app.get("/upcoming-reunion", (req, res) => {
   clearFlash(req);
   res.render("upcoming", {
     ...data,
-    upcoming,
+    upcoming: hasDetails ? upcoming : null,
+    focusYear,
+    focusTitle: (focusRow && focusRow.title) || `${focusYear} Capoccia–Miotto Family Reunion`,
+    hasDetails,
+    missingFields: missing,
     yearOptions,
     canEdit,
     pinHolder: req.session.contributorPin || null,
-    editYear: upcoming ? upcoming.year : CURRENT_YEAR,
+    editYear: focusYear,
   });
 });
 

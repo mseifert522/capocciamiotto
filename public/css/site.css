@@ -2403,6 +2403,29 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid rgba(196, 163, 90, 0.35);
   box-shadow: 0 10px 28px rgba(43, 33, 28, 0.08);
 }
+.upcoming-card--pending {
+  border-style: dashed;
+  border-color: rgba(107, 31, 42, 0.35);
+  background: linear-gradient(160deg, #fffdf8, #f7f0e6);
+}
+.upcoming-pending-lead {
+  margin: 0 0 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.upcoming-missing-list {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  color: var(--ink-muted);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.upcoming-pending-note {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
 .upcoming-year-badge {
   display: inline-block;
   font-family: var(--font-ui);

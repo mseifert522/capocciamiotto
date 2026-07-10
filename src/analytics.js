@@ -184,11 +184,11 @@ function getDashboardAnalytics(db) {
   const photosAll = countWhere(db, `SELECT COUNT(*) AS c FROM photos`);
   const photos7d = countWhere(db, `SELECT COUNT(*) AS c FROM photos WHERE datetime(submitted_at) >= datetime('now', '-7 days')`);
   const storiesAll = countWhere(db, `SELECT COUNT(*) AS c FROM stories`);
-  const stories7d = countWhere(db, `SELECT COUNT(*) AS c FROM stories WHERE datetime(submitted_at) >= datetime('now', '-7 days')`);
+  const stories7d = countWhere(db, `SELECT COUNT(*) AS c FROM stories WHERE datetime(created_at) >= datetime('now', '-7 days')`);
   const boardAll = countWhere(db, `SELECT COUNT(*) AS c FROM board_posts`);
   const board7d = countWhere(db, `SELECT COUNT(*) AS c FROM board_posts WHERE datetime(created_at) >= datetime('now', '-7 days')`);
   const membersSubAll = countWhere(db, `SELECT COUNT(*) AS c FROM family_member_submissions`);
-  const membersSub7d = countWhere(db, `SELECT COUNT(*) AS c FROM family_member_submissions WHERE datetime(submitted_at) >= datetime('now', '-7 days')`);
+  const membersSub7d = countWhere(db, `SELECT COUNT(*) AS c FROM family_member_submissions WHERE datetime(created_at) >= datetime('now', '-7 days')`);
   const portraitsAll = countWhere(db, `SELECT COUNT(*) AS c FROM site_activity WHERE kind = 'portrait_upload'`);
 
   let topPages = [];
@@ -242,7 +242,7 @@ function getDashboardAnalytics(db) {
     recentPinRequests = [];
   }
 
-  // Unified family content timeline
+  // Unified family content timeline (column names differ by table)
   let recentContent = [];
   try {
     recentContent = db.prepare(`
@@ -261,7 +261,7 @@ function getDashboardAnalytics(db) {
           contributor_name AS who,
           contributor_email AS email,
           status,
-          submitted_at AS occurred_at,
+          created_at AS occurred_at,
           CAST(id AS TEXT) AS ref_id
         FROM stories
         UNION ALL
@@ -279,7 +279,7 @@ function getDashboardAnalytics(db) {
           contributor_name AS who,
           contributor_email AS email,
           status,
-          submitted_at AS occurred_at,
+          created_at AS occurred_at,
           CAST(id AS TEXT) AS ref_id
         FROM family_member_submissions
         UNION ALL
@@ -291,7 +291,7 @@ function getDashboardAnalytics(db) {
           created_at AS occurred_at,
           CAST(id AS TEXT) AS ref_id
         FROM site_activity
-        WHERE kind IN ('portrait_upload', 'photo_upload')
+        WHERE kind IN ('portrait_upload', 'photo_upload', 'board_post', 'member_submit', 'story_submit')
       )
       ORDER BY datetime(occurred_at) DESC
       LIMIT 50

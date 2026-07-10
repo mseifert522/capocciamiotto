@@ -138,9 +138,14 @@ const ADMIN_ROLES = ["super_admin", "family_admin", "photo_moderator", "content_
 
 // ---------- Public pages ----------
 app.get("/", (req, res) => {
+  // Family Tribute: patriarchs, matriarchs, and honored elders (Tony & Fran)
   const members = db.prepare(`
     SELECT * FROM family_members
-    WHERE is_placeholder = 1 OR is_patriarch = 1 OR is_matriarch = 1
+    WHERE is_patriarch = 1 OR is_matriarch = 1
+       OR sort_order IN (1, 2, 10, 11, 20, 21)
+       OR full_name LIKE '%Tony%Capoccia%'
+       OR full_name LIKE '%Fran%Capoccia%'
+       OR full_name LIKE '%Frances%Capoccia%'
     ORDER BY sort_order ASC, full_name ASC
   `).all();
   // Apply editable matriarch display name

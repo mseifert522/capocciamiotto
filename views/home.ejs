@@ -38,7 +38,7 @@
       <h2 class="section-title">Family Tribute</h2>
       <div class="section-rule"></div>
       <p class="section-lead">
-        We begin with Capoccia patriarch and matriarch placeholders. Additional Capoccia and Miotto elders and honored family members will be added as the family shares their stories. Both families will be represented equally.
+        Honoring the Capoccia and Miotto patriarchs and matriarchs who carried our reunions forward since 1977—and the beloved elders who strengthened both branches of our family.
       </p>
     </header>
     <div class="card-grid">
@@ -52,17 +52,20 @@
             <% } %>
           </div>
           <div class="card-body">
-            <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %> family</span>
+            <div style="display:flex;flex-wrap:wrap;gap:0.35rem">
+              <span class="badge <%= m.family_branch === 'Capoccia' ? 'badge-capoccia' : (m.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= m.family_branch %> family</span>
+              <% if (m.is_memorial) { %><span class="badge" style="background:rgba(43,33,28,0.08);color:var(--ink-soft)">In loving memory</span><% } %>
+            </div>
             <h3 style="margin-top:0.5rem"><%= m.display_name %></h3>
-            <p class="meta"><%= m.role_in_family || 'Family member' %><% if (m.is_placeholder) { %> · details to be completed<% } %></p>
+            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
             <p>
               <% if (m.biography) { %>
-                <%= m.biography %>
+                <%= m.biography.split(/\n\n+/)[0] %>
               <% } else { %>
-                Biographical information, favorite memories, and family stories for this tribute will appear here when provided by the family. Nothing has been invented.
+                Biographical information will appear here when provided by the family.
               <% } %>
             </p>
-            <a class="btn btn-outline" style="margin-top:1rem" href="/family-members/<%= m.id %>">View tribute</a>
+            <a class="btn btn-outline" style="margin-top:1rem" href="/family-members/<%= m.id %>">View full tribute</a>
           </div>
         </article>
       <% }) %>

@@ -218,19 +218,8 @@ function migrate() {
   });
   seedReunions();
 
-  // Seed patriarch / matriarch placeholders
-  const countMembers = db.prepare("SELECT COUNT(*) AS c FROM family_members").get().c;
-  if (countMembers === 0) {
-    db.prepare(`
-      INSERT INTO family_members
-        (full_name, preferred_name, family_branch, is_patriarch, is_matriarch, role_in_family, biography, is_placeholder, sort_order)
-      VALUES
-        ('George Capoccia', 'George Capoccia', 'Capoccia', 1, 0, 'Capoccia patriarch', NULL, 1, 1),
-        ('Christine Capoccia', 'Christine Capoccia', 'Capoccia', 0, 1, 'Capoccia matriarch', NULL, 1, 2),
-        ('Miotto Patriarch (placeholder)', NULL, 'Miotto', 1, 0, 'Miotto patriarch — name to be confirmed by family', NULL, 1, 10),
-        ('Miotto Matriarch (placeholder)', NULL, 'Miotto', 0, 1, 'Miotto matriarch — name to be confirmed by family', NULL, 1, 11)
-    `).run();
-  }
+  // Seed / refresh patriarch & matriarch tributes (idempotent)
+  seedFamilyTributes();
 
   // Super admin
   const adminEmail = process.env.ADMIN_EMAIL || "info@seifertcapital.com";
@@ -290,6 +279,286 @@ function migrate() {
   } catch (e) {
     console.warn("spelling migration note:", e.message);
   }
+}
+
+function seedFamilyTributes() {
+  const tributes = [
+    {
+      full_name: "George Capoccia",
+      preferred_name: "George Capoccia",
+      nickname: "George G. Capoccia",
+      family_branch: "Capoccia",
+      is_patriarch: 1,
+      is_matriarch: 0,
+      is_memorial: 0,
+      is_placeholder: 0,
+      sort_order: 1,
+      birth_date: "1933-01-25",
+      birth_date_display: "January 25, 1933",
+      death_date: null,
+      death_date_display: null,
+      role_in_family: "Capoccia Patriarch",
+      biography:
+        "George G. Capoccia, born January 25, 1933, in Detroit, Michigan, is the beloved patriarch of the Capoccia family and a living link to its rich Italian-American heritage. Son of Costanzo/Castanzo and Madeline Capoccia, George grew up in the vibrant Detroit Italian neighborhoods alongside his brothers Tony and sister Anna. He has been married for decades to his wife Christine, and together they have carried forward the family traditions of faith, hard work, and close-knit gatherings that began with the first Capoccia–Miotto reunions in 1977.\n\n" +
+        "George has been a steady pillar for the entire Capoccia–Miotto clan, helping organize reunions, preserving stories, and welcoming both Capoccia and Miotto descendants. His quiet strength and dedication to family mirror the resilience of the Italian immigrants from Alvito/Frosinone who first settled in Detroit. Today, George continues to inspire the next generations from his home in Warren, Michigan, reminding us all of the importance of “famiglia” and never forgetting our roots.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+    {
+      full_name: "Christine Capoccia",
+      preferred_name: "Christine Capoccia",
+      nickname: "Christine E. Capoccia",
+      family_branch: "Capoccia",
+      is_patriarch: 0,
+      is_matriarch: 1,
+      is_memorial: 0,
+      is_placeholder: 0,
+      sort_order: 2,
+      birth_date: null,
+      birth_date_display: "circa 1936",
+      death_date: null,
+      death_date_display: null,
+      role_in_family: "Capoccia Matriarch",
+      biography:
+        "Christine E. Capoccia (born circa 1936) is the cherished matriarch of the Capoccia family and a beloved partner in the family’s legacy. Married to George Capoccia, Christine has stood alongside him as the heart of countless gatherings, providing warmth, love, and the Italian traditions that bind the Capoccia and Miotto branches together.\n\n" +
+        "Together with George, Christine has helped sustain the annual reunions since 1977, creating a welcoming space for both sides of the family. She has been instrumental in keeping the memory of her brother-in-law Tony and sister-in-law Anna alive, ensuring the Capoccia–Miotto connection remains strong. Christine’s grace and dedication embody the values of faith, family, and community that the Capoccia family brought from Italy to Detroit and later to the Farmington Hills area.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+    {
+      full_name: "Amerigo “Mickey” Miotto",
+      preferred_name: "Amerigo “Mickey” Miotto",
+      nickname: "Mickey",
+      family_branch: "Miotto",
+      is_patriarch: 1,
+      is_matriarch: 0,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 10,
+      birth_date: null,
+      birth_date_display: null,
+      death_date: null,
+      death_date_display: null,
+      role_in_family: "Miotto Patriarch",
+      biography:
+        "Amerigo “Mickey” Miotto was the beloved patriarch of the Miotto family and the loving husband of Anna M. Capoccia Miotto for 65 cherished years. Through his marriage to Anna (Tony Capoccia’s sister), Mickey became the vital bridge that united the Capoccia and Miotto families, making the combined Capoccia–Miotto reunions possible since 1977.\n\n" +
+        "Mickey and Anna built a warm, faith-filled home and raised five children who continue the family legacy today. Mickey’s role in welcoming the Capoccia side into the Miotto family created the blended heritage celebrated on this site. His memory lives on through the grandchildren and great-grandchildren who gather every year, carrying forward the Italian-American values of love, tradition, and community that both families share.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+    {
+      full_name: "Anna M. Miotto",
+      preferred_name: "Anna M. Miotto",
+      maiden_name: "Capoccia",
+      nickname: "Anna M. Capoccia Miotto",
+      family_branch: "Miotto",
+      is_patriarch: 0,
+      is_matriarch: 1,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 11,
+      birth_date: null,
+      birth_date_display: "circa 1929 · Michigan",
+      death_date: "2017-01-08",
+      death_date_display: "January 8, 2017",
+      role_in_family: "Miotto Matriarch (née Capoccia)",
+      biography:
+        "Anna M. Capoccia Miotto (born circa 1929 in Michigan; passed January 8, 2017, age 88) was the beloved matriarch of the Miotto family and the cherished sister of Tony and George Capoccia. Her marriage to Amerigo “Mickey” Miotto created the direct link between the Capoccia and Miotto families that this website proudly honors.\n\n" +
+        "Anna’s 2017 obituary beautifully captured the family bond, naming her brothers “Tony (Fran) Capoccia and George (Christine) Capoccia.” Together with Mickey, Anna raised five children (Patricia McLaren, Carol Maconochie, John Miotto, Michael Miotto, and MaryAnn Sellers) and left a legacy of 14 grandchildren and 14 great-grandchildren who continue the reunions. Anna’s warmth, faith, and devotion helped weave the two families into one, ensuring the Capoccia–Miotto heritage thrives today.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+    {
+      full_name: "Anthony “Tony” Joseph Capoccia",
+      preferred_name: "Tony Capoccia",
+      nickname: "Tony",
+      family_branch: "Capoccia",
+      is_patriarch: 0,
+      is_matriarch: 0,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 20,
+      birth_date: "1931-07-18",
+      birth_date_display: "July 18, 1931 · Detroit",
+      death_date: "2019-06-25",
+      death_date_display: "June 25, 2019",
+      role_in_family: "Honored Elder · Brother of George & Anna",
+      biography:
+        "Anthony “Tony” Joseph Capoccia (born July 18, 1931, Detroit; passed June 25, 2019, age 87) is remembered as a beloved elder of the Capoccia family. Tony was the brother of George Capoccia and Anna Miotto, and his marriage to Frances “Fran” Lee Babich Capoccia strengthened the family ties that connect the Capoccia and Miotto branches.\n\n" +
+        "Tony and Fran lived in the Farmington Hills/Southfield area later in life and are buried together at Holy Sepulchre Catholic Cemetery in Southfield. Their story of faith, love, and family is an inspiration to all Capoccia and Miotto descendants and a cornerstone of the reunions that began in 1977.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+    {
+      full_name: "Frances “Fran” Lee Capoccia",
+      preferred_name: "Fran Capoccia",
+      maiden_name: "Babich",
+      nickname: "Fran",
+      family_branch: "Capoccia",
+      is_patriarch: 0,
+      is_matriarch: 0,
+      is_memorial: 1,
+      is_placeholder: 0,
+      sort_order: 21,
+      birth_date: "1932-10-23",
+      birth_date_display: "October 23, 1932 · Dowell, Illinois",
+      death_date: "2024-10-27",
+      death_date_display: "October 27, 2024",
+      role_in_family: "Honored Elder · Wife of Tony Capoccia",
+      biography:
+        "Frances “Fran” Lee Babich Capoccia (born October 23, 1932, Dowell, Illinois; passed October 27, 2024, age 92) is remembered as a beloved elder of the Capoccia family. Married to Anthony “Tony” Joseph Capoccia, Fran helped strengthen the family ties that connect the Capoccia and Miotto branches.\n\n" +
+        "Tony and Fran lived in the Farmington Hills/Southfield area later in life and are buried together at Holy Sepulchre Catholic Cemetery in Southfield. Their story of faith, love, and family remains a cornerstone of the reunions that began in 1977.",
+      favorite_memories:
+        "Favorite memories and stories will be added as family members contribute.",
+      quotes: null,
+    },
+  ];
+
+  const findByName = db.prepare(
+    "SELECT id FROM family_members WHERE full_name = ? OR preferred_name = ? OR full_name LIKE ?"
+  );
+  const findSlot = db.prepare(`
+    SELECT id FROM family_members
+    WHERE family_branch = ? AND is_patriarch = ? AND is_matriarch = ?
+    ORDER BY sort_order ASC, id ASC LIMIT 1
+  `);
+  const findPlaceholder = db.prepare(`
+    SELECT id FROM family_members
+    WHERE family_branch = ? AND (full_name LIKE '%placeholder%' OR is_placeholder = 1)
+      AND is_patriarch = ? AND is_matriarch = ?
+    ORDER BY id ASC LIMIT 1
+  `);
+
+  const update = db.prepare(`
+    UPDATE family_members SET
+      full_name = @full_name,
+      preferred_name = @preferred_name,
+      maiden_name = @maiden_name,
+      nickname = @nickname,
+      family_branch = @family_branch,
+      is_patriarch = @is_patriarch,
+      is_matriarch = @is_matriarch,
+      is_memorial = @is_memorial,
+      is_placeholder = @is_placeholder,
+      sort_order = @sort_order,
+      birth_date = @birth_date,
+      birth_date_display = @birth_date_display,
+      death_date = @death_date,
+      death_date_display = @death_date_display,
+      role_in_family = @role_in_family,
+      biography = @biography,
+      favorite_memories = @favorite_memories,
+      quotes = @quotes,
+      updated_at = datetime('now')
+    WHERE id = @id
+  `);
+
+  const insert = db.prepare(`
+    INSERT INTO family_members (
+      full_name, preferred_name, maiden_name, nickname, family_branch,
+      is_patriarch, is_matriarch, is_memorial, is_placeholder, sort_order,
+      birth_date, birth_date_display, death_date, death_date_display,
+      role_in_family, biography, favorite_memories, quotes
+    ) VALUES (
+      @full_name, @preferred_name, @maiden_name, @nickname, @family_branch,
+      @is_patriarch, @is_matriarch, @is_memorial, @is_placeholder, @sort_order,
+      @birth_date, @birth_date_display, @death_date, @death_date_display,
+      @role_in_family, @biography, @favorite_memories, @quotes
+    )
+  `);
+
+  const upsertMemorial = db.prepare(`
+    INSERT INTO memorials (family_member_id, full_name, dates_text, relationship, biography, favorite_memories, status)
+    VALUES (@family_member_id, @full_name, @dates_text, @relationship, @biography, @favorite_memories, 'approved')
+  `);
+  const findMemorial = db.prepare("SELECT id FROM memorials WHERE family_member_id = ? OR full_name = ?");
+  const updateMemorial = db.prepare(`
+    UPDATE memorials SET
+      full_name = @full_name,
+      dates_text = @dates_text,
+      relationship = @relationship,
+      biography = @biography,
+      favorite_memories = @favorite_memories,
+      status = 'approved'
+    WHERE id = @id
+  `);
+
+  for (const t of tributes) {
+    const row = {
+      maiden_name: t.maiden_name || null,
+      nickname: t.nickname || null,
+      quotes: t.quotes || null,
+      ...t,
+    };
+
+    let existing =
+      findByName.get(t.full_name, t.preferred_name || t.full_name, `%${t.full_name.split(" ")[0]}%${t.full_name.split(" ").slice(-1)[0]}%`);
+
+    // Map patriarch/matriarch slots (including old placeholders)
+    if (!existing && (t.is_patriarch || t.is_matriarch)) {
+      existing =
+        findPlaceholder.get(t.family_branch, t.is_patriarch, t.is_matriarch) ||
+        findSlot.get(t.family_branch, t.is_patriarch, t.is_matriarch);
+    }
+
+    // Tony / Fran by partial name
+    if (!existing && t.full_name.includes("Tony")) {
+      existing = db.prepare("SELECT id FROM family_members WHERE full_name LIKE '%Tony%Capoccia%' OR preferred_name LIKE '%Tony%Capoccia%'").get();
+    }
+    if (!existing && t.full_name.includes("Fran")) {
+      existing = db.prepare("SELECT id FROM family_members WHERE full_name LIKE '%Fran%Capoccia%' OR preferred_name LIKE '%Fran%Capoccia%' OR full_name LIKE '%Frances%Capoccia%'").get();
+    }
+    // Mickey / Anna placeholders
+    if (!existing && t.full_name.includes("Mickey")) {
+      existing = db.prepare("SELECT id FROM family_members WHERE full_name LIKE '%Mickey%' OR full_name LIKE '%Miotto Patriarch%' OR (family_branch='Miotto' AND is_patriarch=1)").get();
+    }
+    if (!existing && t.full_name.includes("Anna M.")) {
+      existing = db.prepare("SELECT id FROM family_members WHERE full_name LIKE '%Anna%Miotto%' OR full_name LIKE '%Miotto Matriarch%' OR (family_branch='Miotto' AND is_matriarch=1)").get();
+    }
+
+    let memberId;
+    if (existing && existing.id) {
+      update.run({ ...row, id: existing.id });
+      memberId = existing.id;
+    } else {
+      const info = insert.run(row);
+      memberId = info.lastInsertRowid;
+    }
+
+    if (t.is_memorial) {
+      const dates = [t.birth_date_display, t.death_date_display].filter(Boolean).join(" – ");
+      const mem = findMemorial.get(memberId, t.full_name);
+      const memRow = {
+        family_member_id: memberId,
+        full_name: t.full_name,
+        dates_text: dates || null,
+        relationship: t.role_in_family,
+        biography: t.biography,
+        favorite_memories: t.favorite_memories,
+      };
+      if (mem) updateMemorial.run({ ...memRow, id: mem.id });
+      else upsertMemorial.run(memRow);
+    }
+  }
+
+  // Ensure site matriarch display name
+  db.prepare(`
+    INSERT INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', 'Christine Capoccia')
+    ON CONFLICT(key) DO UPDATE SET value = 'Christine Capoccia'
+  `).run();
+
+  // Family tree note in settings for Our Family Story page
+  db.prepare(`
+    INSERT INTO site_settings (key, value) VALUES ('family_tree_snippet', ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run(
+    "Capoccia Parents → Costanzo & Madeline\n├── Tony (m. Fran Babich) – honored elder\n├── George (m. Christine) – Capoccia Patriarch & Matriarch\n└── Anna (m. Mickey Miotto) – Miotto Matriarch (link to Miotto branch)"
+  );
 }
 
 migrate();

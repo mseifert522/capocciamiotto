@@ -2,24 +2,61 @@
 <section class="section">
   <div class="container narrow">
     <article class="card">
-      <div class="card-portrait" style="max-height:360px">
-        <% if (member.portrait_path) { %><img src="<%= member.portrait_path %>" alt="" /><% } else { %>
-          <div class="placeholder-mark">Portrait placeholder for <%= member.display_name %></div>
+      <div class="card-portrait" style="max-height:380px">
+        <% if (member.portrait_path) { %>
+          <img src="<%= member.portrait_path %>" alt="<%= member.display_name %>" />
+        <% } else { %>
+          <div class="placeholder-mark">
+            Portrait placeholder<br />for <%= member.display_name %><br />
+            <span style="font-size:0.9rem;display:block;margin-top:0.5rem">Please upload a favorite photo of the family.</span>
+          </div>
         <% } %>
       </div>
       <div class="card-body">
-        <span class="badge"><%= member.family_branch %> family</span>
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
+          <span class="badge <%= member.family_branch === 'Capoccia' ? 'badge-capoccia' : (member.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= member.family_branch %> family</span>
+          <% if (member.is_memorial) { %><span class="badge" style="background:rgba(43,33,28,0.08);color:var(--ink-soft)">In loving memory</span><% } %>
+          <% if (member.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
+          <% if (member.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
+        </div>
         <h3><%= member.display_name %></h3>
+        <% if (member.maiden_name) { %>
+          <p class="meta">née <%= member.maiden_name %></p>
+        <% } %>
         <p class="meta"><%= member.role_in_family || 'Family member' %></p>
         <% if (member.birth_date_display || member.death_date_display) { %>
-          <p><%= member.birth_date_display || '?' %> – <%= member.death_date_display || '' %></p>
+          <p style="font-family:var(--font-ui);color:var(--ink-muted);margin:0.35rem 0 0.75rem">
+            <% if (member.birth_date_display && member.death_date_display) { %>
+              <%= member.birth_date_display %> – <%= member.death_date_display %>
+            <% } else if (member.birth_date_display && !member.is_memorial) { %>
+              Born <%= member.birth_date_display %>
+            <% } else if (member.birth_date_display) { %>
+              <%= member.birth_date_display %>
+            <% } else if (member.death_date_display) { %>
+              Passed <%= member.death_date_display %>
+            <% } %>
+          </p>
         <% } %>
-        <p style="margin-top:0.75rem">
-          <%= member.biography || 'Biographical information will appear here when provided and approved by family administrators. This tribute does not invent family history.' %>
-        </p>
-        <% if (member.favorite_memories) { %><p style="margin-top:0.75rem"><strong>Favorite memories:</strong> <%= member.favorite_memories %></p><% } %>
-        <% if (member.quotes) { %><p style="margin-top:0.75rem"><em>“<%= member.quotes %>”</em></p><% } %>
-        <a class="btn btn-outline" style="margin-top:1rem" href="/contribute/story">Share a memory about this person</a>
+
+        <% if (member.biography) { %>
+          <% member.biography.split(/\n\n+/).forEach(function(para) { %>
+            <p style="margin-top:0.85rem;line-height:1.75"><%= para %></p>
+          <% }) %>
+        <% } else { %>
+          <p style="margin-top:0.75rem">Biographical information will appear here when provided by the family.</p>
+        <% } %>
+
+        <% if (member.favorite_memories) { %>
+          <p style="margin-top:1rem;font-style:italic;color:var(--ink-muted)"><%= member.favorite_memories %></p>
+        <% } %>
+        <% if (member.quotes) { %>
+          <p style="margin-top:0.75rem"><em>“<%= member.quotes %>”</em></p>
+        <% } %>
+
+        <div class="btn-row" style="margin-top:1.25rem">
+          <a class="btn btn-outline" href="/contribute/story">Share a memory about this person</a>
+          <a class="btn btn-primary" href="/contribute">Contribute a photo</a>
+        </div>
       </div>
     </article>
   </div>

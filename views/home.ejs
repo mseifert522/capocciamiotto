@@ -81,13 +81,14 @@
   </div>
 </section>
 
-<% if (recentPhotos.length) { %>
+<% if (recentPhotos && recentPhotos.length) { %>
 <section class="section">
   <div class="container">
     <header class="section-header">
-      <p class="section-eyebrow">From the archive</p>
-      <h2 class="section-title">Recent Photographs</h2>
+      <p class="section-eyebrow">Selected by family administrators</p>
+      <h2 class="section-title">Home Photographs</h2>
       <div class="section-rule"></div>
+      <p class="section-lead">A curated gallery for the home page. Browse the full family collection in the photo archive and reunion years.</p>
     </header>
     <div class="photo-grid">
       <% recentPhotos.forEach(function(p) { %>
@@ -104,6 +105,9 @@
           <% if (p.reunion_year) { %><div class="cap"><%= p.reunion_year %></div><% } %>
         </button>
       <% }) %>
+    </div>
+    <div style="text-align:center;margin-top:1.5rem">
+      <a class="btn btn-outline" href="/photo-archive">Open full Photo Archive</a>
     </div>
   </div>
 </section>

@@ -372,6 +372,20 @@ function migrate() {
     console.warn("reunion details schema note:", e.message);
   }
 
+  // Homepage photos: admin-curated only (not auto-filled from family uploads)
+  try {
+    const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
+    if (!cols.includes("show_on_home")) {
+      db.exec("ALTER TABLE photos ADD COLUMN show_on_home INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("home_sort")) {
+      db.exec("ALTER TABLE photos ADD COLUMN home_sort INTEGER NOT NULL DEFAULT 0");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_photos_home ON photos(show_on_home, home_sort)");
+  } catch (e) {
+    console.warn("photos home columns note:", e.message);
+  }
+
   // Community board photo/video attachments
   try {
     db.exec(`

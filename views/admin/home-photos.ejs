@@ -1,0 +1,127 @@
+<%- include('../partials/header', { pageTitle: 'Home Page Photos' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/activity">Activity</a>
+      <a class="active" href="/admin/home-photos">Home Photos</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/recordings">Voice Recordings</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+      <a href="/admin/pins">Family PINs</a>
+      <a href="/">View site</a>
+      <form method="post" action="/admin/logout" style="margin-top:1rem"><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" type="submit">Log out</button></form>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Home page photographs</h2>
+      <p style="margin-bottom:1.25rem;color:var(--ink-muted)">
+        Only administrators can place photos on the home page. Family contributions go to the archive and reunion years —
+        they do <strong>not</strong> appear on the home page unless you add them here.
+      </p>
+
+      <form
+        class="form-card"
+        method="post"
+        action="/admin/home-photos/upload"
+        enctype="multipart/form-data"
+        style="margin-bottom:1.75rem"
+      >
+        <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem;color:var(--burgundy)">Upload home gallery photos</h3>
+        <div class="form-row">
+          <label>Photographs *</label>
+          <div
+            class="dropzone bulk-dropzone"
+            data-bulk-upload
+            data-bulk-max="50"
+            data-bulk-accept="image"
+            data-bulk-required="1"
+          >
+            <div class="bulk-dropzone-main" data-bulk-trigger>
+              <strong>Drag &amp; drop home page photos here</strong>
+              <span class="hint">Admin only · bulk upload supported · up to 50 images</span>
+            </div>
+            <input
+              type="file"
+              name="photos"
+              accept="image/*,.heic,.heif"
+              multiple
+              required
+              data-bulk-input
+              style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+            />
+            <div class="bulk-toolbar">
+              <button type="button" class="btn btn-secondary" data-bulk-add>Add more photos</button>
+              <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear all</button>
+            </div>
+            <p class="bulk-count" data-bulk-count>No photos selected yet.</p>
+            <div class="bulk-previews" data-bulk-previews aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="form-row two">
+          <div>
+            <label for="title">Title prefix (optional)</label>
+            <input id="title" name="title" type="text" maxlength="160" placeholder="Home gallery" />
+          </div>
+          <div>
+            <label for="description">Description (optional)</label>
+            <input id="description" name="description" type="text" maxlength="400" />
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Publish to home page</button>
+      </form>
+
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem">Currently on the home page</h3>
+      <% if (!homePhotos.length) { %>
+        <p style="color:var(--ink-muted)">No photographs are on the home page yet. Upload above to add some.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Photo</th>
+                <th>Details</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% homePhotos.forEach(function(p) { %>
+                <tr>
+                  <td>
+                    <% if (p.thumb_path || p.web_path) { %>
+                      <img class="thumb-sm" src="<%= p.thumb_path || p.web_path %>" alt="" />
+                    <% } %>
+                  </td>
+                  <td>
+                    <strong><%= p.title || p.original_filename %></strong><br />
+                    <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.submitted_at %></span>
+                  </td>
+                  <td>
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/sort" class="inline-actions">
+                      <input type="number" name="home_sort" value="<%= p.home_sort || 0 %>" style="width:5rem" />
+                      <button class="btn btn-outline" type="submit">Save order</button>
+                    </form>
+                  </td>
+                  <td class="inline-actions">
+                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Remove this photo from the home page?');">
+                      <button class="btn btn-outline" type="submit">Remove from home</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+
+      <p style="margin-top:1.25rem">
+        Tip: you can also open any photo under <a href="/admin/photos?status=approved">Photos</a> and check
+        <strong>Show on home page</strong> to add an existing archive photo to the home gallery.
+      </p>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

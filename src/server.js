@@ -630,9 +630,15 @@ app.get("/", (req, res) => {
   members.forEach((m) => {
     m.display_name = m.preferred_name || m.full_name;
   });
+  // Home gallery: only photos the admin explicitly placed on the homepage
+  ensureHomePhotoColumns();
   const recentPhotos = db.prepare(`
-    SELECT * FROM photos WHERE status = 'approved' AND may_display_public = 1
-    ORDER BY featured DESC, submitted_at DESC LIMIT 8
+    SELECT * FROM photos
+    WHERE status = 'approved'
+      AND may_display_public = 1
+      AND COALESCE(show_on_home, 0) = 1
+    ORDER BY home_sort ASC, submitted_at DESC
+    LIMIT 24
   `).all();
   const pinned = db.prepare(`
     SELECT * FROM board_posts WHERE status = 'approved' AND is_pinned = 1
@@ -642,6 +648,18 @@ app.get("/", (req, res) => {
   clearFlash(req);
   res.render("home", { ...data, members, recentPhotos, pinned });
 });
+
+function ensureHomePhotoColumns() {
+  try {
+    const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
+    if (!cols.includes("show_on_home")) {
+      db.exec("ALTER TABLE photos ADD COLUMN show_on_home INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("home_sort")) {
+      db.exec("ALTER TABLE photos ADD COLUMN home_sort INTEGER NOT NULL DEFAULT 0");
+    }
+  } catch (_) { /* ignore */ }
+}
 
 app.get("/our-family-story", (req, res) => {
   const members = db.prepare(`
@@ -2027,11 +2045,13 @@ app.post("/admin/photos/:id/reject", requireRole(...ADMIN_ROLES), (req, res) => 
 });
 
 app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureHomePhotoColumns();
   const year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
+  const homeSort = parseInt(req.body.home_sort || "0", 10);
   db.prepare(`
     UPDATE photos SET
       title = ?, description = ?, reunion_year = ?, family_branch = ?, location = ?,
-      admin_notes = ?, featured = ?, visibility = ?
+      admin_notes = ?, featured = ?, show_on_home = ?, home_sort = ?, visibility = ?
     WHERE id = ?
   `).run(
     (req.body.title || "").trim() || null,
@@ -2041,11 +2061,104 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
     (req.body.location || "").trim() || null,
     (req.body.admin_notes || "").trim() || null,
     req.body.featured === "1" ? 1 : 0,
+    req.body.show_on_home === "1" ? 1 : 0,
+    Number.isFinite(homeSort) ? homeSort : 0,
     (req.body.visibility || "public").trim(),
     req.params.id
   );
   setFlash(req, "success", "Photograph updated.");
-  res.redirect(`/admin/photos?status=${req.body.return_status || "pending"}`);
+  const back = req.body.return_to === "home"
+    ? "/admin/home-photos"
+    : `/admin/photos?status=${req.body.return_status || "pending"}`;
+  res.redirect(back);
+});
+
+/** Admin-only homepage photo gallery management */
+app.get("/admin/home-photos", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureHomePhotoColumns();
+  const homePhotos = db.prepare(`
+    SELECT * FROM photos
+    WHERE COALESCE(show_on_home, 0) = 1
+    ORDER BY home_sort ASC, submitted_at DESC
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("admin/home-photos", { ...data, homePhotos });
+});
+
+app.post(
+  "/admin/home-photos/upload",
+  requireRole(...ADMIN_ROLES),
+  upload.array("photos", BULK_PHOTO_MAX),
+  async (req, res) => {
+    ensureHomePhotoColumns();
+    const files = req.files || [];
+    if (!files.length) {
+      setFlash(req, "error", "Please choose at least one photograph for the home page.");
+      return res.redirect("/admin/home-photos");
+    }
+    const titleBase = (req.body.title || "").trim() || "Home gallery";
+    const maxSort = db.prepare(`
+      SELECT COALESCE(MAX(home_sort), 0) AS m FROM photos WHERE COALESCE(show_on_home, 0) = 1
+    `).get().m;
+    let sort = maxSort + 10;
+    let count = 0;
+    try {
+      for (const file of files) {
+        const processed = await processUpload(file);
+        db.prepare(`
+          INSERT INTO photos (
+            original_filename, original_path, web_path, thumb_path,
+            title, description, reunion_year, family_branch,
+            contributor_name, permission_confirmed, may_display_public,
+            status, featured, show_on_home, home_sort,
+            file_size, mime_type, width, height, reviewed_at, reviewed_by
+          ) VALUES (?, ?, ?, ?, ?, ?, NULL, 'both', ?, 1, 1, 'approved', 0, 1, ?, ?, ?, ?, ?, datetime('now'), ?)
+        `).run(
+          processed.original_filename,
+          processed.original_path,
+          processed.web_path,
+          processed.thumb_path,
+          files.length === 1 ? titleBase : `${titleBase} (${count + 1})`,
+          (req.body.description || "").trim() || "Homepage gallery photograph (admin curated).",
+          req.session.user.name || req.session.user.email || "Administrator",
+          sort,
+          processed.file_size,
+          processed.mime_type,
+          processed.width,
+          processed.height,
+          req.session.user.id
+        );
+        sort += 10;
+        count += 1;
+      }
+      logActivity(req.session.user.id, "home_photo_upload", `${count} homepage photo(s)`);
+      setFlash(req, "success", `${count} photograph${count === 1 ? "" : "s"} added to the home page gallery.`);
+    } catch (err) {
+      console.error(err);
+      setFlash(req, "error", err.message || "Could not upload homepage photographs.");
+    }
+    res.redirect("/admin/home-photos");
+  }
+);
+
+app.post("/admin/home-photos/:id/remove", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureHomePhotoColumns();
+  db.prepare("UPDATE photos SET show_on_home = 0, home_sort = 0 WHERE id = ?").run(req.params.id);
+  logActivity(req.session.user.id, "home_photo_remove", `photo ${req.params.id}`);
+  setFlash(req, "success", "Photograph removed from the home page (it remains in the archive if approved).");
+  res.redirect("/admin/home-photos");
+});
+
+app.post("/admin/home-photos/:id/sort", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureHomePhotoColumns();
+  const sort = parseInt(req.body.home_sort || "0", 10);
+  db.prepare("UPDATE photos SET home_sort = ? WHERE id = ?").run(
+    Number.isFinite(sort) ? sort : 0,
+    req.params.id
+  );
+  setFlash(req, "success", "Home page order updated.");
+  res.redirect("/admin/home-photos");
 });
 
 app.get("/admin/members", requireRole(...ADMIN_ROLES), (req, res) => {

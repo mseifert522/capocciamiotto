@@ -3,6 +3,7 @@
   <div class="container admin-shell">
     <aside class="admin-nav">
       <a href="/admin">Dashboard</a>
+      <a href="/admin/home-photos">Home Photos</a>
       <a class="active" href="/admin/photos">Photos</a>
       <a href="/admin/stories">Stories</a>
       <a href="/admin/recordings">Voice Recordings</a>
@@ -44,7 +45,12 @@
                 <div class="form-row"><label>Location</label><input name="location" value="<%= p.location || '' %>" /></div>
                 <div class="form-row"><label>Description</label><textarea name="description"><%= p.description || '' %></textarea></div>
                 <div class="form-row"><label>Admin notes</label><textarea name="admin_notes"><%= p.admin_notes || '' %></textarea></div>
-                <label class="checkbox"><input type="checkbox" name="featured" value="1" <%= p.featured ? 'checked' : '' %> /> Featured</label>
+                <label class="checkbox"><input type="checkbox" name="featured" value="1" <%= p.featured ? 'checked' : '' %> /> Featured (year cover preference)</label>
+                <label class="checkbox"><input type="checkbox" name="show_on_home" value="1" <%= p.show_on_home ? 'checked' : '' %> /> Show on home page (admin curated)</label>
+                <div class="form-row" style="margin-top:0.35rem">
+                  <label>Home page sort order</label>
+                  <input type="number" name="home_sort" value="<%= p.home_sort || 0 %>" style="max-width:8rem" />
+                </div>
                 <div class="inline-actions" style="margin-top:0.5rem">
                   <button class="btn btn-outline" type="submit">Save</button>
                 </div>

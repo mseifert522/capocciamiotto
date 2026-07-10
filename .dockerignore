@@ -1,0 +1,9 @@
+node_modules
+data/*.db
+data/*.db-*
+public/uploads/originals/*
+public/uploads/web/*
+public/uploads/thumbs/*
+.git
+*.md
+!README.md

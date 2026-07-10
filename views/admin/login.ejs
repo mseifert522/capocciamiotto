@@ -1,0 +1,21 @@
+<%- include('../partials/header', { pageTitle: 'Administrator Login' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <h2 class="section-title">Administrator Login</h2>
+      <div class="section-rule"></div>
+    </header>
+    <form class="form-card" method="post" action="/admin/login">
+      <div class="form-row">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="username" />
+      </div>
+      <div class="form-row">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" />
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+  </div>
+</section>
+<%- include('../partials/footer') %>

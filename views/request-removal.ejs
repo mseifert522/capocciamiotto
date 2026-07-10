@@ -1,0 +1,14 @@
+<%- include('partials/header', { pageTitle: 'Request Removal' }) %>
+<section class="section"><div class="container narrow">
+  <header class="section-header"><h2 class="section-title">Request Photo Removal</h2><div class="section-rule"></div></header>
+  <form class="form-card" method="post" action="/request-removal">
+    <div class="form-row"><label for="photo_ref">Photo or page reference</label><input id="photo_ref" name="photo_ref" placeholder="Year, description, or link" /></div>
+    <div class="form-row"><label for="reason">Reason *</label><textarea id="reason" name="reason" required></textarea></div>
+    <div class="form-row two">
+      <div><label for="contributor_name">Your name *</label><input id="contributor_name" name="contributor_name" required /></div>
+      <div><label for="contributor_email">Email *</label><input id="contributor_email" name="contributor_email" type="email" required /></div>
+    </div>
+    <button class="btn btn-primary" type="submit">Submit removal request</button>
+  </form>
+</div></section>
+<%- include('partials/footer') %>

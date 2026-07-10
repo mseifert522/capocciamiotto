@@ -1,0 +1,14 @@
+<%- include('partials/header', { pageTitle: 'Submit a Correction' }) %>
+<section class="section"><div class="container narrow">
+  <header class="section-header"><h2 class="section-title">Submit a Correction</h2><div class="section-rule"></div></header>
+  <form class="form-card" method="post" action="/corrections">
+    <div class="form-row"><label for="subject">What needs correcting?</label><input id="subject" name="subject" required /></div>
+    <div class="form-row"><label for="details">Details *</label><textarea id="details" name="details" required></textarea></div>
+    <div class="form-row two">
+      <div><label for="contributor_name">Your name</label><input id="contributor_name" name="contributor_name" /></div>
+      <div><label for="contributor_email">Email</label><input id="contributor_email" name="contributor_email" type="email" /></div>
+    </div>
+    <button class="btn btn-primary" type="submit">Send correction request</button>
+  </form>
+</div></section>
+<%- include('partials/footer') %>

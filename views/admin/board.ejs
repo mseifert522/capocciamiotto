@@ -1,0 +1,37 @@
+<%- include('../partials/header', { pageTitle: 'Admin Board' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a class="active" href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Community board moderation</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Post</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        <% posts.forEach(function(p) { %>
+          <tr>
+            <td>
+              <strong><%= p.title %></strong> <%= p.is_pinned ? '📌' : '' %><br />
+              <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.author_name %> · <%= p.category %></span><br />
+              <%= (p.body || '').slice(0,180) %>
+            </td>
+            <td><%= p.status %></td>
+            <td class="inline-actions">
+              <% if (p.status !== 'approved') { %><form method="post" action="/admin/board/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form><% } %>
+              <% if (p.status !== 'rejected') { %><form method="post" action="/admin/board/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form><% } %>
+              <form method="post" action="/admin/board/<%= p.id %>/pin"><button class="btn btn-outline" type="submit"><%= p.is_pinned ? 'Unpin' : 'Pin' %></button></form>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

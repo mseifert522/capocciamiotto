@@ -1,0 +1,36 @@
+<%- include('../partials/header', { pageTitle: 'Admin Stories' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a class="active" href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Stories & family information</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Story</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        <% stories.forEach(function(s) { %>
+          <tr>
+            <td>
+              <strong><%= s.title || s.story_type %></strong> · <%= s.reunion_year || 'n/a' %><br />
+              <%= s.contributor_name %><br />
+              <span style="white-space:pre-wrap;font-size:0.9rem"><%= (s.body || '').slice(0,240) %></span>
+            </td>
+            <td><%= s.status %></td>
+            <td class="inline-actions">
+              <% if (s.status !== 'approved') { %><form method="post" action="/admin/stories/<%= s.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form><% } %>
+              <% if (s.status !== 'rejected') { %><form method="post" action="/admin/stories/<%= s.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form><% } %>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

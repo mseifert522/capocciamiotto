@@ -1,0 +1,52 @@
+<%- include('partials/header', { pageTitle: 'Photo Archive' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Search the album</p>
+      <h2 class="section-title">Photo Archive</h2>
+      <div class="section-rule"></div>
+    </header>
+    <form class="form-card" method="get" action="/photo-archive" style="margin-bottom:1.5rem">
+      <div class="form-row two">
+        <div>
+          <label for="q">Search</label>
+          <input type="text" id="q" name="q" value="<%= q || '' %>" placeholder="Name, place, description…" />
+        </div>
+        <div>
+          <label for="year">Year</label>
+          <select id="year" name="year">
+            <option value="">All years</option>
+            <% years.forEach(function(y) { %><option value="<%= y.year %>" <%= year === y.year ? 'selected' : '' %>><%= y.year %></option><% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="branch">Family branch</label>
+        <select id="branch" name="branch">
+          <option value="">All</option>
+          <option value="Capocia" <%= branch === 'Capocia' ? 'selected' : '' %>>Capocia</option>
+          <option value="Miotto" <%= branch === 'Miotto' ? 'selected' : '' %>>Miotto</option>
+          <option value="both" <%= branch === 'both' ? 'selected' : '' %>>Both</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Search archive</button>
+    </form>
+    <% if (photos.length) { %>
+      <div class="photo-grid">
+        <% photos.forEach(function(p) { %>
+          <a class="photo-tile" href="<%= p.reunion_year ? '/reunion/' + p.reunion_year : '/photo-archive' %>">
+            <img src="<%= p.thumb_path || p.web_path %>" alt="" loading="lazy" />
+            <div class="cap"><%= p.reunion_year || 'Year TBD' %></div>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty">
+        <h3>This chapter of our family history is waiting to be completed.</h3>
+        <p>Approved photographs will appear here. You can help by uploading reunion photos for administrator review.</p>
+        <a class="btn btn-primary" href="/contribute">Contribute Family Photos</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

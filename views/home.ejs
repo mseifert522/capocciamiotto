@@ -1,0 +1,151 @@
+<%- include('partials/header', { pageTitle: 'Home' }) %>
+
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-flag" aria-label="Italian flag" title="Italian heritage">
+      <i></i><i></i><i></i>
+    </div>
+    <p class="hero-kicker">A living family legacy</p>
+    <h1>The Capocia–Miotto Family Reunion Tribute</h1>
+    <p class="hero-sub">Celebrating Family, Tradition, and Memories Since 1977</p>
+    <p class="hero-lead">
+      Welcome to the Capocia–Miotto Family Reunion Tribute—a living collection of the people, photographs, stories, and traditions that have brought our families together since 1977. This tribute belongs to every member of the Capocia and Miotto families. Together, we can preserve our history and continue adding to it for generations to come.
+    </p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="/reunion-timeline">Explore the Reunions</a>
+      <a class="btn btn-outline" href="/contribute">Contribute Family Photos</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="invite">
+      <p><strong>Please help us preserve the history of the Capocia and Miotto families.</strong> <%= contributeCta %></p>
+      <p><%= contributeCta2 %></p>
+      <div class="btn-row" style="margin-top:1rem">
+        <a class="btn btn-primary" href="/contribute">Contribute Family Photos</a>
+        <a class="btn btn-outline" href="/contribute/story">Help Tell Our Family Story</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Honored beginnings</p>
+      <h2 class="section-title">Family Tribute</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        We begin with Capocia patriarch and matriarch placeholders. Additional Capocia and Miotto elders and honored family members will be added as the family shares their stories. Both families will be represented equally.
+      </p>
+    </header>
+    <div class="card-grid">
+      <% members.forEach(function(m) { %>
+        <article class="card">
+          <div class="card-portrait">
+            <% if (m.portrait_path) { %>
+              <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" />
+            <% } else { %>
+              <div class="placeholder-mark">Portrait placeholder<br />for <%= m.display_name %></div>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <span class="badge <%= m.family_branch === 'Capocia' ? 'badge-capocia' : (m.family_branch === 'Miotto' ? 'badge-Miotto' : 'badge-both') %>"><%= m.family_branch %> family</span>
+            <h3 style="margin-top:0.5rem"><%= m.display_name %></h3>
+            <p class="meta"><%= m.role_in_family || 'Family member' %><% if (m.is_placeholder) { %> · details to be completed<% } %></p>
+            <p>
+              <% if (m.biography) { %>
+                <%= m.biography %>
+              <% } else { %>
+                Biographical information, favorite memories, and family stories for this tribute will appear here when provided by the family. Nothing has been invented.
+              <% } %>
+            </p>
+            <a class="btn btn-outline" style="margin-top:1rem" href="/family-members/<%= m.id %>">View tribute</a>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container narrow" style="text-align:center">
+    <header class="section-header">
+      <p class="section-eyebrow">Italian roots · American reunions</p>
+      <h2 class="section-title">Our Family History</h2>
+      <div class="section-rule"></div>
+    </header>
+    <p class="section-lead">
+      The Capocia and Miotto families share Italian heritage and a reunion tradition that began in <strong>1977</strong>. Our complete family story is still being gathered.
+    </p>
+    <div class="empty" style="margin-top:1.5rem">
+      <h3>This chapter of our family history is waiting to be completed.</h3>
+      <p>
+        Family members are invited to contribute names, photographs, dates, stories, documents, recipes, traditions, and memories that will help us preserve the history of the Capocia and Miotto families.
+      </p>
+      <a class="btn btn-secondary" href="/contribute/story">Help Tell Our Family Story</a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Since 1977</p>
+      <h2 class="section-title">Reunion Timeline</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">Every year has a home here—whether we already have photographs or we are still searching for them.</p>
+    </header>
+    <div style="text-align:center">
+      <a class="btn btn-gold" href="/reunion-timeline">Open the Full Timeline</a>
+    </div>
+  </div>
+</section>
+
+<% if (recentPhotos.length) { %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">From the archive</p>
+      <h2 class="section-title">Recent Photographs</h2>
+      <div class="section-rule"></div>
+    </header>
+    <div class="photo-grid">
+      <% recentPhotos.forEach(function(p) { %>
+        <a class="photo-tile" href="/reunion/<%= p.reunion_year || '' %>">
+          <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
+          <% if (p.reunion_year) { %><div class="cap"><%= p.reunion_year %></div><% } %>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<section class="section section-alt">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Family gathering place</p>
+      <h2 class="section-title">Community Board</h2>
+      <div class="section-rule"></div>
+    </header>
+    <% if (pinned.length) { %>
+      <div class="board-list" style="max-width:760px;margin:0 auto">
+        <% pinned.forEach(function(post) { %>
+          <article class="board-post pinned">
+            <h3><%= post.title %></h3>
+            <p class="board-meta">Pinned · <%= post.author_name || 'Family' %></p>
+            <p><%= post.body %></p>
+          </article>
+        <% }) %>
+      </div>
+    <% } %>
+    <div style="text-align:center;margin-top:1.5rem">
+      <a class="btn btn-outline" href="/community-board">Visit the Community Board</a>
+    </div>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

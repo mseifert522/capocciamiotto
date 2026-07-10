@@ -1,0 +1,59 @@
+<%- include('partials/header', { pageTitle: 'Community Board' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">A safe family gathering place</p>
+      <h2 class="section-title">Community Board</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">Announcements, photo requests, reunion planning, recipes, and family news—moderated with care.</p>
+    </header>
+    <div class="board-list" style="margin-bottom:2rem">
+      <% if (!posts.length) { %>
+        <div class="empty"><h3>No public posts yet.</h3><p>Be the first to leave a respectful family message for review.</p></div>
+      <% } %>
+      <% posts.forEach(function(post) { %>
+        <article class="board-post <%= post.is_pinned ? 'pinned' : '' %>">
+          <h3><%= post.title %></h3>
+          <p class="board-meta"><%= post.is_pinned ? 'Pinned · ' : '' %><%= post.category %> · <%= post.author_name || 'Family' %> · <%= (post.created_at || '').slice(0,10) %></p>
+          <p style="white-space:pre-wrap"><%= post.body %></p>
+        </article>
+      <% }) %>
+    </div>
+    <form class="form-card" method="post" action="/community-board">
+      <h3 style="font-family:var(--font-display);margin-bottom:1rem">Post a family message</h3>
+      <div class="form-row">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" required maxlength="200" />
+      </div>
+      <div class="form-row">
+        <label for="category">Category</label>
+        <select id="category" name="category">
+          <option value="announcement">Announcement</option>
+          <option value="photo_request">Request for old photographs</option>
+          <option value="identify">Help identify someone</option>
+          <option value="planning">Reunion planning</option>
+          <option value="news">Family news</option>
+          <option value="recipe">Recipe or tradition</option>
+          <option value="memorial">Memorial</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="body">Message *</label>
+        <textarea id="body" name="body" required maxlength="5000"></textarea>
+      </div>
+      <div class="form-row two">
+        <div>
+          <label for="author_name">Your name *</label>
+          <input type="text" id="author_name" name="author_name" required />
+        </div>
+        <div>
+          <label for="author_email">Email (private)</label>
+          <input type="email" id="author_email" name="author_email" />
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Submit for moderation</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

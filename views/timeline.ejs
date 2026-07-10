@@ -1,0 +1,29 @@
+<%- include('partials/header', { pageTitle: 'Reunion Timeline' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">1977 → today → future</p>
+      <h2 class="section-title">Reunion Timeline</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">Browse every Capocia–Miotto reunion year. Years without photographs still welcome your contribution.</p>
+    </header>
+    <div class="invite">
+      <p><strong>Do you have photographs from any reunion year?</strong> Even one photograph can preserve a moment for future generations.</p>
+      <a class="btn btn-primary" href="/contribute">Contribute Family Photos</a>
+    </div>
+    <div class="timeline">
+      <% reunions.forEach(function(r) { %>
+        <a class="year-card <%= r.no_reunion ? 'no-reunion' : (r.photo_count ? '' : 'empty') %>" href="/reunion/<%= r.year %>">
+          <div class="y"><%= r.year %></div>
+          <div class="c">
+            <% if (r.no_reunion) { %>No reunion noted
+            <% } else if (r.photo_count) { %><%= r.photo_count %> photo<%= r.photo_count === 1 ? '' : 's' %>
+            <% } else { %>Waiting for photos
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

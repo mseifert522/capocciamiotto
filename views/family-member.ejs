@@ -1,0 +1,27 @@
+<%- include('partials/header', { pageTitle: member.display_name }) %>
+<section class="section">
+  <div class="container narrow">
+    <article class="card">
+      <div class="card-portrait" style="max-height:360px">
+        <% if (member.portrait_path) { %><img src="<%= member.portrait_path %>" alt="" /><% } else { %>
+          <div class="placeholder-mark">Portrait placeholder for <%= member.display_name %></div>
+        <% } %>
+      </div>
+      <div class="card-body">
+        <span class="badge"><%= member.family_branch %> family</span>
+        <h3><%= member.display_name %></h3>
+        <p class="meta"><%= member.role_in_family || 'Family member' %></p>
+        <% if (member.birth_date_display || member.death_date_display) { %>
+          <p><%= member.birth_date_display || '?' %> – <%= member.death_date_display || '' %></p>
+        <% } %>
+        <p style="margin-top:0.75rem">
+          <%= member.biography || 'Biographical information will appear here when provided and approved by family administrators. This tribute does not invent family history.' %>
+        </p>
+        <% if (member.favorite_memories) { %><p style="margin-top:0.75rem"><strong>Favorite memories:</strong> <%= member.favorite_memories %></p><% } %>
+        <% if (member.quotes) { %><p style="margin-top:0.75rem"><em>“<%= member.quotes %>”</em></p><% } %>
+        <a class="btn btn-outline" style="margin-top:1rem" href="/contribute/story">Share a memory about this person</a>
+      </div>
+    </article>
+  </div>
+</section>
+<%- include('partials/footer') %>

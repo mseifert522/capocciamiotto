@@ -1,0 +1,31 @@
+<%- include('../partials/header', { pageTitle: 'Admin Reunions' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a class="active" href="/admin/reunions">Reunions</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Reunion years</h2>
+      <% reunions.forEach(function(r) { %>
+        <form class="form-card" method="post" action="/admin/reunions/<%= r.year %>" style="margin-bottom:1rem">
+          <h3 style="font-family:var(--font-display)"><%= r.year %></h3>
+          <div class="form-row"><label>Title</label><input name="title" value="<%= r.title || '' %>" /></div>
+          <div class="form-row two">
+            <div><label>Date text</label><input name="date_text" value="<%= r.date_text || '' %>" placeholder="Leave blank if unknown" /></div>
+            <div><label>Location</label><input name="location" value="<%= r.location || '' %>" placeholder="Leave blank if unknown" /></div>
+          </div>
+          <div class="form-row"><label>Host family / organizer</label><input name="host_family" value="<%= r.host_family || '' %>" /></div>
+          <div class="form-row"><label>Summary</label><textarea name="summary"><%= r.summary || '' %></textarea></div>
+          <label class="checkbox"><input type="checkbox" name="no_reunion" value="1" <%= r.no_reunion ? 'checked' : '' %> /> Mark: no reunion this year</label>
+          <button class="btn btn-outline" type="submit" style="margin-top:0.75rem">Save <%= r.year %></button>
+        </form>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

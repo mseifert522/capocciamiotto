@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#6b1f2a" />
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle + ' · ' : '' %><%= siteName %></title>
+  <meta name="description" content="A living Capocia–Miotto family reunion archive celebrating family, tradition, and memories since 1977." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+  <div class="tricolor" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="container nav">
+      <a href="/" class="nav-brand">Capocia–Miotto<span>Family Reunion Tribute · since 1977</span></a>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false"><span></span><span></span></button>
+      <nav class="nav-links" aria-label="Main">
+        <a href="/" class="<%= path === '/' ? 'active' : '' %>">Home</a>
+        <a href="/our-family-story" class="<%= path.startsWith('/our-family') ? 'active' : '' %>">Our Family Story</a>
+        <a href="/reunion-timeline" class="<%= path.startsWith('/reunion') ? 'active' : '' %>">Reunion Timeline</a>
+        <a href="/photo-archive" class="<%= path.startsWith('/photo') ? 'active' : '' %>">Photo Archive</a>
+        <a href="/family-members" class="<%= path.startsWith('/family-members') ? 'active' : '' %>">Family Members</a>
+        <a href="/community-board" class="<%= path.startsWith('/community') ? 'active' : '' %>">Community Board</a>
+        <a href="/in-loving-memory" class="<%= path.startsWith('/in-loving') ? 'active' : '' %>">In Loving Memory</a>
+        <a href="/upcoming-reunion" class="<%= path.startsWith('/upcoming') ? 'active' : '' %>">Upcoming Reunion</a>
+        <a href="/about" class="<%= path.startsWith('/about') ? 'active' : '' %>">About</a>
+        <a href="/contribute" class="nav-cta">Contribute</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <% if (flash) { %>
+      <div class="container" style="padding-top:1rem">
+        <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+      </div>
+    <% } %>

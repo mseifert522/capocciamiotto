@@ -1,0 +1,74 @@
+<%- include('../partials/header', { pageTitle: 'Admin Members' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a class="active" href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Family members</h2>
+      <p style="margin-bottom:1rem">Edit Capocia matriarch display name carefully (Christine / Christina). Mioto patriarchs/matriarchs use placeholder names until confirmed.</p>
+
+      <form class="form-card" method="post" action="/admin/members" style="margin-bottom:2rem">
+        <h3 style="font-family:var(--font-display);margin-bottom:0.75rem">Add family member</h3>
+        <div class="form-row two">
+          <div><label>Full name *</label><input name="full_name" required /></div>
+          <div><label>Preferred display name</label><input name="preferred_name" /></div>
+        </div>
+        <div class="form-row two">
+          <div>
+            <label>Branch</label>
+            <select name="family_branch">
+              <option value="Capocia">Capocia</option>
+              <option value="Miotto">Miotto</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div><label>Sort order</label><input name="sort_order" type="number" value="50" /></div>
+        </div>
+        <div class="form-row"><label>Role in family</label><input name="role_in_family" /></div>
+        <div class="form-row"><label>Biography</label><textarea name="biography"></textarea></div>
+        <label class="checkbox"><input type="checkbox" name="is_patriarch" value="1" /> Patriarch</label>
+        <label class="checkbox"><input type="checkbox" name="is_matriarch" value="1" /> Matriarch</label>
+        <label class="checkbox"><input type="checkbox" name="is_placeholder" value="0" /> Mark as confirmed (not placeholder)</label>
+        <button class="btn btn-primary" type="submit" style="margin-top:0.75rem">Add member</button>
+      </form>
+
+      <% members.forEach(function(m) { %>
+        <form class="form-card" method="post" action="/admin/members/<%= m.id %>" style="margin-bottom:1rem">
+          <div class="form-row two">
+            <div><label>Full name</label><input name="full_name" value="<%= m.full_name %>" required /></div>
+            <div><label>Preferred / display name</label><input name="preferred_name" value="<%= m.preferred_name || '' %>" /></div>
+          </div>
+          <% if (m.is_matriarch && m.family_branch === 'Capocia') { %>
+            <label class="checkbox"><input type="checkbox" name="update_matriarch_setting" value="1" checked /> Update site-wide Capocia matriarch display name (Christine / Christina)</label>
+          <% } %>
+          <div class="form-row two">
+            <div>
+              <label>Branch</label>
+              <select name="family_branch">
+                <option value="Capocia" <%= m.family_branch==='Capocia'?'selected':'' %>>Capocia</option>
+                <option value="Miotto" <%= m.family_branch==='Miotto'?'selected':'' %>>Miotto</option>
+                <option value="both" <%= m.family_branch==='both'?'selected':'' %>>Both</option>
+              </select>
+            </div>
+            <div><label>Sort order</label><input name="sort_order" type="number" value="<%= m.sort_order %>" /></div>
+          </div>
+          <div class="form-row"><label>Role</label><input name="role_in_family" value="<%= m.role_in_family || '' %>" /></div>
+          <div class="form-row"><label>Biography</label><textarea name="biography"><%= m.biography || '' %></textarea></div>
+          <div class="form-row"><label>Favorite memories</label><textarea name="favorite_memories"><%= m.favorite_memories || '' %></textarea></div>
+          <div class="form-row"><label>Quotes</label><textarea name="quotes"><%= m.quotes || '' %></textarea></div>
+          <label class="checkbox"><input type="checkbox" name="is_patriarch" value="1" <%= m.is_patriarch?'checked':'' %> /> Patriarch</label>
+          <label class="checkbox"><input type="checkbox" name="is_matriarch" value="1" <%= m.is_matriarch?'checked':'' %> /> Matriarch</label>
+          <label class="checkbox"><input type="checkbox" name="is_placeholder" value="1" <%= m.is_placeholder?'checked':'' %> /> Placeholder (incomplete info)</label>
+          <button class="btn btn-outline" type="submit" style="margin-top:0.75rem">Save <%= m.full_name %></button>
+        </form>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

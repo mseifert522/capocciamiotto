@@ -1,0 +1,129 @@
+<%- include('partials/header', { pageTitle: 'Contribute Photos' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Help complete our album</p>
+      <h2 class="section-title">Contribute Family Photos</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">Upload one photo or many. Works on phones, tablets, and computers. Submissions are reviewed by family administrators before they appear publicly.</p>
+    </header>
+
+    <div class="invite">
+      <p><strong><%= contributeCta %></strong></p>
+      <p><%= contributeCta2 %></p>
+    </div>
+
+    <form class="form-card" action="/contribute/photos" method="post" enctype="multipart/form-data">
+      <div class="form-row">
+        <label>Photographs *</label>
+        <div class="dropzone" id="dropzone">
+          <strong>Tap to choose photos, or drag and drop</strong>
+          <span class="hint">On a phone you can also take a new picture. JPEG, PNG, or WebP · up to 25MB each · up to 20 files</span>
+        </div>
+        <input id="photos-input" type="file" name="photos" accept="image/*,.heic,.heif" multiple capture="environment" required style="position:absolute;left:-9999px" />
+        <p class="hint" id="file-list">No files selected yet.</p>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="reunion_year">Reunion year</label>
+          <select id="reunion_year" name="reunion_year">
+            <option value="">Select year…</option>
+            <% years.forEach(function(y) { %>
+              <option value="<%= y.year %>" <%= String(prefillYear) === String(y.year) ? 'selected' : '' %>><%= y.year %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label for="family_branch">Family branch</label>
+          <select id="family_branch" name="family_branch">
+            <option value="both">Both Capocia &amp; Miotto</option>
+            <option value="Capocia">Capocia family</option>
+            <option value="Miotto">Miotto family</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row two">
+        <label class="checkbox"><input type="checkbox" name="year_approximate" value="1" /> Year is approximate</label>
+        <label class="checkbox"><input type="checkbox" name="year_unknown" id="year_unknown" value="1" /> I do not know the year</label>
+      </div>
+
+      <div class="form-row">
+        <label for="title">Title (optional)</label>
+        <input type="text" id="title" name="title" maxlength="200" placeholder="Example: Picnic tables at the 1990 reunion" />
+      </div>
+
+      <div class="form-row">
+        <label for="description">Description or memory</label>
+        <textarea id="description" name="description" maxlength="4000" placeholder="Share what you remember about this moment…"></textarea>
+      </div>
+
+      <div class="form-row">
+        <label>People in the photograph</label>
+        <div class="people-fields" id="people-fields">
+          <input type="text" name="person_name" maxlength="120" placeholder="Full name of a person in the photo" />
+          <input type="text" name="person_name" maxlength="120" placeholder="Another person (optional)" />
+        </div>
+        <button type="button" class="btn btn-outline" id="add-person-field" style="margin-top:0.5rem">+ Add another name</button>
+        <p class="hint">Use separate fields for each person. “I recognize someone” corrections can also be sent later.</p>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="location">Location (if known)</label>
+          <input type="text" id="location" name="location" maxlength="200" />
+        </div>
+        <div>
+          <label for="photo_date">Date (if known)</label>
+          <input type="text" id="photo_date" name="photo_date" maxlength="80" placeholder="Example: Summer 1985" />
+        </div>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="original_owner">Who originally owned or provided this photo?</label>
+          <input type="text" id="original_owner" name="original_owner" maxlength="120" />
+        </div>
+        <div>
+          <label for="photographer">Photographer (if known)</label>
+          <input type="text" id="photographer" name="photographer" maxlength="120" />
+        </div>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="contributor_name">Your name *</label>
+          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120" />
+        </div>
+        <div>
+          <label for="contributor_email">Your email (private)</label>
+          <input type="email" id="contributor_email" name="contributor_email" maxlength="160" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="contributor_phone">Your telephone (private, optional)</label>
+        <input type="tel" id="contributor_phone" name="contributor_phone" maxlength="40" />
+        <p class="hint">Contact details are never shown publicly. Used only by family administrators if needed.</p>
+      </div>
+
+      <div class="form-row">
+        <label class="checkbox">
+          <input type="checkbox" name="may_display_public" value="1" checked />
+          This photograph may be displayed publicly on the family tribute website
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="checkbox">
+          <input type="checkbox" name="permission_confirmed" value="1" required />
+          I confirm I have permission to upload and share this material, and that it does not violate anyone’s privacy.
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Submit Photographs for Review</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

@@ -1,0 +1,49 @@
+<%- include('partials/header', { pageTitle: 'Share a Story' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Names · recipes · traditions · memories</p>
+      <h2 class="section-title">Help Tell Our Family Story</h2>
+      <div class="section-rule"></div>
+    </header>
+    <form class="form-card" method="post" action="/contribute/story">
+      <div class="form-row">
+        <label for="story_type">Type of contribution</label>
+        <select id="story_type" name="story_type">
+          <option value="memory">Family memory</option>
+          <option value="history">Family history detail</option>
+          <option value="recipe">Recipe or tradition</option>
+          <option value="relationship">Family relationship information</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="reunion_year">Related reunion year (optional)</label>
+        <select id="reunion_year" name="reunion_year">
+          <option value="">Not year-specific</option>
+          <% years.forEach(function(y) { %><option value="<%= y.year %>"><%= y.year %></option><% }) %>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="title">Title (optional)</label>
+        <input type="text" id="title" name="title" maxlength="200" />
+      </div>
+      <div class="form-row">
+        <label for="body">Your story or information *</label>
+        <textarea id="body" name="body" required maxlength="8000" placeholder="Please share only what you know. Do not invent dates or relationships."></textarea>
+      </div>
+      <div class="form-row two">
+        <div>
+          <label for="contributor_name">Your name *</label>
+          <input type="text" id="contributor_name" name="contributor_name" required />
+        </div>
+        <div>
+          <label for="contributor_email">Email (private)</label>
+          <input type="email" id="contributor_email" name="contributor_email" />
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Submit for Review</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

@@ -1,0 +1,51 @@
+<%- include('../partials/header', { pageTitle: 'Admin' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a class="active" href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+      <a href="/">View site</a>
+      <form method="post" action="/admin/logout" style="margin-top:1rem"><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" type="submit">Log out</button></form>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Dashboard</h2>
+      <p style="margin-bottom:1rem">Signed in as <%= user.name || user.email %> (<%= user.role %>)</p>
+      <div class="stats">
+        <div class="stat"><div class="n"><%= stats.pendingPhotos %></div><div class="l">Pending photos</div></div>
+        <div class="stat"><div class="n"><%= stats.pendingStories %></div><div class="l">Pending stories</div></div>
+        <div class="stat"><div class="n"><%= stats.pendingBoard %></div><div class="l">Pending board posts</div></div>
+        <div class="stat"><div class="n"><%= stats.approvedPhotos %></div><div class="l">Approved photos</div></div>
+        <div class="stat"><div class="n"><%= stats.members %></div><div class="l">Family members</div></div>
+        <div class="stat"><div class="n"><%= stats.reunions %></div><div class="l">Reunion years</div></div>
+      </div>
+      <h3 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:0.75rem">Latest pending photographs</h3>
+      <% if (!pendingPhotos.length) { %><p>No pending photographs.</p><% } else { %>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Preview</th><th>Details</th><th>Actions</th></tr></thead>
+          <tbody>
+          <% pendingPhotos.forEach(function(p) { %>
+            <tr>
+              <td><% if (p.thumb_path) { %><img class="thumb-sm" src="<%= p.thumb_path %>" alt="" /><% } %></td>
+              <td>
+                <strong><%= p.title || p.original_filename %></strong><br />
+                Year: <%= p.reunion_year || 'unknown' %> · <%= p.contributor_name %><br />
+                <span style="color:var(--ink-muted);font-size:0.85rem"><%= (p.description || '').slice(0,120) %></span>
+              </td>
+              <td class="inline-actions">
+                <form method="post" action="/admin/photos/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form>
+                <form method="post" action="/admin/photos/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table></div>
+        <p style="margin-top:1rem"><a href="/admin/photos">Review all photos →</a></p>
+      <% } %>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

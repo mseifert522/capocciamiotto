@@ -1,0 +1,34 @@
+<%- include('partials/header', { pageTitle: 'Family Members' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">People in our family history</p>
+      <h2 class="section-title">Family Members</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">Profiles begin with confirmed placeholders and grow only as the family provides information. No relationships or biographies are invented here.</p>
+    </header>
+    <div class="card-grid">
+      <% members.forEach(function(m) { %>
+        <article class="card">
+          <div class="card-portrait">
+            <% if (m.portrait_path) { %><img src="<%= m.portrait_path %>" alt="" /><% } else { %>
+              <div class="placeholder-mark">Photo placeholder</div>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <span class="badge <%= m.family_branch === 'Capocia' ? 'badge-capocia' : (m.family_branch === 'Miotto' ? 'badge-Miotto' : '') %>"><%= m.family_branch %></span>
+            <h3 style="margin-top:0.45rem"><%= m.display_name %></h3>
+            <p class="meta"><%= m.role_in_family || 'Family member' %></p>
+            <a class="btn btn-outline" href="/family-members/<%= m.id %>">Open profile</a>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+    <div class="empty" style="margin-top:2rem">
+      <h3>More names will appear as the family contributes them.</h3>
+      <p>Submit family information so we can add Capocia and Miotto elders, parents, children, and cousins with care.</p>
+      <a class="btn btn-primary" href="/contribute/story">Submit Family Information</a>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

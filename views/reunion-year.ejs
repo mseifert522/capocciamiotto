@@ -1,0 +1,62 @@
+<%- include('partials/header', { pageTitle: reunion.year + ' Reunion' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Capocia–Miotto Family Reunion</p>
+      <h2 class="section-title"><%= reunion.year %> Family Reunion</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        <% if (reunion.no_reunion) { %>
+          Family records note that a reunion may not have been held this year. If you know otherwise, please share.
+        <% } else { %>
+          <% if (reunion.date_text) { %>Date: <%= reunion.date_text %><br /><% } else { %>Date: <em>to be confirmed by family</em><br /><% } %>
+          <% if (reunion.location) { %>Location: <%= reunion.location %><br /><% } else { %>Location: <em>to be confirmed by family</em><br /><% } %>
+          <% if (reunion.host_family) { %>Host / organizer: <%= reunion.host_family %><% } else { %>Host / organizer: <em>to be confirmed by family</em><% } %>
+        <% } %>
+      </p>
+    </header>
+
+    <div class="btn-row" style="justify-content:center;margin-bottom:2rem">
+      <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Contribute to This Reunion</a>
+      <a class="btn btn-secondary" href="/contribute?year=<%= reunion.year %>">Add Photos From This Year</a>
+      <a class="btn btn-outline" href="/contribute/story">Share a Family Memory</a>
+    </div>
+
+    <% if (reunion.summary) { %>
+      <div class="narrow" style="margin-bottom:2rem"><p><%= reunion.summary %></p></div>
+    <% } %>
+
+    <% if (photos.length) { %>
+      <div class="photo-grid">
+        <% photos.forEach(function(p) { %>
+          <figure class="photo-tile" style="margin:0">
+            <img src="<%= p.web_path || p.thumb_path %>" alt="<%= p.title || 'Reunion photograph' %>" loading="lazy" />
+            <figcaption class="cap"><%= p.title || (peopleByPhoto[p.id] && peopleByPhoto[p.id].map(x => x.person_name).join(', ')) || 'Family photograph' %></figcaption>
+          </figure>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty">
+        <h3>We are still searching for photographs and memories from the <%= reunion.year %> Capocia–Miotto Family Reunion.</h3>
+        <p>Do you have something to share? Your contribution may help another family member reconnect with a forgotten memory.</p>
+        <a class="btn btn-primary" href="/contribute?year=<%= reunion.year %>">Add Photos or Memories From This Year</a>
+      </div>
+    <% } %>
+
+    <% if (stories.length) { %>
+      <div style="margin-top:2.5rem">
+        <h3 class="section-title" style="font-size:1.6rem;text-align:center;margin-bottom:1rem">Family Memories</h3>
+        <div class="board-list narrow">
+          <% stories.forEach(function(s) { %>
+            <article class="board-post">
+              <% if (s.title) { %><h3><%= s.title %></h3><% } %>
+              <p class="board-meta"><%= s.contributor_name || 'Family member' %></p>
+              <p style="white-space:pre-wrap"><%= s.body %></p>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

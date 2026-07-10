@@ -1,0 +1,65 @@
+<%- include('../partials/header', { pageTitle: 'Moderate Photos' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a class="active" href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Photograph moderation</h2>
+      <p style="margin-bottom:1rem">
+        <a href="/admin/photos?status=pending">Pending</a> ·
+        <a href="/admin/photos?status=approved">Approved</a> ·
+        <a href="/admin/photos?status=rejected">Rejected</a>
+      </p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Photo</th><th>Info</th><th>Edit / actions</th></tr></thead>
+        <tbody>
+        <% photos.forEach(function(p) { %>
+          <tr>
+            <td><% if (p.web_path) { %><img class="thumb-sm" src="<%= p.thumb_path || p.web_path %>" alt="" /><% } %></td>
+            <td>
+              <strong><%= p.original_filename %></strong><br />
+              By <%= p.contributor_name %> · <%= p.submitted_at %><br />
+              People: <%= (people[p.id] || []).map(x => x.person_name).join(', ') || '—' %>
+            </td>
+            <td>
+              <form method="post" action="/admin/photos/<%= p.id %>/update">
+                <input type="hidden" name="return_status" value="<%= status %>" />
+                <div class="form-row"><label>Title</label><input name="title" value="<%= p.title || '' %>" /></div>
+                <div class="form-row"><label>Year</label><input name="reunion_year" type="number" value="<%= p.reunion_year || '' %>" /></div>
+                <div class="form-row"><label>Branch</label>
+                  <select name="family_branch">
+                    <option value="both" <%= p.family_branch==='both'?'selected':'' %>>Both</option>
+                    <option value="Capocia" <%= p.family_branch==='Capocia'?'selected':'' %>>Capocia</option>
+                    <option value="Miotto" <%= p.family_branch==='Miotto'?'selected':'' %>>Miotto</option>
+                  </select>
+                </div>
+                <div class="form-row"><label>Location</label><input name="location" value="<%= p.location || '' %>" /></div>
+                <div class="form-row"><label>Description</label><textarea name="description"><%= p.description || '' %></textarea></div>
+                <div class="form-row"><label>Admin notes</label><textarea name="admin_notes"><%= p.admin_notes || '' %></textarea></div>
+                <label class="checkbox"><input type="checkbox" name="featured" value="1" <%= p.featured ? 'checked' : '' %> /> Featured</label>
+                <div class="inline-actions" style="margin-top:0.5rem">
+                  <button class="btn btn-outline" type="submit">Save</button>
+                </div>
+              </form>
+              <% if (status === 'pending') { %>
+              <div class="inline-actions" style="margin-top:0.5rem">
+                <form method="post" action="/admin/photos/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form>
+                <form method="post" action="/admin/photos/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form>
+              </div>
+              <% } %>
+              <% if (p.original_path) { %><p style="margin-top:0.5rem"><a href="<%= p.original_path %>" target="_blank" rel="noopener">Download original</a></p><% } %>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

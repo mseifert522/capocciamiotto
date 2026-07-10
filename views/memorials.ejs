@@ -1,0 +1,31 @@
+<%- include('partials/header', { pageTitle: 'In Loving Memory' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">With love and respect</p>
+      <h2 class="section-title">In Loving Memory</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">A quiet place to honor Capocia and Miotto family members who are no longer with us. Memorials are published only after administrator approval.</p>
+    </header>
+    <% if (memorials.length) { %>
+      <div class="card-grid">
+        <% memorials.forEach(function(m) { %>
+          <article class="card">
+            <div class="card-body">
+              <h3><%= m.full_name %></h3>
+              <% if (m.dates_text) { %><p class="meta"><%= m.dates_text %></p><% } %>
+              <p><%= m.biography || m.favorite_memories || '' %></p>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty">
+        <h3>Memorial tributes will appear here with care.</h3>
+        <p>If you would like to honor a family member, please contact the family administrators or share a respectful message for review.</p>
+        <a class="btn btn-outline" href="/contact">Contact Family Administrators</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

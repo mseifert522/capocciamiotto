@@ -48,9 +48,26 @@
           <p style="margin-top:0.75rem"><em>“<%= member.quotes %>”</em></p>
         <% } %>
 
+        <% if (recordings && recordings.length) { %>
+          <div class="voice-section" style="margin-top:1.5rem">
+            <h4 style="font-family:var(--font-display);font-size:1.35rem;color:var(--burgundy);margin-bottom:0.75rem">Voice &amp; stories</h4>
+            <% recordings.forEach(function(r) { %>
+              <div class="voice-card" style="margin-bottom:0.85rem">
+                <p class="voice-meta" style="margin-bottom:0.35rem">
+                  <strong><%= r.title || r.recording_type || 'Recording' %></strong>
+                  <% if (r.recorded_year) { %> · <%= r.recorded_year %><% } %>
+                </p>
+                <% if (r.description) { %><p class="voice-desc"><%= r.description %></p><% } %>
+                <audio class="voice-player" controls preload="none" src="<%= r.file_path %>"></audio>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+
         <div class="btn-row" style="margin-top:1.25rem">
-          <a class="btn btn-outline" href="/contribute/story">Share a memory about this person</a>
-          <a class="btn btn-primary" href="/contribute">Contribute a photo</a>
+          <a class="btn btn-primary" href="/contribute/recording?member=<%= member.id %>">Record a voice story</a>
+          <a class="btn btn-outline" href="/contribute/story">Share a memory</a>
+          <a class="btn btn-outline" href="/contribute">Contribute a photo</a>
         </div>
       </div>
     </article>

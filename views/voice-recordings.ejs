@@ -1,0 +1,49 @@
+<%- include('partials/header', { pageTitle: 'Family Voices' }) %>
+<section class="section">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Patriarchs · Matriarchs · Family stories</p>
+      <h2 class="section-title">Family Voice Recordings</h2>
+      <div class="section-rule"></div>
+    </header>
+
+    <% if (recordings && recordings.length) { %>
+      <div class="voice-list">
+        <% recordings.forEach(function(r) { %>
+          <article class="voice-card">
+            <div class="voice-card-top">
+              <div>
+                <h3><%= r.title || (r.speaker_name + ' — ' + (r.recording_type || 'story')) %></h3>
+                <p class="voice-meta">
+                  <%= r.speaker_name %>
+                  <% if (r.member_name) { %> · <a href="/family-members/<%= r.family_member_id %>" style="color:var(--burgundy);font-weight:600"><%= r.member_name %></a><% } %>
+                  <% if (r.recorded_year) { %> · <%= r.recorded_year %><% } %>
+                  · <%= r.recording_type || 'story' %>
+                </p>
+              </div>
+              <% if (r.featured) { %><span class="badge badge-both">Featured</span><% } %>
+            </div>
+            <% if (r.description) { %>
+              <p class="voice-desc"><%= r.description %></p>
+            <% } %>
+            <audio class="voice-player" controls preload="none" src="<%= r.file_path %>">
+              Your browser does not support audio playback.
+            </audio>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty">
+        <h3>No public recordings yet</h3>
+        <p>Help preserve the voices of our family leaders and loved ones.</p>
+        <a class="btn btn-primary" href="/contribute/recording">Record a Family Story</a>
+      </div>
+    <% } %>
+
+    <div class="empty" style="margin-top:2rem">
+      <h3>Share a voice from our family</h3>
+      <a class="btn btn-primary" href="/contribute/recording">Record or Upload Audio</a>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

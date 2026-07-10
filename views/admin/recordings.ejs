@@ -1,0 +1,72 @@
+<%- include('../partials/header', { pageTitle: 'Admin Recordings' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a class="active" href="/admin/recordings">Voice Recordings</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+      <a href="/admin/pins">Family PINs</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Voice recordings</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Recording</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!recordings.length) { %>
+              <tr><td colspan="3">No recordings yet.</td></tr>
+            <% } %>
+            <% recordings.forEach(function(r) { %>
+              <tr>
+                <td>
+                  <strong><%= r.title || r.speaker_name %></strong><br />
+                  Speaker: <%= r.speaker_name %>
+                  <% if (r.member_name) { %> · Linked: <%= r.member_name %><% } %><br />
+                  <span style="color:var(--ink-muted);font-size:0.85rem">
+                    <%= r.recording_type %> · <%= r.contributor_name || 'Family' %>
+                    <% if (r.recorded_year) { %> · <%= r.recorded_year %><% } %>
+                    · <%= Math.round((r.file_size || 0) / 1024) %> KB
+                  </span>
+                  <% if (r.description) { %><br /><span style="font-size:0.88rem"><%= (r.description || '').slice(0, 180) %></span><% } %>
+                  <div style="margin-top:0.5rem">
+                    <audio controls preload="none" src="<%= r.file_path %>" style="width:min(100%,320px)"></audio>
+                  </div>
+                </td>
+                <td><%= r.status %><% if (r.featured) { %><br /><span class="badge badge-both">Featured</span><% } %></td>
+                <td class="inline-actions">
+                  <% if (r.status !== 'approved') { %>
+                    <form method="post" action="/admin/recordings/<%= r.id %>/approve">
+                      <button class="btn btn-secondary" type="submit">Approve</button>
+                    </form>
+                  <% } %>
+                  <% if (r.status === 'approved') { %>
+                    <form method="post" action="/admin/recordings/<%= r.id %>/feature">
+                      <input type="hidden" name="featured" value="<%= r.featured ? '0' : '1' %>" />
+                      <button class="btn btn-outline" type="submit"><%= r.featured ? 'Unfeature' : 'Feature' %></button>
+                    </form>
+                  <% } %>
+                  <% if (r.status !== 'rejected') { %>
+                    <form method="post" action="/admin/recordings/<%= r.id %>/reject">
+                      <button class="btn btn-outline" type="submit">Reject</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

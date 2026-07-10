@@ -230,6 +230,38 @@ function migrate() {
       FOREIGN KEY (reviewed_by) REFERENCES users(id)
     );
     CREATE INDEX IF NOT EXISTS idx_member_submissions_status ON family_member_submissions(status);
+
+    CREATE TABLE IF NOT EXISTS voice_recordings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      description TEXT,
+      speaker_name TEXT NOT NULL,
+      family_member_id INTEGER,
+      family_branch TEXT,
+      recording_type TEXT NOT NULL DEFAULT 'story',
+      original_filename TEXT,
+      file_path TEXT NOT NULL,
+      mime_type TEXT,
+      file_size INTEGER,
+      duration_seconds INTEGER,
+      recorded_year INTEGER,
+      contributor_name TEXT,
+      contributor_email TEXT,
+      contributor_phone TEXT,
+      pin_id INTEGER,
+      permission_confirmed INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      featured INTEGER NOT NULL DEFAULT 0,
+      admin_notes TEXT,
+      submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed_at TEXT,
+      reviewed_by INTEGER,
+      FOREIGN KEY (family_member_id) REFERENCES family_members(id),
+      FOREIGN KEY (pin_id) REFERENCES family_pins(id),
+      FOREIGN KEY (reviewed_by) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_voice_status ON voice_recordings(status);
+    CREATE INDEX IF NOT EXISTS idx_voice_member ON voice_recordings(family_member_id);
   `);
 
   // Seed reunions 1977 → current year only (no future years)

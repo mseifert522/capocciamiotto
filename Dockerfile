@@ -11,7 +11,7 @@ RUN npm install --omit=dev
 
 COPY . .
 
-RUN mkdir -p /app/data /app/public/uploads/originals /app/public/uploads/web /app/public/uploads/thumbs \
+RUN mkdir -p /app/data /app/public/uploads/originals /app/public/uploads/web /app/public/uploads/thumbs /app/public/uploads/audio \
     && chown -R node:node /app
 
 ENV NODE_ENV=production

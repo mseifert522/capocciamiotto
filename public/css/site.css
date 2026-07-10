@@ -552,6 +552,73 @@ input, select, textarea { font-size: 16px; }
   text-align: center;
 }
 
+/* Voice recordings */
+.voice-recorder {
+  background: linear-gradient(180deg, #fffdf8, #f4ebe0);
+  border: 1px solid rgba(196, 163, 90, 0.28);
+  border-radius: 12px;
+  padding: 1rem 1rem 1.1rem;
+  text-align: center;
+}
+.voice-recorder-status {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.voice-recorder-status.is-recording {
+  color: var(--burgundy);
+}
+.voice-recorder-timer {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--burgundy);
+  margin-top: 0.25rem;
+  letter-spacing: 0.04em;
+}
+.voice-list {
+  display: grid;
+  gap: 1rem;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.voice-card {
+  background: var(--parchment);
+  border: 1px solid rgba(196, 163, 90, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px var(--shadow);
+  padding: 1.1rem 1.15rem 1.2rem;
+}
+.voice-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.45rem;
+}
+.voice-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--burgundy);
+  margin: 0 0 0.25rem;
+  line-height: 1.25;
+}
+.voice-meta {
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+.voice-desc {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin: 0.45rem 0 0.75rem;
+  line-height: 1.55;
+}
+.voice-player {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
 /* Community family member cards */
 .member-grid {
   display: grid;

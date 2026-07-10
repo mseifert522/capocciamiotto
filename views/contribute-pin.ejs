@@ -6,13 +6,14 @@
       <h2 class="section-title">Enter Your Family PIN</h2>
       <div class="section-rule"></div>
       <p class="section-lead">
-        To contribute photographs, add your name, or share a story, please enter the personal PIN number assigned to you by a family administrator.
+        To contribute photographs, add your name, share a story, or preserve a family voice recording, please enter the personal PIN number assigned to you by a family administrator.
       </p>
     </header>
 
     <form class="form-card" method="post" action="/contribute/pin" style="max-width:420px;margin:0 auto">
       <input type="hidden" name="year" value="<%= prefillYear || '' %>" />
       <input type="hidden" name="next" value="<%= next || 'photos' %>" />
+      <input type="hidden" name="member" value="<%= typeof prefillMember !== 'undefined' ? (prefillMember || '') : '' %>" />
 
       <div class="form-row">
         <label for="pin">Your PIN number *</label>

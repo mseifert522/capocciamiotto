@@ -9,6 +9,7 @@ const multer = require("multer");
 const bcrypt = require("bcryptjs");
 const db = require("./db");
 const { processUpload, isAllowedMime } = require("./photos");
+const { saveAudioUpload, isAllowedAudioMime } = require("./audio");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -51,6 +52,15 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     if (isAllowedMime(file.mimetype)) cb(null, true);
     else cb(new Error("Only image files are allowed."));
+  },
+});
+
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedAudioMime(file.mimetype)) cb(null, true);
+    else cb(new Error("Only audio recordings are allowed (MP3, M4A, WAV, OGG, WebM)."));
   },
 });
 
@@ -122,9 +132,12 @@ function requireContributorPin(req, res, next) {
   let pinQs = year;
   if (!pinQs) {
     if (nextUrl.includes("/contribute/member") || nextUrl.includes("next=member")) pinQs = "?next=member";
+    else if (nextUrl.includes("/contribute/recording") || nextUrl.includes("next=recording")) pinQs = "?next=recording";
     else if (nextUrl.includes("/contribute/story") || nextUrl.includes("next=story")) pinQs = "?next=story";
   } else if (nextUrl.includes("/contribute/member")) {
     pinQs = year.includes("?") ? `${year}&next=member` : `?year=${encodeURIComponent(req.query.year)}&next=member`;
+  } else if (nextUrl.includes("/contribute/recording")) {
+    pinQs = year.includes("?") ? `${year}&next=recording` : `?year=${encodeURIComponent(req.query.year)}&next=recording`;
   }
   return res.redirect(`/contribute/pin${pinQs}`);
 }
@@ -270,9 +283,29 @@ app.get("/family-members/:id", (req, res) => {
   } else {
     member.display_name = member.preferred_name || member.full_name;
   }
+  const recordings = db.prepare(`
+    SELECT * FROM voice_recordings
+    WHERE status = 'approved' AND family_member_id = ?
+    ORDER BY featured DESC, submitted_at DESC
+  `).all(member.id);
   const data = localsBase(req);
   clearFlash(req);
-  res.render("family-member", { ...data, member });
+  res.render("family-member", { ...data, member, recordings });
+});
+
+app.get("/voice-recordings", (req, res) => {
+  const recordings = db.prepare(`
+    SELECT v.*,
+      COALESCE(fm.preferred_name, fm.full_name) AS member_name
+    FROM voice_recordings v
+    LEFT JOIN family_members fm ON fm.id = v.family_member_id
+    WHERE v.status = 'approved'
+    ORDER BY v.featured DESC, v.submitted_at DESC
+    LIMIT 200
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("voice-recordings", { ...data, recordings });
 });
 
 app.get("/community-board", (req, res) => {
@@ -350,12 +383,18 @@ app.get("/contribute/pin", (req, res) => {
     const nextMap = {
       story: "/contribute/story",
       member: "/contribute/member",
+      recording: "/contribute/recording",
       photos: "/contribute",
     };
     const nextKey = req.query.next || "photos";
     const next = nextMap[nextKey] || "/contribute";
     const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : "";
-    return res.redirect(next === "/contribute" ? `${next}${year}` : next);
+    const member = req.query.member ? `member=${encodeURIComponent(req.query.member)}` : "";
+    if (next === "/contribute") return res.redirect(`${next}${year}`);
+    if (next === "/contribute/recording" && member) {
+      return res.redirect(`${next}?${member}`);
+    }
+    return res.redirect(next);
   }
   const data = localsBase(req);
   clearFlash(req);
@@ -363,6 +402,7 @@ app.get("/contribute/pin", (req, res) => {
     ...data,
     prefillYear: req.query.year || "",
     next: req.query.next || "photos",
+    prefillMember: req.query.member || "",
   });
 });
 
@@ -372,7 +412,8 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   const next = (req.body.next || "photos").trim();
   const backQs = [];
   if (year) backQs.push(`year=${encodeURIComponent(year)}`);
-  if (next === "story" || next === "member") backQs.push(`next=${encodeURIComponent(next)}`);
+  if (next === "story" || next === "member" || next === "recording") backQs.push(`next=${encodeURIComponent(next)}`);
+  if (req.body.member) backQs.push(`member=${encodeURIComponent(req.body.member)}`);
   const back = `/contribute/pin${backQs.length ? "?" + backQs.join("&") : ""}`;
 
   if (!pin || pin.length < 4) {
@@ -402,6 +443,10 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted. You may now contribute.`);
   if (next === "story") return res.redirect("/contribute/story");
   if (next === "member") return res.redirect("/contribute/member");
+  if (next === "recording") {
+    const m = (req.body.member || "").trim();
+    return res.redirect(m ? `/contribute/recording?member=${encodeURIComponent(m)}` : "/contribute/recording");
+  }
   return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
 
@@ -531,6 +576,106 @@ app.get("/contribute/member", requireContributorPin, (req, res) => {
     ...data,
     pinHolder: req.session.contributorPin || null,
   });
+});
+
+app.get("/contribute/recording", requireContributorPin, (req, res) => {
+  const members = db.prepare(`
+    SELECT id, full_name, preferred_name, role_in_family, is_patriarch, is_matriarch
+    FROM family_members
+    WHERE visibility = 'public' OR visibility IS NULL
+    ORDER BY
+      CASE WHEN is_patriarch = 1 OR is_matriarch = 1 THEN 0 ELSE 1 END,
+      sort_order ASC, full_name ASC
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("contribute-recording", {
+    ...data,
+    members,
+    prefillMemberId: req.query.member || "",
+    pinHolder: req.session.contributorPin || null,
+  });
+});
+
+app.post("/contribute/recording", contributeLimiter, requireContributorPin, audioUpload.single("recording"), (req, res) => {
+  try {
+    if (!req.file) {
+      setFlash(req, "error", "Please record audio or choose an audio file to upload.");
+      return res.redirect("/contribute/recording");
+    }
+    if (!req.body.permission_confirmed) {
+      setFlash(req, "error", "Please confirm you have permission to share this recording.");
+      return res.redirect("/contribute/recording");
+    }
+
+    const speaker_name = (req.body.speaker_name || "").trim();
+    const contributor_name = (req.body.contributor_name || "").trim()
+      || (req.session.contributorPin && req.session.contributorPin.assignedName)
+      || "";
+    if (!speaker_name || !contributor_name) {
+      setFlash(req, "error", "Please include whose voice this is and your name.");
+      return res.redirect("/contribute/recording");
+    }
+
+    let family_member_id = req.body.family_member_id ? parseInt(req.body.family_member_id, 10) : null;
+    if (family_member_id && Number.isNaN(family_member_id)) family_member_id = null;
+    if (family_member_id) {
+      const exists = db.prepare("SELECT id FROM family_members WHERE id = ?").get(family_member_id);
+      if (!exists) family_member_id = null;
+    }
+
+    const saved = saveAudioUpload(req.file);
+    let recorded_year = req.body.recorded_year ? parseInt(req.body.recorded_year, 10) : null;
+    if (recorded_year && (recorded_year < 1977 || recorded_year > CURRENT_YEAR)) recorded_year = null;
+
+    const allowedTypes = ["story", "memory", "blessing", "tradition", "interview", "other"];
+    const recording_type = allowedTypes.includes(req.body.recording_type) ? req.body.recording_type : "story";
+    const pinId = req.session.contributorPin && req.session.contributorPin.pinId
+      ? req.session.contributorPin.pinId
+      : null;
+
+    const info = db.prepare(`
+      INSERT INTO voice_recordings (
+        title, description, speaker_name, family_member_id, family_branch, recording_type,
+        original_filename, file_path, mime_type, file_size, recorded_year,
+        contributor_name, contributor_email, contributor_phone, pin_id,
+        permission_confirmed, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending')
+    `).run(
+      (req.body.title || "").trim() || null,
+      (req.body.description || "").trim() || null,
+      speaker_name,
+      family_member_id,
+      (req.body.family_branch || "").trim() || null,
+      recording_type,
+      saved.original_filename,
+      saved.file_path,
+      saved.mime_type,
+      saved.file_size,
+      recorded_year,
+      contributor_name,
+      (req.body.contributor_email || "").trim() || null,
+      (req.body.contributor_phone || "").trim() || null,
+      pinId
+    );
+
+    db.prepare(`
+      INSERT INTO contributions_log (kind, ref_id, payload_json, contributor_name, contributor_email, status)
+      VALUES ('voice_recording', ?, ?, ?, ?, 'pending')
+    `).run(
+      info.lastInsertRowid,
+      JSON.stringify({ speaker_name, recording_type, family_member_id }),
+      contributor_name,
+      (req.body.contributor_email || "").trim() || null
+    );
+
+    setFlash(req, "success", "Thank you. Your family recording was received and will appear after administrator review.");
+    res.redirect("/contribute/thanks");
+  } catch (err) {
+    console.error(err);
+    setFlash(req, "error", "We could not save that recording. Please try again with a supported audio file.");
+    res.redirect("/contribute/recording");
+  }
 });
 
 app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, res) => {
@@ -709,6 +854,7 @@ app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {
     pendingStories: db.prepare("SELECT COUNT(*) AS c FROM stories WHERE status = 'pending'").get().c,
     pendingBoard: db.prepare("SELECT COUNT(*) AS c FROM board_posts WHERE status = 'pending'").get().c,
     pendingMembers: db.prepare("SELECT COUNT(*) AS c FROM family_member_submissions WHERE status = 'pending'").get().c,
+    pendingRecordings: db.prepare("SELECT COUNT(*) AS c FROM voice_recordings WHERE status = 'pending'").get().c,
     approvedPhotos: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'approved'").get().c,
     members: db.prepare("SELECT COUNT(*) AS c FROM family_members").get().c,
     reunions: db.prepare("SELECT COUNT(*) AS c FROM reunions").get().c,
@@ -1037,13 +1183,72 @@ app.post("/admin/stories/:id/reject", requireRole(...ADMIN_ROLES), (req, res) =>
   res.redirect("/admin/stories");
 });
 
+app.get("/admin/recordings", requireRole(...ADMIN_ROLES), (req, res) => {
+  const recordings = db.prepare(`
+    SELECT v.*,
+      COALESCE(fm.preferred_name, fm.full_name) AS member_name
+    FROM voice_recordings v
+    LEFT JOIN family_members fm ON fm.id = v.family_member_id
+    ORDER BY
+      CASE v.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+      v.submitted_at DESC
+    LIMIT 200
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("admin/recordings", { ...data, recordings });
+});
+
+app.post("/admin/recordings/:id/approve", requireRole(...ADMIN_ROLES), (req, res) => {
+  db.prepare(`
+    UPDATE voice_recordings
+    SET status = 'approved', reviewed_at = datetime('now'), reviewed_by = ?
+    WHERE id = ?
+  `).run(req.session.user.id, req.params.id);
+  db.prepare(`
+    UPDATE contributions_log SET status = 'approved'
+    WHERE kind = 'voice_recording' AND ref_id = ?
+  `).run(req.params.id);
+  logActivity(req.session.user.id, "approve_recording", `Approved voice recording #${req.params.id}`);
+  setFlash(req, "success", "Recording approved.");
+  res.redirect("/admin/recordings");
+});
+
+app.post("/admin/recordings/:id/reject", requireRole(...ADMIN_ROLES), (req, res) => {
+  db.prepare(`
+    UPDATE voice_recordings
+    SET status = 'rejected', reviewed_at = datetime('now'), reviewed_by = ?
+    WHERE id = ?
+  `).run(req.session.user.id, req.params.id);
+  db.prepare(`
+    UPDATE contributions_log SET status = 'rejected'
+    WHERE kind = 'voice_recording' AND ref_id = ?
+  `).run(req.params.id);
+  logActivity(req.session.user.id, "reject_recording", `Rejected voice recording #${req.params.id}`);
+  setFlash(req, "success", "Recording rejected.");
+  res.redirect("/admin/recordings");
+});
+
+app.post("/admin/recordings/:id/feature", requireRole(...ADMIN_ROLES), (req, res) => {
+  const featured = req.body.featured === "1" ? 1 : 0;
+  db.prepare("UPDATE voice_recordings SET featured = ? WHERE id = ?").run(featured, req.params.id);
+  setFlash(req, "success", featured ? "Recording featured." : "Recording unfeatured.");
+  res.redirect("/admin/recordings");
+});
+
 app.get("/healthz", (_req, res) => res.type("text").send("ok"));
 
 app.use((err, req, res, _next) => {
   console.error(err);
   if (err instanceof multer.MulterError) {
     setFlash(req, "error", "Upload error: " + err.message);
-    return res.redirect("/contribute");
+    const dest = (req.originalUrl || "").includes("recording") ? "/contribute/recording" : "/contribute";
+    return res.redirect(dest);
+  }
+  if (err && /audio|image files are allowed/i.test(err.message || "")) {
+    setFlash(req, "error", err.message);
+    const dest = /audio/i.test(err.message) ? "/contribute/recording" : "/contribute";
+    return res.redirect(dest);
   }
   res.status(500).render("error", { ...localsBase(req), message: "Something went wrong. Please try again." });
 });

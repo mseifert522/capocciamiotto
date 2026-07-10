@@ -1,0 +1,115 @@
+<%- include('partials/header', { pageTitle: 'Family Voice Recordings' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Preserve our voices</p>
+      <h2 class="section-title">Record a Family Story</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        Record or upload the voices of our patriarchs, matriarchs, and family members—stories, blessings, memories, and traditions for generations to come.
+      </p>
+    </header>
+
+    <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
+      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+        Contributing as: <%= pinHolder.assignedName %>
+      </p>
+    <% } %>
+
+    <form class="form-card" id="recording-form" method="post" action="/contribute/recording" enctype="multipart/form-data">
+      <div class="form-row">
+        <label for="speaker_name">Whose voice is this? *</label>
+        <input type="text" id="speaker_name" name="speaker_name" required maxlength="160"
+          placeholder="Example: George Capoccia" />
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="family_member_id">Link to family member (optional)</label>
+          <select id="family_member_id" name="family_member_id">
+            <option value="">Not linked yet</option>
+            <% (members || []).forEach(function(m) { %>
+              <option value="<%= m.id %>" <%= String(prefillMemberId || '') === String(m.id) ? 'selected' : '' %>>
+                <%= m.preferred_name || m.full_name %><%= m.role_in_family ? ' — ' + m.role_in_family : '' %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label for="recording_type">Type of recording</label>
+          <select id="recording_type" name="recording_type">
+            <option value="story">Family story</option>
+            <option value="memory">Memory</option>
+            <option value="blessing">Blessing or prayer</option>
+            <option value="tradition">Tradition or recipe story</option>
+            <option value="interview">Interview</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="title">Title (optional)</label>
+          <input type="text" id="title" name="title" maxlength="200" placeholder="Example: George remembers the first reunion" />
+        </div>
+        <div>
+          <label for="recorded_year">Year recorded (optional)</label>
+          <input type="number" id="recorded_year" name="recorded_year" min="1977" max="<%= currentYear %>" placeholder="<%= currentYear %>" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="description">What is shared in this recording? (optional)</label>
+        <textarea id="description" name="description" maxlength="3000" rows="3" placeholder="A short note so the family knows what they will hear."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label>Record with your microphone</label>
+        <div class="voice-recorder" id="voice-recorder">
+          <div class="voice-recorder-status" id="recorder-status">Ready to record</div>
+          <div class="voice-recorder-timer" id="recorder-timer">0:00</div>
+          <div class="btn-row" style="justify-content:center;margin-top:0.75rem">
+            <button type="button" class="btn btn-primary" id="btn-start-rec">Start recording</button>
+            <button type="button" class="btn btn-outline" id="btn-stop-rec" disabled>Stop</button>
+            <button type="button" class="btn btn-outline" id="btn-clear-rec" disabled>Clear</button>
+          </div>
+          <audio id="recorder-preview" controls style="width:100%;margin-top:0.9rem;display:none"></audio>
+          <p class="hint" style="margin-top:0.65rem">Works best on modern phones and computers. Allow microphone access when asked.</p>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="recording">Or upload an audio file *</label>
+        <input id="recording" type="file" name="recording" accept="audio/*,.mp3,.m4a,.wav,.ogg,.webm,.aac" />
+        <p class="hint" id="recording-file-hint">MP3, M4A, WAV, OGG, or WebM · up to 50MB. Record above or choose a file.</p>
+      </div>
+
+      <div class="form-row two">
+        <div>
+          <label for="contributor_name">Your name *</label>
+          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120"
+            value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
+        </div>
+        <div>
+          <label for="contributor_email">Email (private)</label>
+          <input type="email" id="contributor_email" name="contributor_email" maxlength="160" />
+        </div>
+      </div>
+
+      <label class="checkbox" style="margin:0.75rem 0 1rem">
+        <input type="checkbox" name="permission_confirmed" value="1" required />
+        I have permission to share this recording with the Capoccia–Miotto family tribute.
+      </label>
+
+      <button class="btn btn-primary btn-block" type="submit">Submit Recording for Review</button>
+    </form>
+
+    <div class="btn-row" style="margin-top:1.5rem;justify-content:center">
+      <a class="btn btn-outline" href="/voice-recordings">Listen to Family Voices</a>
+      <a class="btn btn-outline" href="/contribute">Contribute Photos</a>
+      <a class="btn btn-outline" href="/contribute/member">Add My Name</a>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

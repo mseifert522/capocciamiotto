@@ -186,6 +186,20 @@ function migrate() {
       value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS family_pins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pin_code TEXT NOT NULL UNIQUE,
+      assigned_name TEXT NOT NULL,
+      notes TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      created_by INTEGER,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_family_pins_code ON family_pins(pin_code);
     CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(status);
     CREATE INDEX IF NOT EXISTS idx_photos_year ON photos(reunion_year);
     CREATE INDEX IF NOT EXISTS idx_reunions_year ON reunions(year);

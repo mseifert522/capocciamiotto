@@ -1,0 +1,44 @@
+<%- include('partials/header', { pageTitle: 'Enter Family PIN' }) %>
+<section class="section">
+  <div class="container narrow">
+    <header class="section-header">
+      <p class="section-eyebrow">Family access</p>
+      <h2 class="section-title">Enter Your Family PIN</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        To contribute photographs or stories, please enter the personal PIN number assigned to you by a family administrator.
+      </p>
+    </header>
+
+    <form class="form-card" method="post" action="/contribute/pin" style="max-width:420px;margin:0 auto">
+      <input type="hidden" name="year" value="<%= prefillYear || '' %>" />
+      <input type="hidden" name="next" value="<%= next || 'photos' %>" />
+
+      <div class="form-row">
+        <label for="pin">Your PIN number *</label>
+        <input
+          type="password"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          id="pin"
+          name="pin"
+          required
+          autocomplete="one-time-code"
+          maxlength="12"
+          minlength="4"
+          placeholder="••••"
+          style="font-size:1.5rem;letter-spacing:0.35em;text-align:center"
+        />
+        <p class="hint">Numbers only. Ask a family administrator if you have not received a PIN yet.</p>
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit">Continue to Contribute</button>
+    </form>
+
+    <p style="text-align:center;margin-top:1.5rem;color:var(--ink-muted);font-size:0.95rem">
+      You can still browse the tribute without a PIN.
+      <a href="/" style="color:var(--burgundy);font-weight:600">Return home</a>
+    </p>
+  </div>
+</section>
+<%- include('partials/footer') %>

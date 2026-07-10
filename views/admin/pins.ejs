@@ -1,0 +1,80 @@
+<%- include('../partials/header', { pageTitle: 'Family PINs' }) %>
+<section class="section" style="padding-top:1rem">
+  <div class="container admin-shell">
+    <aside class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/photos">Photos</a>
+      <a href="/admin/stories">Stories</a>
+      <a href="/admin/board">Board</a>
+      <a href="/admin/members">Family Members</a>
+      <a href="/admin/reunions">Reunions</a>
+      <a class="active" href="/admin/pins">Family PINs</a>
+    </aside>
+    <div class="admin-main">
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Family contributor PINs</h2>
+      <p style="margin-bottom:1.25rem;color:var(--ink-muted)">
+        Assign a unique PIN to each family member. They must enter it before uploading photos or stories.
+      </p>
+
+      <form class="form-card" method="post" action="/admin/pins" style="margin-bottom:2rem">
+        <h3 style="font-family:var(--font-display);margin-bottom:0.75rem">Create a new PIN</h3>
+        <div class="form-row two">
+          <div>
+            <label for="assigned_name">Assigned to (name) *</label>
+            <input id="assigned_name" name="assigned_name" required maxlength="120" placeholder="Example: Maria Capoccia" />
+          </div>
+          <div>
+            <label for="pin_code">PIN (4–12 digits) *</label>
+            <input id="pin_code" name="pin_code" required inputmode="numeric" pattern="[0-9]{4,12}" maxlength="12" placeholder="e.g. 4821" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="notes">Notes (private)</label>
+          <input id="notes" name="notes" maxlength="200" placeholder="Optional — phone, email, branch, etc." />
+        </div>
+        <button class="btn btn-primary" type="submit">Save PIN</button>
+      </form>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>PIN</th>
+              <th>Status</th>
+              <th>Uses</th>
+              <th>Last used</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!pins.length) { %>
+              <tr><td colspan="6">No PINs yet. Create one above and share it with that family member.</td></tr>
+            <% } %>
+            <% pins.forEach(function(p) { %>
+              <tr>
+                <td>
+                  <strong><%= p.assigned_name %></strong>
+                  <% if (p.notes) { %><br /><span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.notes %></span><% } %>
+                </td>
+                <td style="font-family:monospace;font-size:1.1rem;letter-spacing:0.1em"><%= p.pin_code %></td>
+                <td><%= p.active ? 'Active' : 'Disabled' %></td>
+                <td><%= p.use_count %></td>
+                <td><%= p.last_used_at ? p.last_used_at.slice(0, 16).replace('T',' ') : '—' %></td>
+                <td class="inline-actions">
+                  <form method="post" action="/admin/pins/<%= p.id %>/toggle">
+                    <button class="btn btn-outline" type="submit"><%= p.active ? 'Disable' : 'Enable' %></button>
+                  </form>
+                  <form method="post" action="/admin/pins/<%= p.id %>/delete" onsubmit="return confirm('Delete this PIN?');">
+                    <button class="btn btn-outline" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<%- include('../partials/footer') %>

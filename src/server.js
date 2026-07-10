@@ -103,6 +103,29 @@ function requireRole(...roles) {
   };
 }
 
+/** Family contributor PIN — required before contribute forms */
+function hasValidContributorPin(req) {
+  return !!(req.session.contributorPin && req.session.contributorPin.pinId);
+}
+
+function requireContributorPin(req, res, next) {
+  // Admins can contribute without a family PIN
+  if (req.session.user && ADMIN_ROLES.includes(req.session.user.role)) {
+    return next();
+  }
+  if (hasValidContributorPin(req)) return next();
+  const nextUrl = req.originalUrl || "/contribute";
+  // Avoid loop if already on pin page
+  if (nextUrl.startsWith("/contribute/pin")) return next();
+  const qs = nextUrl.includes("?") ? nextUrl.slice(nextUrl.indexOf("?")) : "";
+  const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : qs.includes("year=") ? qs : "";
+  return res.redirect(`/contribute/pin${year || (nextUrl.includes("story") ? "?next=story" : "")}`);
+}
+
+function normalizePin(raw) {
+  return String(raw || "").replace(/\s+/g, "").trim();
+}
+
 function logActivity(userId, action, details) {
   db.prepare("INSERT INTO activity_log (user_id, action, details) VALUES (?, ?, ?)").run(
     userId || null,
@@ -299,16 +322,80 @@ app.get("/guidelines", (req, res) => {
   res.render("guidelines", localsBase(req));
 });
 
-app.get("/contribute", (req, res) => {
+app.get("/contribute/pin", (req, res) => {
+  if (hasValidContributorPin(req) || (req.session.user && ADMIN_ROLES.includes(req.session.user.role))) {
+    const next = req.query.next === "story" ? "/contribute/story" : "/contribute";
+    const year = req.query.year ? `?year=${encodeURIComponent(req.query.year)}` : "";
+    return res.redirect(next === "/contribute" ? `${next}${year}` : next);
+  }
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("contribute-pin", {
+    ...data,
+    prefillYear: req.query.year || "",
+    next: req.query.next || "photos",
+  });
+});
+
+app.post("/contribute/pin", contributeLimiter, (req, res) => {
+  const pin = normalizePin(req.body.pin);
+  const year = (req.body.year || "").trim();
+  const next = (req.body.next || "photos").trim();
+  const backQs = [];
+  if (year) backQs.push(`year=${encodeURIComponent(year)}`);
+  if (next === "story") backQs.push("next=story");
+  const back = `/contribute/pin${backQs.length ? "?" + backQs.join("&") : ""}`;
+
+  if (!pin || pin.length < 4) {
+    setFlash(req, "error", "Please enter the family PIN you were given (at least 4 digits).");
+    return res.redirect(back);
+  }
+
+  const row = db.prepare(`
+    SELECT * FROM family_pins WHERE pin_code = ? AND active = 1
+  `).get(pin);
+
+  if (!row) {
+    setFlash(req, "error", "That PIN was not recognized. Please check the number you were assigned and try again.");
+    return res.redirect(back);
+  }
+
+  db.prepare(`
+    UPDATE family_pins SET use_count = use_count + 1, last_used_at = datetime('now') WHERE id = ?
+  `).run(row.id);
+
+  req.session.contributorPin = {
+    pinId: row.id,
+    assignedName: row.assigned_name,
+    verifiedAt: Date.now(),
+  };
+
+  setFlash(req, "success", `Welcome, ${row.assigned_name}. Your PIN was accepted. You may now contribute.`);
+  if (next === "story") return res.redirect("/contribute/story");
+  return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
+});
+
+app.post("/contribute/pin/clear", (req, res) => {
+  delete req.session.contributorPin;
+  setFlash(req, "success", "Contributor PIN cleared on this device.");
+  res.redirect("/contribute/pin");
+});
+
+app.get("/contribute", requireContributorPin, (req, res) => {
   const years = db.prepare("SELECT year FROM reunions ORDER BY year DESC").all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("contribute", { ...data, years, prefillYear: req.query.year || "" });
+  res.render("contribute", {
+    ...data,
+    years,
+    prefillYear: req.query.year || "",
+    pinHolder: req.session.contributorPin || null,
+  });
 });
 
 app.get("/contribute/photos", (req, res) => res.redirect(`/contribute${req.query.year ? `?year=${req.query.year}` : ""}`));
 
-app.post("/contribute/photos", contributeLimiter, upload.array("photos", 20), async (req, res) => {
+app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.array("photos", 20), async (req, res) => {
   try {
     const files = req.files || [];
     if (!files.length) {
@@ -319,7 +406,9 @@ app.post("/contribute/photos", contributeLimiter, upload.array("photos", 20), as
       setFlash(req, "error", "Please confirm you have permission to share these photographs.");
       return res.redirect("/contribute");
     }
-    const contributor_name = (req.body.contributor_name || "").trim();
+    const contributor_name = (req.body.contributor_name || "").trim()
+      || (req.session.contributorPin && req.session.contributorPin.assignedName)
+      || "";
     if (!contributor_name) {
       setFlash(req, "error", "Please include your name so we can credit the contribution.");
       return res.redirect("/contribute");
@@ -402,16 +491,22 @@ app.get("/contribute/thanks", (req, res) => {
   res.render("contribute-thanks", data);
 });
 
-app.get("/contribute/story", (req, res) => {
+app.get("/contribute/story", requireContributorPin, (req, res) => {
   const years = db.prepare("SELECT year FROM reunions ORDER BY year DESC").all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("contribute-story", { ...data, years });
+  res.render("contribute-story", {
+    ...data,
+    years,
+    pinHolder: req.session.contributorPin || null,
+  });
 });
 
-app.post("/contribute/story", contributeLimiter, (req, res) => {
+app.post("/contribute/story", contributeLimiter, requireContributorPin, (req, res) => {
   const body = (req.body.body || "").trim();
-  const contributor_name = (req.body.contributor_name || "").trim();
+  const contributor_name = (req.body.contributor_name || "").trim()
+    || (req.session.contributorPin && req.session.contributorPin.assignedName)
+    || "";
   if (!body || !contributor_name) {
     setFlash(req, "error", "Please include your name and the story or family information.");
     return res.redirect("/contribute/story");
@@ -689,6 +784,56 @@ app.post("/admin/board/:id/reject", requireRole(...ADMIN_ROLES), (req, res) => {
 app.post("/admin/board/:id/pin", requireRole(...ADMIN_ROLES), (req, res) => {
   db.prepare("UPDATE board_posts SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END WHERE id = ?").run(req.params.id);
   res.redirect("/admin/board");
+});
+
+app.get("/admin/pins", requireRole("super_admin", "family_admin"), (req, res) => {
+  const pins = db.prepare(`
+    SELECT * FROM family_pins ORDER BY active DESC, assigned_name ASC, created_at DESC
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("admin/pins", { ...data, pins });
+});
+
+app.post("/admin/pins", requireRole("super_admin", "family_admin"), (req, res) => {
+  const pin_code = normalizePin(req.body.pin_code);
+  const assigned_name = (req.body.assigned_name || "").trim();
+  const notes = (req.body.notes || "").trim() || null;
+
+  if (!assigned_name) {
+    setFlash(req, "error", "Please enter the family member’s name for this PIN.");
+    return res.redirect("/admin/pins");
+  }
+  if (!/^\d{4,12}$/.test(pin_code)) {
+    setFlash(req, "error", "PIN must be 4–12 digits (numbers only).");
+    return res.redirect("/admin/pins");
+  }
+  const exists = db.prepare("SELECT id FROM family_pins WHERE pin_code = ?").get(pin_code);
+  if (exists) {
+    setFlash(req, "error", "That PIN is already assigned. Choose a different number.");
+    return res.redirect("/admin/pins");
+  }
+  db.prepare(`
+    INSERT INTO family_pins (pin_code, assigned_name, notes, created_by)
+    VALUES (?, ?, ?, ?)
+  `).run(pin_code, assigned_name, notes, req.session.user.id);
+  logActivity(req.session.user.id, "create_pin", `${assigned_name} / ${pin_code}`);
+  setFlash(req, "success", `PIN created for ${assigned_name}.`);
+  res.redirect("/admin/pins");
+});
+
+app.post("/admin/pins/:id/toggle", requireRole("super_admin", "family_admin"), (req, res) => {
+  db.prepare(`
+    UPDATE family_pins SET active = CASE WHEN active = 1 THEN 0 ELSE 1 END WHERE id = ?
+  `).run(req.params.id);
+  setFlash(req, "success", "PIN status updated.");
+  res.redirect("/admin/pins");
+});
+
+app.post("/admin/pins/:id/delete", requireRole("super_admin", "family_admin"), (req, res) => {
+  db.prepare("DELETE FROM family_pins WHERE id = ?").run(req.params.id);
+  setFlash(req, "success", "PIN removed.");
+  res.redirect("/admin/pins");
 });
 
 app.get("/admin/stories", requireRole(...ADMIN_ROLES), (req, res) => {

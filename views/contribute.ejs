@@ -13,6 +13,14 @@
       <p><%= contributeCta2 %></p>
     </div>
 
+    <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
+      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+        Contributing as: <%= pinHolder.assignedName %>
+        · <a href="#" onclick="document.getElementById('clear-pin-form').submit();return false;" style="color:var(--burgundy)">Use a different PIN</a>
+      </p>
+      <form id="clear-pin-form" method="post" action="/contribute/pin/clear" style="display:none"></form>
+    <% } %>
+
     <form class="form-card" action="/contribute/photos" method="post" enctype="multipart/form-data">
       <div class="form-row">
         <label>Photographs *</label>
@@ -94,7 +102,7 @@
       <div class="form-row two">
         <div>
           <label for="contributor_name">Your name *</label>
-          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120" />
+          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120" value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
         </div>
         <div>
           <label for="contributor_email">Your email (private)</label>

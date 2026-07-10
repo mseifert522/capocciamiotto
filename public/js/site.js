@@ -3,18 +3,23 @@
   const links = document.querySelector(".nav-links");
   if (toggle && links) {
     const setOpen = (open) => {
-      links.classList.toggle("open", open);
-      document.body.classList.toggle("menu-open", open);
+      links.classList.toggle("open", !!open);
+      document.body.classList.toggle("menu-open", !!open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
     };
-    toggle.addEventListener("click", () => setOpen(!links.classList.contains("open")));
-    links.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
-    // Close menu on resize back to desktop
+    // Use pointerup so iOS/Safari reliably fires even over sticky/backdrop layers
+    toggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(!links.classList.contains("open"));
+    });
+    links.querySelectorAll("a").forEach((a) =>
+      a.addEventListener("click", () => setOpen(false))
+    );
     window.addEventListener("resize", () => {
       if (window.innerWidth > 960) setOpen(false);
     });
-    // Close on Escape
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") setOpen(false);
     });

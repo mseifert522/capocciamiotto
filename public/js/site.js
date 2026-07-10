@@ -304,6 +304,98 @@
     });
   }
 
+  // Site analytics — page views + time on site (not on admin)
+  (function initAnalytics() {
+    try {
+      const path = window.location.pathname || "/";
+      if (path.indexOf("/admin") === 0) return;
+      if (!window.fetch && !navigator.sendBeacon) return;
+
+      const storageKey = "cmfr_vid";
+      let sessionId = null;
+      try {
+        sessionId = sessionStorage.getItem(storageKey);
+      } catch (_) { /* private mode */ }
+      if (!sessionId) {
+        sessionId =
+          (window.crypto && crypto.randomUUID && crypto.randomUUID()) ||
+          "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        try {
+          sessionStorage.setItem(storageKey, sessionId);
+        } catch (_) { /* ignore */ }
+      }
+
+      const endpoint = "/api/analytics/beacon";
+      let activeAccum = 0;
+      let lastTick = Date.now();
+      let visible = !document.hidden;
+
+      const post = (payload, useBeacon) => {
+        const body = JSON.stringify(payload);
+        if (useBeacon && navigator.sendBeacon) {
+          try {
+            const blob = new Blob([body], { type: "application/json" });
+            if (navigator.sendBeacon(endpoint, blob)) return;
+          } catch (_) { /* fall through */ }
+        }
+        if (window.fetch) {
+          fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            keepalive: true,
+            credentials: "same-origin",
+          }).catch(() => {});
+        }
+      };
+
+      post({
+        type: "pageview",
+        sessionId,
+        path,
+        referrer: document.referrer || "",
+      });
+
+      const flushHeartbeat = (useBeacon) => {
+        if (!visible) {
+          lastTick = Date.now();
+          return;
+        }
+        const now = Date.now();
+        const delta = Math.floor((now - lastTick) / 1000);
+        lastTick = now;
+        if (delta < 1) return;
+        activeAccum += delta;
+        const send = Math.min(activeAccum, 120);
+        if (send < 1) return;
+        activeAccum -= send;
+        post(
+          {
+            type: "heartbeat",
+            sessionId,
+            path,
+            seconds: send,
+          },
+          !!useBeacon
+        );
+      };
+
+      setInterval(() => flushHeartbeat(false), 15000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          flushHeartbeat(true);
+          visible = false;
+        } else {
+          visible = true;
+          lastTick = Date.now();
+        }
+      });
+      window.addEventListener("pagehide", () => flushHeartbeat(true));
+    } catch (_) {
+      /* never break the site for analytics */
+    }
+  })();
+
   // Footer: reveal family contact email only after deliberate click
   (function initEmailReveal() {
     document.querySelectorAll("[data-email-reveal]").forEach((panel) => {

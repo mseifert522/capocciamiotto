@@ -344,6 +344,14 @@ function migrate() {
     console.warn("site_activity table note:", e.message);
   }
 
+  // Page views + visit sessions (time on site) for admin analytics
+  try {
+    const { ensureAnalyticsTables } = require("./analytics");
+    ensureAnalyticsTables(db);
+  } catch (e) {
+    console.warn("analytics tables note:", e.message);
+  }
+
   // Community board photo/video attachments
   try {
     db.exec(`

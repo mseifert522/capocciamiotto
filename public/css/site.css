@@ -2397,6 +2397,94 @@ input:focus, select:focus, textarea:focus {
 }
 .stat .n { font-family: var(--font-display); font-size: 1.8rem; color: var(--burgundy); font-weight: 600; }
 .stat .l { font-family: var(--font-ui); font-size: 0.78rem; color: var(--ink-muted); }
+.dash-section-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--burgundy);
+  margin: 0.25rem 0 0.75rem;
+}
+.dash-hint {
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  margin: -0.35rem 0 0.65rem;
+}
+.dash-muted { color: var(--ink-muted); font-size: 0.82rem; }
+.dash-kind {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(107, 31, 42, 0.1);
+  color: var(--burgundy);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+.dash-path {
+  font-size: 0.85rem;
+  word-break: break-all;
+  background: rgba(43, 33, 28, 0.05);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+.dash-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+@media (max-width: 900px) {
+  .dash-two-col { grid-template-columns: 1fr; }
+}
+.dash-mini-chart {
+  background: #fff;
+  border: 1px solid rgba(43, 33, 28, 0.08);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 0.85rem;
+  margin-bottom: 1.5rem;
+}
+.dash-chart-label {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+.dash-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 120px;
+}
+.dash-bar-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+}
+.dash-bar {
+  width: 100%;
+  max-width: 28px;
+  background: linear-gradient(180deg, var(--burgundy), #8b3a45);
+  border-radius: 4px 4px 2px 2px;
+  min-height: 4px;
+}
+.dash-bar-n {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.dash-bar-d {
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  color: var(--ink-muted);
+}
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
 th, td { padding: 0.75rem 0.85rem; text-align: left; border-bottom: 1px solid rgba(43, 33, 28, 0.06); font-size: 0.92rem; vertical-align: top; }

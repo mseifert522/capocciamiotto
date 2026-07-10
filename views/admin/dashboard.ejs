@@ -1,4 +1,27 @@
 <%- include('../partials/header', { pageTitle: 'Admin' }) %>
+<%
+  const a = analytics || {};
+  const views = a.views || { today: 0, d7: 0, d30: 0, all: 0 };
+  const sessions = a.sessions || { today: 0, d7: 0, all: 0 };
+  const time = a.time || { todayLabel: '0s', d7Label: '0s', allLabel: '0s', avgSession7dLabel: '0s', avgPagesPerSession7d: 0 };
+  const logins = a.logins || { pinToday: 0, pin7d: 0, pinAll: 0, adminAll: 0, pinRequestsAll: 0, pinRequests7d: 0 };
+  const content = a.content || {};
+  const topPages = a.topPages || [];
+  const recentSessions = a.recentSessions || [];
+  const recentLogins = a.recentLogins || [];
+  const recentPinRequests = a.recentPinRequests || [];
+  const recentContent = a.recentContent || [];
+  const viewsByDay = a.viewsByDay || [];
+  function kindLabel(k) {
+    const map = {
+      photo: 'Photo', story: 'Story', board: 'Board post', member: 'Member name',
+      portrait_upload: 'Portrait', photo_upload: 'Photo upload', pin_login: 'PIN login',
+      admin_login: 'Admin login', pin_login_failed: 'Failed PIN', board_post: 'Board',
+      member_submit: 'Member', story_submit: 'Story'
+    };
+    return map[k] || k || '—';
+  }
+%>
 <section class="section" style="padding-top:1rem">
   <div class="container admin-shell">
     <aside class="admin-nav">
@@ -15,19 +38,203 @@
       <form method="post" action="/admin/logout" style="margin-top:1rem"><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" type="submit">Log out</button></form>
     </aside>
     <div class="admin-main">
-      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Dashboard</h2>
-      <p style="margin-bottom:1rem">Signed in as <%= user.name || user.email %> (<%= user.role %>)</p>
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.35rem">Dashboard</h2>
+      <p style="margin-bottom:1.25rem;color:var(--ink-muted)">Signed in as <%= user.name || user.email %> (<%= user.role %>). Live site traffic, logins, and family content.</p>
+
+      <h3 class="dash-section-title">Site traffic</h3>
+      <div class="stats">
+        <div class="stat"><div class="n"><%= views.today %></div><div class="l">Views today</div></div>
+        <div class="stat"><div class="n"><%= views.d7 %></div><div class="l">Views (7 days)</div></div>
+        <div class="stat"><div class="n"><%= views.d30 %></div><div class="l">Views (30 days)</div></div>
+        <div class="stat"><div class="n"><%= views.all %></div><div class="l">Views (all time)</div></div>
+        <div class="stat"><div class="n"><%= sessions.today %></div><div class="l">Visits today</div></div>
+        <div class="stat"><div class="n"><%= sessions.d7 %></div><div class="l">Visits (7 days)</div></div>
+        <div class="stat"><div class="n"><%= sessions.all %></div><div class="l">Visits (all time)</div></div>
+        <div class="stat"><div class="n" style="font-size:1.35rem"><%= time.avgSession7dLabel %></div><div class="l">Avg time / visit (7d)</div></div>
+      </div>
+
+      <h3 class="dash-section-title">Time spent on site</h3>
+      <div class="stats">
+        <div class="stat"><div class="n" style="font-size:1.4rem"><%= time.todayLabel %></div><div class="l">Active time today</div></div>
+        <div class="stat"><div class="n" style="font-size:1.4rem"><%= time.d7Label %></div><div class="l">Active time (7 days)</div></div>
+        <div class="stat"><div class="n" style="font-size:1.4rem"><%= time.allLabel %></div><div class="l">Active time (all)</div></div>
+        <div class="stat"><div class="n"><%= time.avgPagesPerSession7d %></div><div class="l">Avg pages / visit (7d)</div></div>
+      </div>
+
+      <% if (viewsByDay.length) { %>
+      <div class="dash-mini-chart" aria-label="Page views last 14 days">
+        <p class="dash-chart-label">Page views — last 14 days</p>
+        <div class="dash-bars">
+          <%
+            const maxV = Math.max.apply(null, viewsByDay.map(function(d){ return d.views; }).concat([1]));
+            viewsByDay.forEach(function(d) {
+              const pct = Math.max(4, Math.round((d.views / maxV) * 100));
+          %>
+            <div class="dash-bar-col" title="<%= d.day %>: <%= d.views %> views">
+              <div class="dash-bar" style="height:<%= pct %>%"></div>
+              <span class="dash-bar-n"><%= d.views %></span>
+              <span class="dash-bar-d"><%= String(d.day).slice(5) %></span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
+      <h3 class="dash-section-title">Logins &amp; PIN access</h3>
+      <div class="stats">
+        <div class="stat"><div class="n"><%= logins.pinToday %></div><div class="l">PIN logins today</div></div>
+        <div class="stat"><div class="n"><%= logins.pin7d %></div><div class="l">PIN logins (7 days)</div></div>
+        <div class="stat"><div class="n"><%= logins.pinAll %></div><div class="l">PIN logins (all)</div></div>
+        <div class="stat"><div class="n"><%= logins.adminAll %></div><div class="l">Admin logins</div></div>
+        <div class="stat"><div class="n"><%= logins.pinRequests7d %></div><div class="l">PIN requests (7d)</div></div>
+        <div class="stat"><div class="n"><%= logins.pinRequestsAll %></div><div class="l">PIN requests (all)</div></div>
+      </div>
+      <p style="margin:-0.5rem 0 1.25rem"><a href="/admin/activity">Open full activity log &amp; email report →</a></p>
+
+      <h3 class="dash-section-title">Family content</h3>
+      <div class="stats">
+        <div class="stat"><div class="n"><%= content.photosAll || 0 %></div><div class="l">Photos total</div></div>
+        <div class="stat"><div class="n"><%= content.photos7d || 0 %></div><div class="l">Photos (7 days)</div></div>
+        <div class="stat"><div class="n"><%= content.storiesAll || 0 %></div><div class="l">Stories total</div></div>
+        <div class="stat"><div class="n"><%= content.boardAll || 0 %></div><div class="l">Board posts</div></div>
+        <div class="stat"><div class="n"><%= content.membersSubAll || 0 %></div><div class="l">Name submissions</div></div>
+        <div class="stat"><div class="n"><%= content.portraitsAll || 0 %></div><div class="l">Portrait uploads</div></div>
+        <div class="stat"><div class="n"><%= stats.members %></div><div class="l">Family members</div></div>
+        <div class="stat"><div class="n"><%= stats.reunions %></div><div class="l">Reunion years</div></div>
+      </div>
+
+      <h3 class="dash-section-title">Moderation queue</h3>
       <div class="stats">
         <div class="stat"><div class="n"><%= stats.pendingPhotos %></div><div class="l">Pending photos</div></div>
         <div class="stat"><div class="n"><%= stats.pendingStories %></div><div class="l">Pending stories</div></div>
         <div class="stat"><div class="n"><%= stats.pendingMembers || 0 %></div><div class="l">Pending names</div></div>
         <div class="stat"><div class="n"><%= stats.pendingRecordings || 0 %></div><div class="l">Pending recordings</div></div>
-        <div class="stat"><div class="n"><%= stats.pendingBoard %></div><div class="l">Pending board posts</div></div>
+        <div class="stat"><div class="n"><%= stats.pendingBoard %></div><div class="l">Pending board</div></div>
         <div class="stat"><div class="n"><%= stats.approvedPhotos %></div><div class="l">Approved photos</div></div>
-        <div class="stat"><div class="n"><%= stats.members %></div><div class="l">Family members</div></div>
-        <div class="stat"><div class="n"><%= stats.reunions %></div><div class="l">Reunion years</div></div>
       </div>
-      <h3 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:0.75rem">Latest pending photographs</h3>
+
+      <div class="dash-two-col">
+        <div>
+          <h3 class="dash-section-title">Family content timeline</h3>
+          <p class="dash-hint">Photos, stories, board posts, member names — date &amp; time when added</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>When</th><th>Type</th><th>Who</th><th>What</th></tr></thead>
+              <tbody>
+              <% if (!recentContent.length) { %>
+                <tr><td colspan="4">No family content recorded yet.</td></tr>
+              <% } else { recentContent.forEach(function(row) { %>
+                <tr>
+                  <td style="white-space:nowrap;font-size:0.85rem"><%= row.occurred_at %></td>
+                  <td><span class="dash-kind"><%= kindLabel(row.kind) %></span></td>
+                  <td>
+                    <strong><%= row.who || '—' %></strong>
+                    <% if (row.email) { %><br /><span class="dash-muted"><%= row.email %></span><% } %>
+                  </td>
+                  <td>
+                    <%= (row.title || '—').slice(0, 80) %>
+                    <% if (row.status && row.status !== 'logged') { %>
+                      <br /><span class="dash-muted"><%= row.status %></span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3 class="dash-section-title">Recent logins</h3>
+          <p class="dash-hint">Family PIN and administrator sign-ins</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>When</th><th>Type</th><th>Who</th></tr></thead>
+              <tbody>
+              <% if (!recentLogins.length) { %>
+                <tr><td colspan="3">No logins recorded yet.</td></tr>
+              <% } else { recentLogins.forEach(function(r) { %>
+                <tr>
+                  <td style="white-space:nowrap;font-size:0.85rem"><%= r.created_at %></td>
+                  <td><span class="dash-kind"><%= kindLabel(r.kind) %></span></td>
+                  <td>
+                    <strong><%= r.actor_name || '—' %></strong>
+                    <% if (r.actor_email) { %><br /><span class="dash-muted"><%= r.actor_email %></span><% } %>
+                    <% if (r.details) { %><br /><span class="dash-muted"><%= r.details.slice(0, 60) %></span><% } %>
+                  </td>
+                </tr>
+              <% }) } %>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="dash-section-title" style="margin-top:1.5rem">PIN # requests</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>When</th><th>Name</th><th>Email</th></tr></thead>
+              <tbody>
+              <% if (!recentPinRequests.length) { %>
+                <tr><td colspan="3">No PIN requests yet.</td></tr>
+              <% } else { recentPinRequests.forEach(function(r) { %>
+                <tr>
+                  <td style="white-space:nowrap;font-size:0.85rem"><%= r.created_at %></td>
+                  <td><strong><%= r.requester_name || '—' %></strong><br /><span class="dash-muted"><%= r.status || '' %></span></td>
+                  <td style="font-size:0.88rem"><%= r.requester_email || '—' %></td>
+                </tr>
+              <% }) } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-two-col" style="margin-top:1.5rem">
+        <div>
+          <h3 class="dash-section-title">Top pages (30 days)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Page</th><th>Views</th></tr></thead>
+              <tbody>
+              <% if (!topPages.length) { %>
+                <tr><td colspan="2">Views will appear as family members browse the site.</td></tr>
+              <% } else { topPages.forEach(function(p) { %>
+                <tr>
+                  <td><code class="dash-path"><%= p.path %></code></td>
+                  <td><strong><%= p.views %></strong></td>
+                </tr>
+              <% }) } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3 class="dash-section-title">Recent visits</h3>
+          <p class="dash-hint">Browser sessions with time spent</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Last seen</th><th>Pages</th><th>Time</th><th>Paths</th></tr></thead>
+              <tbody>
+              <% if (!recentSessions.length) { %>
+                <tr><td colspan="4">No visits tracked yet.</td></tr>
+              <% } else { recentSessions.forEach(function(s) { %>
+                <tr>
+                  <td style="white-space:nowrap;font-size:0.85rem"><%= s.last_seen %></td>
+                  <td><%= s.page_views %></td>
+                  <td><%= (typeof formatDuration === 'function' ? formatDuration(s.active_seconds) : (s.active_seconds + 's')) %></td>
+                  <td style="font-size:0.8rem">
+                    <span class="dash-muted"><%= s.first_path || '—' %></span>
+                    <% if (s.last_path && s.last_path !== s.first_path) { %>
+                      → <span class="dash-muted"><%= s.last_path %></span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="dash-section-title" style="margin-top:1.75rem">Latest pending photographs</h3>
       <% if (!pendingPhotos.length) { %><p>No pending photographs.</p><% } else { %>
         <div class="table-wrap"><table>
           <thead><tr><th>Preview</th><th>Details</th><th>Actions</th></tr></thead>
@@ -38,7 +245,7 @@
               <td>
                 <strong><%= p.title || p.original_filename %></strong><br />
                 Year: <%= p.reunion_year || 'unknown' %> · <%= p.contributor_name %><br />
-                <span style="color:var(--ink-muted);font-size:0.85rem"><%= (p.description || '').slice(0,120) %></span>
+                <span style="color:var(--ink-muted);font-size:0.85rem"><%= p.submitted_at %> · <%= (p.description || '').slice(0,120) %></span>
               </td>
               <td class="inline-actions">
                 <form method="post" action="/admin/photos/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form>

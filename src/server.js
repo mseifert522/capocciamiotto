@@ -25,6 +25,13 @@ const {
   generationFromParent,
 } = require("./familyTree");
 const { sendFamilyPinEmail, sendActivityReportEmail, CONTACT_EMAIL } = require("./mail");
+const {
+  ensureAnalyticsTables,
+  recordPageView,
+  recordHeartbeat,
+  getDashboardAnalytics,
+  formatDuration,
+} = require("./analytics");
 
 const app = express();
 const PORT = process.env.PORT || 3080;
@@ -108,6 +115,56 @@ const contributeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many submissions. Please try again in a few minutes.",
+});
+
+const analyticsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 90,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: "rate_limited" },
+});
+
+// Ensure analytics tables at boot
+try {
+  ensureAnalyticsTables(db);
+} catch (e) {
+  console.warn("analytics boot note:", e.message);
+}
+
+/** Lightweight analytics beacon (page views + time on site) */
+app.post("/api/analytics/beacon", analyticsLimiter, (req, res) => {
+  try {
+    const body = req.body || {};
+    const type = String(body.type || "pageview").toLowerCase();
+    const sessionId = body.sessionId || body.session_id || "";
+    const path = body.path || "/";
+    const ip = clientIp(req);
+    const userAgent = req.headers["user-agent"] || "";
+
+    if (type === "heartbeat") {
+      const result = recordHeartbeat(db, {
+        sessionId,
+        seconds: body.seconds,
+        path,
+        ip,
+        userAgent,
+      });
+      return res.json({ ok: true, ...result });
+    }
+
+    const result = recordPageView(db, {
+      sessionId,
+      path,
+      referrer: body.referrer || req.headers.referer || null,
+      ip,
+      userAgent,
+    });
+    return res.json({ ok: true, ...result });
+  } catch (e) {
+    console.warn("analytics beacon:", e.message);
+    return res.status(200).json({ ok: false });
+  }
 });
 
 function getSetting(key, fallback = "") {
@@ -848,6 +905,12 @@ app.post(
         ? ` with ${photoFiles.length ? `${photoFiles.length} photo${photoFiles.length === 1 ? "" : "s"}` : ""}${photoFiles.length && videoFiles.length ? " and " : ""}${videoFiles.length ? `${videoFiles.length} video${videoFiles.length === 1 ? "" : "s"}` : ""}`
         : "";
 
+      logSiteActivity(req, "board_post", {
+        actorName: author_name,
+        actorEmail: author_email || null,
+        details: `Board: ${title.slice(0, 80)}${mediaNote} · ${CONTENT_STATUS}`,
+      });
+
       setFlash(
         req,
         "success",
@@ -1337,6 +1400,11 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
   );
 
   const spouseNote = spouse_full_name ? " (with spouse)" : "";
+  logSiteActivity(req, "member_submit", {
+    actorName: contributor_name,
+    actorEmail: contributor_email,
+    details: `Member: ${full_name}${spouseNote} · ${CONTENT_STATUS}`,
+  });
   if (!MODERATION_ENABLED) {
     const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(subId);
     publishMemberSubmission(sub, null);
@@ -1376,18 +1444,24 @@ app.post("/contribute/story", contributeLimiter, requireContributorPin, (req, re
     return res.redirect("/contribute/story");
   }
   const year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
+  const storyTitle = (req.body.title || "").trim() || null;
   db.prepare(`
     INSERT INTO stories (reunion_year, title, body, contributor_name, contributor_email, story_type, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     year || null,
-    (req.body.title || "").trim() || null,
+    storyTitle,
     body,
     contributor_name,
     (req.body.contributor_email || "").trim() || null,
     (req.body.story_type || "memory").trim(),
     CONTENT_STATUS
   );
+  logSiteActivity(req, "story_submit", {
+    actorName: contributor_name,
+    actorEmail: (req.body.contributor_email || "").trim() || null,
+    details: `Story: ${(storyTitle || body).slice(0, 80)} · ${CONTENT_STATUS}`,
+  });
   setFlash(
     req,
     "success",
@@ -1532,6 +1606,8 @@ app.post("/admin/activity/email-report", requireRole(...ADMIN_ROLES), async (req
 });
 
 app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureAnalyticsTables(db);
+  ensureSiteActivityTable();
   const stats = {
     pendingPhotos: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'pending'").get().c,
     pendingStories: db.prepare("SELECT COUNT(*) AS c FROM stories WHERE status = 'pending'").get().c,
@@ -1545,9 +1621,16 @@ app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {
   const pendingPhotos = db.prepare(`
     SELECT * FROM photos WHERE status = 'pending' ORDER BY submitted_at DESC LIMIT 20
   `).all();
+  let analytics = null;
+  try {
+    analytics = getDashboardAnalytics(db);
+  } catch (e) {
+    console.warn("dashboard analytics:", e.message);
+    analytics = null;
+  }
   const data = localsBase(req);
   clearFlash(req);
-  res.render("admin/dashboard", { ...data, stats, pendingPhotos });
+  res.render("admin/dashboard", { ...data, stats, pendingPhotos, analytics, formatDuration });
 });
 
 app.get("/admin/photos", requireRole(...ADMIN_ROLES), (req, res) => {

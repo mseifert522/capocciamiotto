@@ -1096,27 +1096,96 @@ app.get("/upcoming-reunion", (req, res) => {
     console.warn("2026 reunion seed note:", e.message);
   }
 
-  let focusYear = CURRENT_YEAR;
-  if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(focusYear)) {
-    db.prepare("INSERT INTO reunions (year, title, is_upcoming) VALUES (?, ?, 1)").run(
-      focusYear,
-      `${focusYear} Capoccia–Miotto Family Reunion`
-    );
+  // Ensure current + next year rows exist for navigation
+  for (const y of [CURRENT_YEAR, CURRENT_YEAR + 1]) {
+    if (!db.prepare("SELECT year FROM reunions WHERE year = ?").get(y)) {
+      db.prepare("INSERT INTO reunions (year, title, is_upcoming) VALUES (?, ?, ?)").run(
+        y,
+        `${y} Capoccia–Miotto Family Reunion`,
+        y === CURRENT_YEAR ? 1 : 0
+      );
+    }
   }
 
-  const focusRow = enrichReunion(db, db.prepare("SELECT * FROM reunions WHERE year = ?").get(focusYear));
-  let upcoming = enrichReunion(db, getUpcomingReunion()) || focusRow || null;
-  if (upcoming && upcoming.year) focusYear = upcoming.year;
-  const hasDetails = reunionHasPublicDetails(upcoming);
+  const primary = enrichReunion(db, getUpcomingReunion());
+  const primaryYear = (primary && primary.year) || CURRENT_YEAR;
+
+  // Year archive tabs: recent past through next few years (newest first)
+  const tabFrom = CURRENT_YEAR - 12;
+  const tabTo = CURRENT_YEAR + 3;
+  const yearRows = db.prepare(`
+    SELECT * FROM reunions
+    WHERE year >= ? AND year <= ?
+    ORDER BY year DESC
+  `).all(tabFrom, tabTo);
+
+  // Include any older years that have structured details archived
+  const olderWithDetails = db.prepare(`
+    SELECT * FROM reunions
+    WHERE year < ?
+      AND COALESCE(no_reunion, 0) = 0
+      AND (
+        (place_name IS NOT NULL AND trim(place_name) != '')
+        OR (event_date IS NOT NULL AND trim(event_date) != '')
+        OR (date_text IS NOT NULL AND trim(date_text) != '')
+        OR (summary IS NOT NULL AND trim(summary) != '')
+        OR (pricing_json IS NOT NULL AND trim(pricing_json) != '')
+        OR (schedule_json IS NOT NULL AND trim(schedule_json) != '')
+      )
+    ORDER BY year DESC
+    LIMIT 20
+  `).all(tabFrom);
+
+  const byYear = new Map();
+  [...yearRows, ...olderWithDetails].forEach((row) => {
+    if (!byYear.has(row.year)) byYear.set(row.year, row);
+  });
+  const yearTabs = Array.from(byYear.values())
+    .sort((a, b) => b.year - a.year)
+    .map((row) => {
+      const enriched = enrichReunion(db, row);
+      const has = reunionHasPublicDetails(enriched);
+      return {
+        year: enriched.year,
+        title: enriched.title || `${enriched.year} Capoccia–Miotto Family Reunion`,
+        place: enriched.place_name || enriched.location || null,
+        date_text: enriched.display_date || enriched.date_text || null,
+        hasDetails: has,
+        isCurrent: enriched.year === primaryYear || !!enriched.is_upcoming,
+        isPast: enriched.year < CURRENT_YEAR,
+        isFuture: enriched.year > CURRENT_YEAR,
+        cover_photo_path: enriched.cover_photo_path || null,
+      };
+    });
+
+  // Selected year from ?year= — default to primary upcoming/current
+  let selectedYear = parseInt(req.query.year, 10);
+  if (Number.isNaN(selectedYear) || !byYear.has(selectedYear)) {
+    // Prefer tab that matches primary, else current year, else first tab
+    if (byYear.has(primaryYear)) selectedYear = primaryYear;
+    else if (byYear.has(CURRENT_YEAR)) selectedYear = CURRENT_YEAR;
+    else selectedYear = yearTabs.length ? yearTabs[0].year : CURRENT_YEAR;
+  }
+
+  const selected = enrichReunion(
+    db,
+    byYear.get(selectedYear) || db.prepare("SELECT * FROM reunions WHERE year = ?").get(selectedYear)
+  );
+  const hasDetails = reunionHasPublicDetails(selected);
+  const isViewingCurrent =
+    selected && (selected.year === primaryYear || selected.year === CURRENT_YEAR || !!selected.is_upcoming);
 
   const data = localsBase(req);
   clearFlash(req);
   res.render("upcoming", {
     ...data,
-    upcoming: hasDetails ? upcoming : null,
-    focusYear,
-    focusTitle: (focusRow && focusRow.title) || (upcoming && upcoming.title) || `${focusYear} Capoccia–Miotto Family Reunion`,
+    upcoming: selected,
+    focusYear: selectedYear,
+    focusTitle: (selected && selected.title) || `${selectedYear} Capoccia–Miotto Family Reunion`,
     hasDetails,
+    isViewingCurrent: !!isViewingCurrent,
+    primaryYear,
+    yearTabs,
     showAdminForm: req.query.email === "1" || req.query.email === "admin",
   });
 });
@@ -1231,11 +1300,11 @@ app.post("/upcoming-reunion/email-admin", contributeLimiter, async (req, res) =>
       "success",
       `Thank you, ${organizer_name}. Your ${year} reunion details were emailed to the website administrator for review.`
     );
-    return res.redirect("/upcoming-reunion");
+    return res.redirect(`/upcoming-reunion?year=${encodeURIComponent(year)}`);
   } catch (err) {
     console.error(err);
     setFlash(req, "error", `Could not send email. Please contact ${adminTo}.`);
-    return res.redirect("/upcoming-reunion?email=1#email-admin");
+    return res.redirect(`/upcoming-reunion?year=${encodeURIComponent(year)}&email=1#email-admin`);
   }
 });
 

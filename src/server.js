@@ -1205,17 +1205,18 @@ app.post("/upcoming-reunion/email-admin", contributeLimiter, async (req, res) =>
   const notes = (req.body.notes || "").trim();
   const phone = (req.body.phone || "").trim();
 
+  const yearBack = `/upcoming-reunion?year=${encodeURIComponent(year)}&email=1#email-admin`;
   if (!organizer_name || !organizer_email) {
     setFlash(req, "error", "Please include your name and email so the website administrator can reply.");
-    return res.redirect("/upcoming-reunion?email=1#email-admin");
+    return res.redirect(yearBack);
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(organizer_email)) {
     setFlash(req, "error", "Please enter a valid email address.");
-    return res.redirect("/upcoming-reunion?email=1#email-admin");
+    return res.redirect(yearBack);
   }
   if (!event_date && !event_time && !place_name && !address) {
     setFlash(req, "error", "Please include the reunion date, time, place name, and/or address to email the administrator.");
-    return res.redirect("/upcoming-reunion?email=1#email-admin");
+    return res.redirect(yearBack);
   }
 
   const escapeHtmlLite = (s) =>

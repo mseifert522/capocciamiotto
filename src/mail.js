@@ -45,7 +45,7 @@ function pinEmailBodies(toEmail, requesterName) {
     `Enter this PIN at https://capocciamiotto.com/contribute/pin to:\n` +
     `• Contribute photographs\n` +
     `• Add your name to Family Members and the living family tree\n` +
-    `• Share stories and voice recordings\n\n` +
+    `• Share stories and family information\n\n` +
     `Please keep this PIN within the family.\n\n` +
     `With love,\n` +
     `The Capoccia–Miotto Family Tribute\n` +
@@ -58,7 +58,7 @@ function pinEmailBodies(toEmail, requesterName) {
     `<p>Thank you for joining the <strong>Capoccia–Miotto Family Reunion Tribute</strong>.</p>` +
     `<p>Your family contribution PIN is:</p>` +
     `<p style="font-size:28px;letter-spacing:0.2em;font-weight:700;color:#6b1f2a;background:#faf6f0;padding:16px 20px;border-radius:12px;text-align:center;border:1px solid #e0c98a">${FAMILY_PIN}</p>` +
-    `<p>Enter this PIN at <a href="https://capocciamiotto.com/contribute/pin">capocciamiotto.com/contribute/pin</a> to contribute photographs, add your name to the family tree, and share stories or voice recordings.</p>` +
+    `<p>Enter this PIN at <a href="https://capocciamiotto.com/contribute/pin">capocciamiotto.com/contribute/pin</a> to contribute photographs, add your name to the family tree, and share stories.</p>` +
     `<p>Please keep this PIN within the family.</p>` +
     `<p>With love,<br/>The Capoccia–Miotto Family Tribute<br/>` +
     `<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a><br/>` +

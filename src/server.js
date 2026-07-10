@@ -668,104 +668,14 @@ app.get("/contribute/member", requireContributorPin, (req, res) => {
   });
 });
 
-app.get("/contribute/recording", requireContributorPin, (req, res) => {
-  const members = db.prepare(`
-    SELECT id, full_name, preferred_name, role_in_family, is_patriarch, is_matriarch
-    FROM family_members
-    WHERE visibility = 'public' OR visibility IS NULL
-    ORDER BY
-      CASE WHEN is_patriarch = 1 OR is_matriarch = 1 THEN 0 ELSE 1 END,
-      sort_order ASC, full_name ASC
-  `).all();
-  const data = localsBase(req);
-  clearFlash(req);
-  res.render("contribute-recording", {
-    ...data,
-    members,
-    prefillMemberId: req.query.member || "",
-    pinHolder: req.session.contributorPin || null,
-  });
+// Public voice recording is disabled — only administrators may upload recordings.
+app.get("/contribute/recording", (req, res) => {
+  setFlash(req, "success", "Family voice recordings are shared by administrators. You can listen below.");
+  return res.redirect("/voice-recordings");
 });
-
-app.post("/contribute/recording", contributeLimiter, requireContributorPin, audioUpload.single("recording"), (req, res) => {
-  try {
-    if (!req.file) {
-      setFlash(req, "error", "Please record audio or choose an audio file to upload.");
-      return res.redirect("/contribute/recording");
-    }
-    if (!req.body.permission_confirmed) {
-      setFlash(req, "error", "Please confirm you have permission to share this recording.");
-      return res.redirect("/contribute/recording");
-    }
-
-    const speaker_name = (req.body.speaker_name || "").trim();
-    const contributor_name = (req.body.contributor_name || "").trim()
-      || (req.session.contributorPin && req.session.contributorPin.assignedName)
-      || "";
-    if (!speaker_name || !contributor_name) {
-      setFlash(req, "error", "Please include whose voice this is and your name.");
-      return res.redirect("/contribute/recording");
-    }
-
-    let family_member_id = req.body.family_member_id ? parseInt(req.body.family_member_id, 10) : null;
-    if (family_member_id && Number.isNaN(family_member_id)) family_member_id = null;
-    if (family_member_id) {
-      const exists = db.prepare("SELECT id FROM family_members WHERE id = ?").get(family_member_id);
-      if (!exists) family_member_id = null;
-    }
-
-    const saved = saveAudioUpload(req.file);
-    let recorded_year = req.body.recorded_year ? parseInt(req.body.recorded_year, 10) : null;
-    if (recorded_year && (recorded_year < 1977 || recorded_year > CURRENT_YEAR)) recorded_year = null;
-
-    const allowedTypes = ["story", "memory", "blessing", "tradition", "interview", "other"];
-    const recording_type = allowedTypes.includes(req.body.recording_type) ? req.body.recording_type : "story";
-    const pinId = req.session.contributorPin && req.session.contributorPin.pinId
-      ? req.session.contributorPin.pinId
-      : null;
-
-    const info = db.prepare(`
-      INSERT INTO voice_recordings (
-        title, description, speaker_name, family_member_id, family_branch, recording_type,
-        original_filename, file_path, mime_type, file_size, recorded_year,
-        contributor_name, contributor_email, contributor_phone, pin_id,
-        permission_confirmed, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending')
-    `).run(
-      (req.body.title || "").trim() || null,
-      (req.body.description || "").trim() || null,
-      speaker_name,
-      family_member_id,
-      (req.body.family_branch || "").trim() || null,
-      recording_type,
-      saved.original_filename,
-      saved.file_path,
-      saved.mime_type,
-      saved.file_size,
-      recorded_year,
-      contributor_name,
-      (req.body.contributor_email || "").trim() || null,
-      (req.body.contributor_phone || "").trim() || null,
-      pinId
-    );
-
-    db.prepare(`
-      INSERT INTO contributions_log (kind, ref_id, payload_json, contributor_name, contributor_email, status)
-      VALUES ('voice_recording', ?, ?, ?, ?, 'pending')
-    `).run(
-      info.lastInsertRowid,
-      JSON.stringify({ speaker_name, recording_type, family_member_id }),
-      contributor_name,
-      (req.body.contributor_email || "").trim() || null
-    );
-
-    setFlash(req, "success", "Thank you. Your family recording was received and will appear after administrator review.");
-    res.redirect("/contribute/thanks");
-  } catch (err) {
-    console.error(err);
-    setFlash(req, "error", "We could not save that recording. Please try again with a supported audio file.");
-    res.redirect("/contribute/recording");
-  }
+app.post("/contribute/recording", (req, res) => {
+  setFlash(req, "error", "Public voice recording is not available. Only administrators can share family voices.");
+  return res.redirect("/voice-recordings");
 });
 
 app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, res) => {
@@ -1310,9 +1220,71 @@ app.get("/admin/recordings", requireRole(...ADMIN_ROLES), (req, res) => {
       v.submitted_at DESC
     LIMIT 200
   `).all();
+  const members = db.prepare(`
+    SELECT id, full_name, preferred_name, role_in_family
+    FROM family_members
+    ORDER BY sort_order ASC, full_name ASC
+  `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("admin/recordings", { ...data, recordings });
+  res.render("admin/recordings", { ...data, recordings, members });
+});
+
+app.post("/admin/recordings/upload", requireRole(...ADMIN_ROLES), audioUpload.single("recording"), (req, res) => {
+  try {
+    if (!req.file) {
+      setFlash(req, "error", "Please choose an audio file to upload.");
+      return res.redirect("/admin/recordings");
+    }
+    const speaker_name = (req.body.speaker_name || "").trim();
+    if (!speaker_name) {
+      setFlash(req, "error", "Please include whose voice this is.");
+      return res.redirect("/admin/recordings");
+    }
+    let family_member_id = req.body.family_member_id ? parseInt(req.body.family_member_id, 10) : null;
+    if (family_member_id && Number.isNaN(family_member_id)) family_member_id = null;
+    if (family_member_id) {
+      const exists = db.prepare("SELECT id FROM family_members WHERE id = ?").get(family_member_id);
+      if (!exists) family_member_id = null;
+    }
+    const saved = saveAudioUpload(req.file);
+    let recorded_year = req.body.recorded_year ? parseInt(req.body.recorded_year, 10) : null;
+    if (recorded_year && (recorded_year < 1977 || recorded_year > CURRENT_YEAR)) recorded_year = null;
+    const allowedTypes = ["story", "memory", "blessing", "tradition", "interview", "other"];
+    const recording_type = allowedTypes.includes(req.body.recording_type) ? req.body.recording_type : "story";
+    const publish = req.body.publish === "1";
+
+    db.prepare(`
+      INSERT INTO voice_recordings (
+        title, description, speaker_name, family_member_id, recording_type,
+        original_filename, file_path, mime_type, file_size, recorded_year,
+        contributor_name, permission_confirmed, status, reviewed_at, reviewed_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+    `).run(
+      (req.body.title || "").trim() || null,
+      (req.body.description || "").trim() || null,
+      speaker_name,
+      family_member_id,
+      recording_type,
+      saved.original_filename,
+      saved.file_path,
+      saved.mime_type,
+      saved.file_size,
+      recorded_year,
+      req.session.user.name || req.session.user.email || "Administrator",
+      publish ? "approved" : "pending",
+      publish ? new Date().toISOString().slice(0, 19).replace("T", " ") : null,
+      publish ? req.session.user.id : null
+    );
+
+    logActivity(req.session.user.id, "upload_recording", `Admin uploaded voice for ${speaker_name}`);
+    setFlash(req, "success", publish ? "Recording uploaded and published for listening." : "Recording uploaded (pending). Approve to publish.");
+    res.redirect("/admin/recordings");
+  } catch (err) {
+    console.error(err);
+    setFlash(req, "error", "Could not upload that recording.");
+    res.redirect("/admin/recordings");
+  }
 });
 
 app.post("/admin/recordings/:id/approve", requireRole(...ADMIN_ROLES), (req, res) => {

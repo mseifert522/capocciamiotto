@@ -1,19 +1,49 @@
 <%- include('partials/header', { pageTitle: 'Community Board' }) %>
+<%
+  function formatBoardWhen(raw) {
+    if (!raw) return '';
+    var s = String(raw).trim().replace('T', ' ').replace(/\.\d+Z?$/, '');
+    // SQLite: "YYYY-MM-DD HH:MM:SS"
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return s.slice(0, 16);
+    var y = m[1], mo = m[2], d = m[3];
+    var hh = m[4] || '00', mm = m[5] || '00';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var mon = months[parseInt(mo, 10) - 1] || mo;
+    var h = parseInt(hh, 10);
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    var h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return mon + ' ' + parseInt(d, 10) + ', ' + y + ' · ' + h12 + ':' + mm + ' ' + ampm;
+  }
+  function categoryLabel(cat) {
+    var map = {
+      announcement: 'Announcement',
+      photo_request: 'Photo request',
+      identify: 'Identify',
+      planning: 'Planning',
+      news: 'News',
+      recipe: 'Recipe',
+      memorial: 'Memorial',
+      general: 'General'
+    };
+    return map[cat] || (cat || 'General');
+  }
+%>
 <section class="section board-section">
   <div class="container board-page">
     <header class="section-header board-page-header">
-      <p class="section-eyebrow">Family only · PIN protected · posts go live automatically</p>
+      <p class="section-eyebrow">Family only · PIN protected</p>
       <h2 class="section-title">Community Board</h2>
       <div class="section-rule"></div>
-      <p class="section-lead" style="max-width:42rem;margin-left:auto;margin-right:auto">
-        Every family member with the family PIN can post messages, photos, and videos.
-        Your post appears for the whole family immediately — no waiting for approval.
-        <strong>Only you can edit or delete your own posts</strong> (matched by the internet connection used when you posted). You cannot change someone else’s message.
+      <p class="section-lead board-page-lead">
+        Share messages with the family. Posts go live right away.
+        You can only edit or delete messages you posted from this connection.
       </p>
       <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
         <p class="board-pin-status">
           Signed in as <strong><%= pinHolder.assignedName %></strong>
-          · Signed in for up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes · use <strong>Log out</strong> top right anytime
+          · up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes
         </p>
       <% } %>
     </header>
@@ -26,10 +56,9 @@
           action="/community-board"
           enctype="multipart/form-data"
         >
-          <h3 class="board-compose-title">Post a family message</h3>
+          <h3 class="board-compose-title">New message</h3>
           <p class="hint board-compose-hint">
-            Share a message, photos, and/or video. Posts go live on the right for the whole family automatically.
-            Later you can edit only the posts you made from this same connection.
+            Write a short title and your message. Photos and videos are optional.
           </p>
 
           <div class="form-row">
@@ -46,16 +75,16 @@
               <option value="news">Family news</option>
               <option value="recipe">Recipe or tradition</option>
               <option value="memorial">Memorial</option>
-              <option value="general">General</option>
+              <option value="general" selected>General</option>
             </select>
           </div>
           <div class="form-row">
             <label for="body">Message</label>
-            <textarea id="body" name="body" maxlength="5000" rows="5" placeholder="Write your message to the family… (optional if you attach media)"></textarea>
+            <textarea id="body" name="body" maxlength="5000" rows="4" placeholder="Write your message…"></textarea>
           </div>
 
           <div class="form-row">
-            <label>Photos <span class="bulk-label-note">(bulk / drag &amp; drop)</span></label>
+            <label>Photos <span class="bulk-label-note">(optional)</span></label>
             <div
               class="dropzone bulk-dropzone bulk-dropzone--board"
               data-bulk-upload
@@ -63,9 +92,9 @@
               data-bulk-accept="image"
             >
               <div class="bulk-dropzone-main" data-bulk-trigger>
-                <strong>Drag &amp; drop photos here</strong>
-                <span class="hint">Or tap to choose many photos at once. You can add more before posting.</span>
-                <span class="bulk-dropzone-limits">JPEG, PNG, WebP, GIF · up to 30 photos · 100MB each</span>
+                <strong>Add photos</strong>
+                <span class="hint">Drag &amp; drop or tap to choose</span>
+                <span class="bulk-dropzone-limits">Up to 30 · 100MB each</span>
               </div>
               <input
                 id="board-photos"
@@ -77,15 +106,15 @@
                 style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
               />
               <div class="bulk-toolbar">
-                <button type="button" class="btn btn-secondary" data-bulk-add>Add more photos</button>
-                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear photos</button>
+                <button type="button" class="btn btn-secondary" data-bulk-add>Add photos</button>
+                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear</button>
               </div>
               <p class="bulk-count" data-bulk-count>No photos selected.</p>
               <div class="bulk-previews" data-bulk-previews aria-live="polite"></div>
             </div>
           </div>
           <div class="form-row">
-            <label>Videos <span class="bulk-label-note">(optional bulk)</span></label>
+            <label>Videos <span class="bulk-label-note">(optional)</span></label>
             <div
               class="dropzone bulk-dropzone bulk-dropzone--board"
               data-bulk-upload
@@ -93,8 +122,8 @@
               data-bulk-accept="video"
             >
               <div class="bulk-dropzone-main" data-bulk-trigger>
-                <strong>Drag &amp; drop videos here</strong>
-                <span class="hint">Or tap to choose videos. MP4, WebM, MOV · up to 5 · 100MB each</span>
+                <strong>Add videos</strong>
+                <span class="hint">MP4, WebM, MOV · up to 5</span>
               </div>
               <input
                 id="board-videos"
@@ -106,8 +135,8 @@
                 style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
               />
               <div class="bulk-toolbar">
-                <button type="button" class="btn btn-secondary" data-bulk-add>Add more videos</button>
-                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear videos</button>
+                <button type="button" class="btn btn-secondary" data-bulk-add>Add videos</button>
+                <button type="button" class="btn btn-outline" data-bulk-clear hidden>Clear</button>
               </div>
               <p class="bulk-count" data-bulk-count>No videos selected.</p>
               <div class="bulk-previews bulk-previews--video" data-bulk-previews aria-live="polite"></div>
@@ -135,46 +164,55 @@
             <label for="author_email">Email (private)</label>
             <input type="email" id="author_email" name="author_email" maxlength="160" />
           </div>
-          <button class="btn btn-primary btn-block" type="submit">Post to Board — goes live now</button>
+          <button class="btn btn-primary btn-block" type="submit">Post message</button>
         </form>
       </aside>
 
       <div class="board-feed-wrap">
         <div class="board-feed-head">
-          <h3 class="board-feed-title">Family messages</h3>
-          <p class="hint">Newest at the top · only your own posts show an Edit button on this device/connection</p>
+          <div class="board-feed-head-row">
+            <h3 class="board-feed-title">Messages</h3>
+            <span class="board-feed-count"><%= (posts && posts.length) ? posts.length : 0 %> post<%= (!posts || posts.length === 1) ? '' : 's' %></span>
+          </div>
+          <p class="hint">Newest first · scroll for more</p>
         </div>
         <div class="board-feed" role="feed" aria-label="Community board messages, newest first">
           <% if (!posts || !posts.length) { %>
             <div class="empty board-feed-empty">
               <h3>No messages yet</h3>
-              <p>Be the first to post a message, photo, or video using the form on the left.</p>
+              <p>Be the first to post using the form.</p>
             </div>
           <% } else { %>
             <% posts.forEach(function(post, idx) { %>
               <article
-                class="board-post <%= post.is_pinned ? 'pinned' : '' %>"
+                class="board-post<%= post.is_pinned ? ' pinned' : '' %><%= post.canEdit ? ' is-mine' : '' %>"
                 id="board-post-<%= post.id %>"
                 aria-posinset="<%= idx + 1 %>"
               >
-                <h3><%= post.title %></h3>
-                <p class="board-meta">
-                  <%= post.is_pinned ? 'Pinned · ' : '' %><%= post.category %>
-                  · <%= post.author_name || 'Family' %>
-                  · <%= (post.created_at || '').slice(0, 10) %>
-                  <% if (post.updated_at && post.updated_at !== post.created_at) { %>
-                    · edited <%= (post.updated_at || '').slice(0, 10) %>
-                  <% } %>
-                  <% if (post.media && post.media.length) { %>
-                    · <%= post.media.length %> attachment<%= post.media.length === 1 ? '' : 's' %>
-                  <% } %>
-                  <% if (post.canEdit) { %>
-                    · <span style="color:var(--green);font-weight:600">Your post</span>
-                  <% } %>
-                </p>
+                <header class="board-post-header">
+                  <div class="board-post-identity">
+                    <span class="board-post-author"><%= post.author_name || 'Family member' %></span>
+                    <time class="board-post-when" datetime="<%= post.created_at || '' %>">
+                      <%= formatBoardWhen(post.created_at) %>
+                    </time>
+                    <% if (post.updated_at && post.created_at && String(post.updated_at).slice(0, 16) !== String(post.created_at).slice(0, 16)) { %>
+                      <span class="board-post-edited">edited</span>
+                    <% } %>
+                  </div>
+                  <div class="board-post-tags">
+                    <% if (post.is_pinned) { %><span class="board-tag board-tag--pin">Pinned</span><% } %>
+                    <span class="board-tag"><%= categoryLabel(post.category) %></span>
+                  </div>
+                </header>
+
+                <% if (post.title) { %>
+                  <h3 class="board-post-title"><%= post.title %></h3>
+                <% } %>
+
                 <% if (post.body) { %>
                   <p class="board-post-body"><%= post.body %></p>
                 <% } %>
+
                 <% if (post.media && post.media.length) { %>
                   <div class="board-media">
                     <% post.media.forEach(function(m) { %>
@@ -195,7 +233,7 @@
                           class="board-media-item board-media-item--image"
                           href="<%= m.file_path %>"
                           data-lightbox="<%= m.file_path %>"
-                          data-lightbox-caption="<%= post.title %>"
+                          data-lightbox-caption="<%= post.title || '' %>"
                         >
                           <img
                             src="<%= m.thumb_path || m.file_path %>"
@@ -209,20 +247,14 @@
                 <% } %>
 
                 <% if (post.canEdit) { %>
-                  <div class="board-owner-actions" style="margin-top:0.85rem">
+                  <div class="board-post-actions">
                     <details class="board-edit-details">
-                      <summary class="btn btn-secondary" style="display:inline-block;cursor:pointer;list-style:none">
-                        Edit my message
-                      </summary>
+                      <summary class="board-action-link">Edit</summary>
                       <form
-                        class="form-card"
+                        class="board-edit-form"
                         method="post"
                         action="/community-board/<%= post.id %>/edit"
-                        style="margin-top:0.75rem;padding:1rem"
                       >
-                        <p class="hint" style="margin-bottom:0.75rem">
-                          Only this internet connection can save changes to this post. Other family members cannot edit it.
-                        </p>
                         <div class="form-row">
                           <label for="edit-title-<%= post.id %>">Title *</label>
                           <input type="text" id="edit-title-<%= post.id %>" name="title" required maxlength="200" value="<%= post.title || '' %>" />
@@ -249,24 +281,24 @@
                         </div>
                         <div class="form-row">
                           <label for="edit-body-<%= post.id %>">Message</label>
-                          <textarea id="edit-body-<%= post.id %>" name="body" maxlength="5000" rows="5"><%= post.body || '' %></textarea>
+                          <textarea id="edit-body-<%= post.id %>" name="body" maxlength="5000" rows="4"><%= post.body || '' %></textarea>
                         </div>
                         <div class="form-row">
                           <label for="edit-name-<%= post.id %>">Your name *</label>
                           <input type="text" id="edit-name-<%= post.id %>" name="author_name" required maxlength="120" value="<%= post.author_name || '' %>" />
                         </div>
-                        <div class="btn-row">
-                          <button class="btn btn-primary" type="submit">Save changes</button>
+                        <div class="board-edit-form-actions">
+                          <button class="btn btn-primary btn-sm" type="submit">Save</button>
                         </div>
                       </form>
                     </details>
                     <form
                       method="post"
                       action="/community-board/<%= post.id %>/delete"
-                      style="display:inline-block;margin-left:0.5rem;margin-top:0.5rem"
-                      onsubmit="return confirm('Delete this message from the community board? This cannot be undone.');"
+                      class="board-delete-form"
+                      onsubmit="return confirm('Delete this message? This cannot be undone.');"
                     >
-                      <button class="btn btn-outline" type="submit" style="color:#8b1e1e;border-color:#8b1e1e">Delete my message</button>
+                      <button type="submit" class="board-action-link board-action-link--danger">Delete</button>
                     </form>
                   </div>
                 <% } %>

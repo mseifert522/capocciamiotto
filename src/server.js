@@ -1515,7 +1515,7 @@ app.get("/community-board", requireContributorPin, (req, res) => {
   ensureBoardPostOwnershipColumns();
   const posts = db.prepare(`
     SELECT * FROM board_posts WHERE status = 'approved'
-    ORDER BY is_pinned DESC, created_at DESC LIMIT 100
+    ORDER BY is_pinned DESC, datetime(created_at) DESC, id DESC LIMIT 300
   `).all();
   const mediaMap = mediaForPosts(db, posts.map((p) => p.id));
   posts.forEach((p) => {

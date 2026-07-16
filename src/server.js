@@ -56,10 +56,14 @@ const MODERATION_ENABLED = false;
 const CONTENT_STATUS = "approved";
 const BOARD_STATUS = "approved";
 
-/** Remember family PIN in this browser for up to 90 days (signed cookie). */
+/**
+ * Family PIN / admin session lifetime: 45 minutes, then full sign-out.
+ * (PIN “remember” cookie uses the same window — no multi-day stay signed in.)
+ */
 const PIN_COOKIE_NAME = "cmfr.family";
-const PIN_REMEMBER_DAYS = 90;
-const PIN_REMEMBER_MS = PIN_REMEMBER_DAYS * 24 * 60 * 60 * 1000;
+const SESSION_TIMEOUT_MINUTES = 45;
+const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
+const PIN_REMEMBER_MS = SESSION_TIMEOUT_MS;
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
@@ -78,11 +82,12 @@ app.use(session({
   secret: SECRET,
   resave: false,
   saveUninitialized: false,
+  rolling: false,
   cookie: {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: PIN_REMEMBER_MS, // keep session aligned with PIN remember window
+    maxAge: SESSION_TIMEOUT_MS,
   },
 }));
 
@@ -188,12 +193,42 @@ function matriarchName() {
   return getSetting("matriarch_name_capoccia", "Christine Capoccia");
 }
 
+function isSignedIn(req) {
+  return !!(
+    (req.session && req.session.contributorPin && req.session.contributorPin.pinId) ||
+    (req.session && req.session.user)
+  );
+}
+
+/** Full sign-out: family PIN session + admin session + PIN remember cookie. */
+function logoutRequest(req, res, { flashMessage } = {}) {
+  try {
+    delete req.session.contributorPin;
+    delete req.session.user;
+    delete req.session.authStartedAt;
+  } catch (_) { /* ignore */ }
+  clearPinRememberCookie(res);
+  // Keep cmfr.sid so flash message can ride the next response
+  if (flashMessage) {
+    req.session.flash = { type: "success", message: flashMessage };
+  }
+  // Shrink remaining session cookie window
+  try {
+    req.session.cookie.maxAge = SESSION_TIMEOUT_MS;
+  } catch (_) { /* ignore */ }
+}
+
 function localsBase(req) {
+  const pinHolder = (req.session && req.session.contributorPin) || null;
+  const user = (req.session && req.session.user) || null;
   return {
     siteName: getSetting("site_name", "The Capoccia–Miotto Family Reunion Tribute"),
     foundedYear: 1977,
     currentYear: CURRENT_YEAR,
-    user: req.session.user || null,
+    user,
+    pinHolder,
+    isLoggedIn: !!(user || (pinHolder && pinHolder.pinId)),
+    sessionTimeoutMinutes: SESSION_TIMEOUT_MINUTES,
     path: req.path,
     flash: req.session.flash || null,
     matriarchName: matriarchName(),
@@ -286,7 +321,7 @@ function clearPinRememberCookie(res) {
   });
 }
 
-/** Restore contributor PIN from 90-day browser cookie when session is empty. */
+/** Restore contributor PIN from short-lived browser cookie when session is empty. */
 function restorePinFromCookie(req, res, next) {
   if (req.session.contributorPin && req.session.contributorPin.pinId) {
     // Keep current request IP on the session for ownership / activity
@@ -299,10 +334,44 @@ function restorePinFromCookie(req, res, next) {
   if (remembered) {
     remembered.loginIp = clientIp(req);
     req.session.contributorPin = remembered;
+    if (!req.session.authStartedAt) {
+      req.session.authStartedAt = remembered.verifiedAt || Date.now();
+    }
   } else if (req.cookies && req.cookies[PIN_COOKIE_NAME]) {
     // Invalid / expired / revoked PIN cookie
     clearPinRememberCookie(res);
   }
+  return next();
+}
+
+/**
+ * Absolute 45-minute sign-out for family PIN and admin sessions.
+ * Runs after PIN cookie restore so both cookie + session honor the limit.
+ */
+function enforceAuthTimeout(req, res, next) {
+  try {
+    const hasPin = !!(req.session.contributorPin && req.session.contributorPin.pinId);
+    const hasAdmin = !!req.session.user;
+    if (!hasPin && !hasAdmin) return next();
+
+    const now = Date.now();
+    if (!req.session.authStartedAt) {
+      const fromPin = req.session.contributorPin && req.session.contributorPin.verifiedAt;
+      req.session.authStartedAt = fromPin ? Number(fromPin) : now;
+    }
+    const started = Number(req.session.authStartedAt) || now;
+    if (now - started > SESSION_TIMEOUT_MS) {
+      logoutRequest(req, res);
+      req.session.flash = {
+        type: "error",
+        message: `You were signed out after ${SESSION_TIMEOUT_MINUTES} minutes. Please sign in again with the family PIN (or admin login).`,
+      };
+      // Protected routes will re-challenge; public pages just continue signed out
+      if (typeof req.session.save === "function") {
+        return req.session.save(() => next());
+      }
+    }
+  } catch (_) { /* ignore */ }
   return next();
 }
 
@@ -1057,8 +1126,9 @@ purgeAutomatedTestContent();
 repairPhotoArchiveVisibility();
 restoreCanonicalLeaderPortraits();
 
-// Restore family PIN from 90-day browser cookie on every request
+// Restore family PIN cookie, then enforce 45-minute absolute sign-out
 app.use(restorePinFromCookie);
+app.use(enforceAuthTimeout);
 
 // ---------- Public pages ----------
 app.get("/", (req, res) => {
@@ -2157,16 +2227,18 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
 
   const loginIp = clientIp(req);
   const rememberUntil = setPinRememberCookie(res, row);
+  const verifiedAt = Date.now();
   req.session.contributorPin = {
     pinId: row.id,
     assignedName: row.assigned_name,
-    verifiedAt: Date.now(),
+    verifiedAt,
     rememberUntil,
     fromRememberCookie: false,
     loginIp,
   };
-  // Touch session so cookie maxAge is issued with the longer remember window
-  req.session.cookie.maxAge = PIN_REMEMBER_MS;
+  req.session.authStartedAt = verifiedAt;
+  // Session cookie lives 45 minutes (absolute)
+  req.session.cookie.maxAge = SESSION_TIMEOUT_MS;
 
   ensureSiteActivityTable();
   logSiteActivity(req, "pin_login", {
@@ -2178,7 +2250,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     req,
     "success",
     `Welcome, ${row.assigned_name}. Your PIN was accepted. ` +
-      `This browser is remembered — you will not have to enter the family PIN again for up to ${PIN_REMEMBER_DAYS} days.`
+      `You will stay signed in for ${SESSION_TIMEOUT_MINUTES} minutes, then you’ll be signed out automatically.`
   );
   if (next === "story") return redirectAfterPost(res, "/contribute/story");
   if (next === "member") return redirectAfterPost(res, "/contribute/member");
@@ -2190,10 +2262,37 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
 });
 
 app.post("/contribute/pin/clear", (req, res) => {
-  delete req.session.contributorPin;
-  clearPinRememberCookie(res);
-  setFlash(req, "success", "This browser will no longer remember your family PIN. You can enter it again anytime.");
+  logoutRequest(req, res, {
+    flashMessage: "You are signed out. Enter the family PIN again anytime to contribute.",
+  });
   redirectAfterPost(res, "/contribute/pin");
+});
+
+/** Header Log out — clears family PIN session and admin session. */
+app.post("/logout", (req, res) => {
+  const returnTo = (req.body.return_to || req.get("referer") || "/").toString();
+  let dest = "/";
+  try {
+    if (returnTo.startsWith("/") && !returnTo.startsWith("//")) dest = returnTo.split("?")[0] || "/";
+    else if (returnTo.includes("capocciamiotto.com")) {
+      const u = new URL(returnTo);
+      dest = u.pathname || "/";
+    }
+  } catch (_) {
+    dest = "/";
+  }
+  // Don't send signed-out users back into PIN-gated pages without a PIN
+  if (
+    dest.startsWith("/contribute") ||
+    dest.startsWith("/community-board") ||
+    dest.startsWith("/admin")
+  ) {
+    dest = "/";
+  }
+  logoutRequest(req, res, {
+    flashMessage: "You are signed out. Thank you for visiting the family tribute.",
+  });
+  return redirectAfterPost(res, dest);
 });
 
 app.get("/contribute", requireContributorPin, (req, res) => {
@@ -2569,6 +2668,8 @@ app.post("/admin/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), (req,
     name: user.name,
     role: user.role,
   };
+  req.session.authStartedAt = Date.now();
+  req.session.cookie.maxAge = SESSION_TIMEOUT_MS;
   db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(user.id);
   logActivity(user.id, "login", "Administrator signed in");
   ensureSiteActivityTable();
@@ -2581,7 +2682,8 @@ app.post("/admin/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), (req,
 });
 
 app.post("/admin/logout", (req, res) => {
-  req.session.destroy(() => res.redirect("/"));
+  logoutRequest(req, res, { flashMessage: "Administrator signed out." });
+  return redirectAfterPost(res, "/");
 });
 
 app.get("/admin/activity", requireRole(...ADMIN_ROLES), (req, res) => {

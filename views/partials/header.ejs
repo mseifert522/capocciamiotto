@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/site.css?v=20260711a" />
+  <link rel="stylesheet" href="/css/site.css?v=20260716b" />
 </head>
 <body>
   <div class="tricolor" aria-hidden="true"></div>
@@ -36,6 +36,15 @@
         <a href="/about" class="<%= path.startsWith('/about') ? 'active' : '' %>"<%= path.startsWith('/about') ? ' aria-current="page"' : '' %>><span class="nav-text">About</span></a>
         <a href="/contribute" class="nav-cta<%= path.startsWith('/contribute') ? ' active' : '' %>"<%= path.startsWith('/contribute') ? ' aria-current="page"' : '' %>><span class="nav-text">Contribute</span></a>
       </nav>
+      <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+        <form class="header-logout" method="post" action="/logout" title="Sign out (sessions last <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes)">
+          <input type="hidden" name="return_to" value="<%= path || '/' %>" />
+          <button type="submit" class="header-logout-btn">
+            <span class="nav-text nav-text--long">Log out</span>
+            <span class="nav-text nav-text--short" aria-hidden="true">Out</span>
+          </button>
+        </form>
+      <% } %>
     </div>
   </header>
   <main>

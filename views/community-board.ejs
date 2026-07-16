@@ -13,7 +13,7 @@
       <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
         <p class="board-pin-status">
           Signed in as <strong><%= pinHolder.assignedName %></strong>
-          · You won’t need the family PIN again on this browser for up to 90 days.
+          · Signed in for up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes · use <strong>Log out</strong> top right anytime
         </p>
       <% } %>
     </header>

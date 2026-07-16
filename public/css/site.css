@@ -92,6 +92,40 @@ main { overflow-x: clip; }
   position: relative;
   z-index: 1;
 }
+/* Top-right sign-out (family PIN or admin) */
+.header-logout {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin: 0;
+  margin-left: 0.15rem;
+  order: 3;
+}
+.header-logout-btn {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  background: #fff;
+  border: 1px solid rgba(107, 31, 42, 0.28);
+  border-radius: 999px;
+  min-height: var(--touch);
+  padding: 0.4rem 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(43, 33, 28, 0.06);
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.header-logout-btn:hover {
+  color: #fff;
+  background: var(--burgundy);
+  border-color: var(--burgundy);
+  box-shadow: 0 4px 12px rgba(107, 31, 42, 0.22);
+}
+.header-logout-btn:focus-visible {
+  outline: 3px solid var(--gold, #c4a35a);
+  outline-offset: 2px;
+}
 .nav-mobile-label { display: none !important; }
 .nav-text--short { display: none; }
 .nav-links {
@@ -3547,6 +3581,19 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
 /* Tablets and below — hamburger menu + 2-col cards */
 @media (max-width: 960px) {
   :root { --header-h: 3.25rem; }
+  .header-logout {
+    order: 2;
+    margin-left: 0;
+    margin-right: 0.25rem;
+  }
+  .header-logout-btn {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.7rem;
+    min-height: 2.5rem;
+  }
+  .nav-toggle {
+    order: 3;
+  }
 
   /*
    * backdrop-filter on sticky header traps position:fixed children (menu behind page).

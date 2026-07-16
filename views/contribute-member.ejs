@@ -13,7 +13,7 @@
         Contributing as: <%= pinHolder.assignedName %>
       </p>
       <p class="hint" style="margin-bottom:1rem">
-        You won’t have to enter the family PIN again on this browser for up to 90 days.
+        Signed in for up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes. Use <strong>Log out</strong> in the header anytime.
       </p>
     <% } %>
 

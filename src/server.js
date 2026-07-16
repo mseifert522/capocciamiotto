@@ -328,8 +328,14 @@ function requireContributorPin(req, res, next) {
   return res.redirect(`/contribute/pin${pinQs}`);
 }
 
+/** Accept PIN with spaces/dashes (e.g. 2976-5240) — store/match digits only. */
 function normalizePin(raw) {
-  return String(raw || "").replace(/\s+/g, "").trim();
+  return String(raw || "").replace(/\D+/g, "");
+}
+
+/** 303 See Other — proper POST → GET redirect so browsers and clients never re-POST. */
+function redirectAfterPost(res, location) {
+  return res.redirect(303, location);
 }
 
 function logActivity(userId, action, details) {
@@ -931,11 +937,11 @@ app.post(
       });
 
       setFlash(req, "success", `Photo added for ${member.preferred_name || member.full_name}. Thank you!`);
-      res.redirect(`/family-members/${memberId}`);
+      return redirectAfterPost(res, `/family-members/${memberId}`);
     } catch (err) {
       console.error(err);
       setFlash(req, "error", err.message || "Could not upload that photo.");
-      res.redirect(`/family-members/${memberId}`);
+      return redirectAfterPost(res, `/family-members/${memberId}`);
     }
   }
 );
@@ -1049,11 +1055,11 @@ app.post(
           ? "Thank you. Your message was submitted for family administrator review."
           : `Thank you. Your message${mediaNote} is now live on the community board.`
       );
-      res.redirect("/community-board");
+      return redirectAfterPost(res, "/community-board");
     } catch (err) {
       console.error("Board post failed:", err);
       setFlash(req, "error", err.message || "Could not publish your message. Please try again.");
-      res.redirect("/community-board");
+      return redirectAfterPost(res, "/community-board");
     }
   }
 );
@@ -1508,12 +1514,19 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
 
   if (!pin || pin.length < 4) {
     setFlash(req, "error", "Please enter the family PIN you were given (at least 4 digits).");
-    return res.redirect(back);
+    return redirectAfterPost(res, back);
   }
 
+  // Match stored PIN either as-entered or digits-only (legacy rows may include separators)
   const row = db.prepare(`
-    SELECT * FROM family_pins WHERE pin_code = ? AND active = 1
-  `).get(pin);
+    SELECT * FROM family_pins
+    WHERE active = 1
+      AND (
+        pin_code = ?
+        OR REPLACE(REPLACE(REPLACE(pin_code, ' ', ''), '-', ''), '.', '') = ?
+      )
+    LIMIT 1
+  `).get(pin, pin);
 
   if (!row) {
     ensureSiteActivityTable();
@@ -1521,7 +1534,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
       details: "Unrecognized PIN attempt",
     });
     setFlash(req, "error", "That PIN was not recognized. Please check the number you were assigned and try again.");
-    return res.redirect(back);
+    return redirectAfterPost(res, back);
   }
 
   db.prepare(`
@@ -1551,20 +1564,20 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     `Welcome, ${row.assigned_name}. Your PIN was accepted. ` +
       `This browser is remembered — you will not have to enter the family PIN again for up to ${PIN_REMEMBER_DAYS} days.`
   );
-  if (next === "story") return res.redirect("/contribute/story");
-  if (next === "member") return res.redirect("/contribute/member");
-  if (next === "board") return res.redirect("/community-board");
-  if (next === "recording") return res.redirect("/voice-recordings");
-  if (next === "upcoming") return res.redirect("/upcoming-reunion#reunion-details-form");
-  if (next === "portrait" && memberId) return res.redirect(`/family-members/${encodeURIComponent(memberId)}`);
-  return res.redirect(year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
+  if (next === "story") return redirectAfterPost(res, "/contribute/story");
+  if (next === "member") return redirectAfterPost(res, "/contribute/member");
+  if (next === "board") return redirectAfterPost(res, "/community-board");
+  if (next === "recording") return redirectAfterPost(res, "/voice-recordings");
+  if (next === "upcoming") return redirectAfterPost(res, "/upcoming-reunion#reunion-details-form");
+  if (next === "portrait" && memberId) return redirectAfterPost(res, `/family-members/${encodeURIComponent(memberId)}`);
+  return redirectAfterPost(res, year ? `/contribute?year=${encodeURIComponent(year)}` : "/contribute");
 });
 
 app.post("/contribute/pin/clear", (req, res) => {
   delete req.session.contributorPin;
   clearPinRememberCookie(res);
   setFlash(req, "success", "This browser will no longer remember your family PIN. You can enter it again anytime.");
-  res.redirect("/contribute/pin");
+  redirectAfterPost(res, "/contribute/pin");
 });
 
 app.get("/contribute", requireContributorPin, (req, res) => {
@@ -1586,18 +1599,21 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
     const files = req.files || [];
     if (!files.length) {
       setFlash(req, "error", "Please choose at least one photograph to upload.");
-      return res.redirect("/contribute");
+      return redirectAfterPost(res, "/contribute");
     }
     if (!req.body.permission_confirmed) {
       setFlash(req, "error", "Please confirm you have permission to share these photographs.");
-      return res.redirect("/contribute");
+      return redirectAfterPost(res, "/contribute");
     }
+    const pinName = (req.session.contributorPin && req.session.contributorPin.assignedName) || "";
+    // Prefer a real personal name over the shared "Capoccia–Miotto Family" label
+    const sharedLabel = /^capoccia/i.test(pinName) && /family/i.test(pinName);
     const contributor_name = (req.body.contributor_name || "").trim()
-      || (req.session.contributorPin && req.session.contributorPin.assignedName)
+      || (!sharedLabel ? pinName : "")
       || "";
     if (!contributor_name) {
       setFlash(req, "error", "Please include your name so we can credit the contribution.");
-      return res.redirect("/contribute");
+      return redirectAfterPost(res, "/contribute");
     }
 
     let reunion_year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
@@ -1683,11 +1699,11 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
         ? "Thank you. Your photographs were received and will appear after a family administrator reviews them."
         : "Thank you. Your photographs are live in the family archive."
     );
-    res.redirect("/contribute/thanks");
+    redirectAfterPost(res, "/contribute/thanks");
   } catch (err) {
     console.error(err);
     setFlash(req, "error", err.message || "Upload failed. Please try again with smaller image files.");
-    res.redirect("/contribute");
+    redirectAfterPost(res, "/contribute");
   }
 });
 
@@ -1829,7 +1845,7 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
       `Thank you. Your name${spouseNote} was submitted and will appear on the family tree after a family administrator reviews it.`
     );
   }
-  res.redirect("/contribute/thanks");
+  return redirectAfterPost(res, "/contribute/thanks");
 });
 
 app.get("/contribute/story", requireContributorPin, (req, res) => {
@@ -1878,7 +1894,7 @@ app.post("/contribute/story", contributeLimiter, requireContributorPin, (req, re
       ? "Thank you. Your story was submitted for review."
       : "Thank you. Your story is now published for the family."
   );
-  res.redirect("/contribute/thanks");
+  return redirectAfterPost(res, "/contribute/thanks");
 });
 
 app.get("/corrections", (req, res) => {
@@ -1895,7 +1911,7 @@ app.post("/corrections", contributeLimiter, (req, res) => {
     (req.body.contributor_email || "").trim() || null
   );
   setFlash(req, "success", "Your correction request was sent to the family administrators.");
-  res.redirect("/contribute/thanks");
+  return redirectAfterPost(res, "/contribute/thanks");
 });
 
 app.get("/request-removal", (req, res) => {
@@ -1912,7 +1928,7 @@ app.post("/request-removal", contributeLimiter, (req, res) => {
     (req.body.contributor_email || "").trim() || null
   );
   setFlash(req, "success", "Your removal request was submitted for review.");
-  res.redirect("/contribute/thanks");
+  return redirectAfterPost(res, "/contribute/thanks");
 });
 
 app.get("/contact", (req, res) => {

@@ -132,7 +132,13 @@
       <div class="form-row two">
         <div>
           <label for="contributor_name">Your name *</label>
-          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120" value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
+          <%
+            // Shared family PIN is labeled "Capoccia–Miotto Family" — leave blank so people type their own name
+            var pinPrefill = (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? String(pinHolder.assignedName) : '';
+            var isSharedFamilyPin = /capoccia/i.test(pinPrefill) && /family/i.test(pinPrefill);
+            var contributorPrefill = (!isSharedFamilyPin && pinPrefill) ? pinPrefill : '';
+          %>
+          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120" value="<%= contributorPrefill %>" placeholder="Your full name (for credit in the archive)" />
         </div>
         <div>
           <label for="contributor_email">Your email (private)</label>

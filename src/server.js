@@ -364,7 +364,7 @@ function enforceAuthTimeout(req, res, next) {
       logoutRequest(req, res);
       req.session.flash = {
         type: "error",
-        message: `You were signed out after ${SESSION_TIMEOUT_MINUTES} minutes. Please sign in again with the family PIN (or admin login).`,
+        message: "Please sign in again with the family PIN.",
       };
       // Protected routes will re-challenge; public pages just continue signed out
       if (typeof req.session.save === "function") {
@@ -2249,8 +2249,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   setFlash(
     req,
     "success",
-    `Welcome, ${row.assigned_name}. Your PIN was accepted. ` +
-      `You will stay signed in for ${SESSION_TIMEOUT_MINUTES} minutes, then you’ll be signed out automatically.`
+    `Welcome, ${row.assigned_name}. Your PIN was accepted.`
   );
   if (next === "story") return redirectAfterPost(res, "/contribute/story");
   if (next === "member") return redirectAfterPost(res, "/contribute/member");

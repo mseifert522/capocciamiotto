@@ -43,7 +43,6 @@
       <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
         <p class="board-pin-status">
           Signed in as <strong><%= pinHolder.assignedName %></strong>
-          · up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes
         </p>
       <% } %>
     </header>

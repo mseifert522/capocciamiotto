@@ -12,9 +12,7 @@
       <p style="margin-bottom:0.35rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
         Contributing as: <%= pinHolder.assignedName %>
       </p>
-      <p class="hint" style="margin-bottom:1rem">
-        Signed in for up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes. Use <strong>Log out</strong> in the header anytime.
-      </p>
+
     <% } %>
 
     <form class="form-card" method="post" action="/contribute/member">

@@ -23,9 +23,7 @@
         Contributing as: <%= pinHolder.assignedName %>
         · <a href="#" onclick="document.getElementById('clear-pin-form').submit();return false;" style="color:var(--burgundy)">Forget this browser</a>
       </p>
-      <p class="hint" style="margin-bottom:1rem">
-        Signed in for up to <%= typeof sessionTimeoutMinutes !== 'undefined' ? sessionTimeoutMinutes : 45 %> minutes. Use <strong>Log out</strong> in the header anytime.
-      </p>
+
       <form id="clear-pin-form" method="post" action="/contribute/pin/clear" style="display:none"></form>
     <% } %>
 

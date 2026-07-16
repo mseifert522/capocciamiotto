@@ -83,17 +83,25 @@
           <p class="couple-unit-label"><%= c.label %></p>
           <div class="couple-pair">
             <% if (c.left) { %>
-              <a class="couple-person" href="/family-members/<%= c.left.id %>">
+              <div class="couple-person">
                 <div class="couple-photo">
                   <% if (c.left.portrait_path) { %>
-                    <img src="<%= c.left.portrait_path %>" alt="<%= c.leftName %>" loading="lazy" />
+                    <button
+                      type="button"
+                      class="couple-photo-btn"
+                      data-lightbox="<%= c.left.portrait_path %>"
+                      data-lightbox-caption="<%= c.leftName %>"
+                      aria-label="View full photo of <%= c.leftName %>"
+                    >
+                      <img src="<%= c.left.portrait_path %>" alt="<%= c.leftName %>" loading="lazy" />
+                    </button>
                   <% } else { %>
                     <div class="couple-ph" aria-hidden="true"><%= initial(c.leftName) %></div>
                   <% } %>
                 </div>
-                <h3><%= c.leftName %></h3>
+                <h3><a href="/family-members/<%= c.left.id %>"><%= c.leftName %></a></h3>
                 <p><%= roleOf(c.left, c.leftRole) %></p>
-              </a>
+              </div>
             <% } %>
 
             <div class="couple-join" aria-hidden="true">
@@ -101,17 +109,25 @@
             </div>
 
             <% if (c.right) { %>
-              <a class="couple-person" href="/family-members/<%= c.right.id %>">
+              <div class="couple-person">
                 <div class="couple-photo">
                   <% if (c.right.portrait_path) { %>
-                    <img src="<%= c.right.portrait_path %>" alt="<%= c.rightName %>" loading="lazy" />
+                    <button
+                      type="button"
+                      class="couple-photo-btn"
+                      data-lightbox="<%= c.right.portrait_path %>"
+                      data-lightbox-caption="<%= c.rightName %>"
+                      aria-label="View full photo of <%= c.rightName %>"
+                    >
+                      <img src="<%= c.right.portrait_path %>" alt="<%= c.rightName %>" loading="lazy" />
+                    </button>
                   <% } else { %>
                     <div class="couple-ph" aria-hidden="true"><%= initial(c.rightName) %></div>
                   <% } %>
                 </div>
-                <h3><%= c.rightName %></h3>
+                <h3><a href="/family-members/<%= c.right.id %>"><%= c.rightName %></a></h3>
                 <p><%= roleOf(c.right, c.rightRole) %></p>
-              </a>
+              </div>
             <% } %>
           </div>
         </article>

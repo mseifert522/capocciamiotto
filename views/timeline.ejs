@@ -65,7 +65,13 @@
           <div class="tl-card<%= r.cover_photo_path ? ' tl-card--has-cover' : '' %>">
             <div class="tl-card-accent" aria-hidden="true"></div>
             <% if (r.cover_photo_path) { %>
-              <a class="tl-card-cover" href="/reunion/<%= r.year %>" aria-label="<%= r.year %> reunion cover photo">
+              <button
+                type="button"
+                class="tl-card-cover tl-card-cover-btn"
+                data-lightbox="<%= r.cover_photo_path %>"
+                data-lightbox-caption="<%= r.year %> Capoccia–Miotto Family Reunion"
+                aria-label="View full cover photo for <%= r.year %>"
+              >
                 <img
                   src="<%= r.cover_thumb_path || r.cover_photo_path %>"
                   alt="<%= r.year %> Capoccia–Miotto Family Reunion group photo"
@@ -73,8 +79,8 @@
                   width="760"
                   height="380"
                 />
-                <span class="tl-card-cover-label"><%= r.year %> cover</span>
-              </a>
+                <span class="tl-card-cover-label"><%= r.year %> cover · click to enlarge</span>
+              </button>
             <% } %>
             <div class="tl-card-body">
               <a class="tl-card-main" href="/reunion/<%= r.year %>">

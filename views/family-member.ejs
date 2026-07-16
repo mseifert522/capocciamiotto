@@ -4,7 +4,15 @@
     <article class="card">
       <div class="card-portrait member-portrait-wrap" style="max-height:380px">
         <% if (member.portrait_path) { %>
-          <img src="<%= member.portrait_path %>" alt="<%= member.display_name %>" />
+          <button
+            type="button"
+            class="portrait-lightbox-btn"
+            data-lightbox="<%= member.portrait_path %>"
+            data-lightbox-caption="<%= member.display_name %>"
+            aria-label="View full photo of <%= member.display_name %>"
+          >
+            <img src="<%= member.portrait_path %>" alt="<%= member.display_name %>" />
+          </button>
           <% if (canUploadPhoto) { %>
             <form class="portrait-add-overlay" method="post" action="/family-members/<%= member.id %>/portrait" enctype="multipart/form-data">
               <label class="btn btn-secondary portrait-add-btn">

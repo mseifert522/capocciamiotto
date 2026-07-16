@@ -22,7 +22,14 @@
     </header>
 
     <% if (cover && (cover.web_path || cover.thumb_path)) { %>
-      <figure class="year-cover" data-lightbox data-full="<%= cover.web_path || cover.thumb_path %>" data-caption="<%= cover.title || (reunion.year + ' Capoccia–Miotto Family Reunion') %>">
+      <figure
+        class="year-cover lightbox-zoomable"
+        data-lightbox="<%= cover.web_path || cover.original_path || cover.thumb_path %>"
+        data-lightbox-caption="<%= cover.title || (reunion.year + ' Capoccia–Miotto Family Reunion') %>"
+        role="button"
+        tabindex="0"
+        aria-label="View full cover photo for <%= reunion.year %>"
+      >
         <img
           src="<%= cover.web_path || cover.thumb_path %>"
           alt="<%= cover.title || (reunion.year + ' family reunion cover photograph') %>"
@@ -55,16 +62,17 @@
       <p class="year-gallery-lead">All photos below are also in the <a href="/photo-archive?year=<%= reunion.year %>">Photo Archive</a> for <%= reunion.year %>.</p>
       <div class="photo-grid">
         <% gallery.forEach(function(p) { %>
-          <figure
-            class="photo-tile"
+          <button
+            type="button"
+            class="photo-tile photo-tile-btn"
             style="margin:0"
-            data-lightbox
-            data-full="<%= p.web_path || p.thumb_path %>"
-            data-caption="<%= p.title || 'Reunion photograph' %>"
+            data-lightbox="<%= p.web_path || p.original_path || p.thumb_path %>"
+            data-lightbox-caption="<%= p.title || (peopleByPhoto[p.id] && peopleByPhoto[p.id].map(x => x.person_name).join(', ')) || 'Reunion photograph' %>"
+            aria-label="View full photo<%= p.title ? ': ' + p.title : '' %>"
           >
             <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Reunion photograph' %>" loading="lazy" />
-            <figcaption class="cap"><%= p.title || (peopleByPhoto[p.id] && peopleByPhoto[p.id].map(x => x.person_name).join(', ')) || 'Family photograph' %></figcaption>
-          </figure>
+            <span class="cap"><%= p.title || (peopleByPhoto[p.id] && peopleByPhoto[p.id].map(x => x.person_name).join(', ')) || 'Family photograph' %></span>
+          </button>
         <% }) %>
       </div>
     <% } else if (cover) { %>

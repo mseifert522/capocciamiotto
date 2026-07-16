@@ -4,7 +4,15 @@
     <li>
       <div class="vt-node">
         <% if (n.portrait_path) { %>
-          <img src="<%= n.portrait_path %>" alt="<%= n.name %>" loading="lazy" />
+          <button
+            type="button"
+            class="vt-avatar-btn"
+            data-lightbox="<%= n.portrait_path %>"
+            data-lightbox-caption="<%= n.name %>"
+            aria-label="View full photo of <%= n.name %>"
+          >
+            <img src="<%= n.portrait_path %>" alt="<%= n.name %>" loading="lazy" />
+          </button>
         <% } else { %>
           <div class="vt-avatar-ph" aria-hidden="true"><%= (n.name || "?").charAt(0) %></div>
         <% } %>

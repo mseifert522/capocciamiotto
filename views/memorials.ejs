@@ -13,7 +13,15 @@
           <article class="tribute-card" role="listitem">
             <div class="tribute-card-photo">
               <% if (m.portrait_path) { %>
-                <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+                <button
+                  type="button"
+                  class="portrait-lightbox-btn tribute-card-photo-btn"
+                  data-lightbox="<%= m.portrait_path %>"
+                  data-lightbox-caption="<%= m.display_name %>"
+                  aria-label="View full photo of <%= m.display_name %>"
+                >
+                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+                </button>
               <% } else { %>
                 <div class="tribute-card-photo-placeholder" aria-hidden="true">
                   <span><%= (m.display_name || "?").charAt(0) %></span>

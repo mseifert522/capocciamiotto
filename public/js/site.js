@@ -25,12 +25,92 @@
     });
   }
 
-  // Full-size photo lightbox (home + any [data-lightbox] trigger)
+  // Full-size photo lightbox — explicit [data-lightbox] + any content photo click
   (function initLightbox() {
     let overlay = null;
     let imgEl = null;
     let capEl = null;
     let lastFocus = null;
+
+    const toFullSrc = (url) => {
+      if (!url) return "";
+      let u = String(url).trim();
+      if (!u || u.startsWith("data:")) return "";
+      // Prefer web-size over thumbnail derivatives
+      if (/\/uploads\/thumbs\//i.test(u)) {
+        u = u.replace(/\/uploads\/thumbs\//i, "/uploads/web/");
+      }
+      if (/-thumb\.(jpe?g|png|webp|gif)$/i.test(u)) {
+        u = u.replace(/-thumb\.(jpe?g|png|webp|gif)$/i, ".$1");
+      }
+      return u;
+    };
+
+    const isExcludedImg = (img) => {
+      if (!img || img.tagName !== "IMG") return true;
+      if (img.closest(".lightbox")) return true;
+      if (img.closest("[data-no-lightbox]")) return true;
+      if (img.closest("[data-bulk-previews]")) return true;
+      if (img.closest("header.site-header")) return true;
+      if (img.closest(".nav-toggle, .nav-links")) return true;
+      if (img.closest(".admin-table, .admin-shell, .thumb-sm")) return true;
+      // Form controls / upload widgets (except dedicated photo triggers)
+      if (img.closest("label.btn, .portrait-add-btn, .portrait-add-form, .portrait-add-overlay")) {
+        return true;
+      }
+      const src = img.getAttribute("src") || "";
+      if (!src || src.startsWith("data:")) return true;
+      // Skip tiny decorative icons
+      if (img.width > 0 && img.height > 0 && img.width < 28 && img.height < 28) return true;
+      return false;
+    };
+
+    const captionFrom = (el, img) => {
+      if (!el && !img) return "";
+      if (el) {
+        const fromAttr =
+          el.getAttribute("data-lightbox-caption") ||
+          el.getAttribute("data-caption") ||
+          el.getAttribute("aria-label") ||
+          "";
+        if (fromAttr) return fromAttr.replace(/^View full photo of\s+/i, "").trim();
+      }
+      if (img) {
+        const alt = (img.getAttribute("alt") || "").trim();
+        if (alt) return alt;
+      }
+      if (el) {
+        const cap = el.querySelector(".cap, figcaption, .year-cover-title");
+        if (cap) return (cap.textContent || "").replace(/\s+/g, " ").trim();
+      }
+      return "";
+    };
+
+    const resolveSrc = (trigger, img) => {
+      let src = "";
+      if (trigger) {
+        src =
+          trigger.getAttribute("data-lightbox") ||
+          trigger.getAttribute("data-full") ||
+          trigger.getAttribute("href") ||
+          "";
+        // Empty data-lightbox="" means "use data-full / nested img"
+        if (!src || src === "#" || src.startsWith("javascript:")) src = "";
+        // Don't use non-image page links as the lightbox source
+        if (src && !/\.(jpe?g|png|webp|gif|heic|heif)(\?|#|$)/i.test(src) && !/\/(uploads|portraits)\//i.test(src)) {
+          src = "";
+        }
+      }
+      if (!src && img) {
+        src =
+          img.getAttribute("data-full") ||
+          img.getAttribute("data-lightbox") ||
+          img.currentSrc ||
+          img.getAttribute("src") ||
+          "";
+      }
+      return toFullSrc(src);
+    };
 
     const ensure = () => {
       if (overlay) return overlay;
@@ -59,15 +139,29 @@
           imgEl.removeAttribute("src");
           imgEl.alt = "";
         }
-        if (capEl) capEl.textContent = "";
+        if (capEl) {
+          capEl.textContent = "";
+          capEl.hidden = true;
+        }
         if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
         lastFocus = null;
       };
 
-      closeBtn.addEventListener("click", close);
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) close();
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
       });
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay || e.target === overlay.querySelector(".lightbox-figure")) close();
+      });
+      // Click the enlarged photo also closes (common pattern)
+      if (imgEl) {
+        imgEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          close();
+        });
+      }
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && overlay && !overlay.hidden) {
           e.preventDefault();
@@ -84,8 +178,9 @@
       lastFocus = document.activeElement;
       imgEl.src = src;
       imgEl.alt = alt || caption || "Family photograph";
-      capEl.textContent = caption || "";
-      capEl.hidden = !caption;
+      const text = caption || "";
+      capEl.textContent = text;
+      capEl.hidden = !text;
       box.hidden = false;
       box.classList.add("is-open");
       document.body.classList.add("lightbox-open");
@@ -93,15 +188,100 @@
       if (closeBtn) closeBtn.focus();
     };
 
-    document.addEventListener("click", (e) => {
-      const trigger = e.target.closest("[data-lightbox]");
-      if (!trigger) return;
-      e.preventDefault();
-      const src = trigger.getAttribute("data-lightbox");
-      const caption = trigger.getAttribute("data-lightbox-caption") || "";
-      const img = trigger.querySelector("img");
-      const alt = (img && img.getAttribute("alt")) || caption;
+    const openFromTrigger = (trigger, img) => {
+      const picture = img || (trigger && trigger.tagName === "IMG" ? trigger : null) || (trigger && trigger.querySelector("img"));
+      const src = resolveSrc(trigger, picture);
+      if (!src) return false;
+      const caption = captionFrom(trigger, picture);
+      const alt = (picture && picture.getAttribute("alt")) || caption || "Family photograph";
       open(src, caption, alt);
+      return true;
+    };
+
+    // Mark content photos so CSS can show zoom-in cursor
+    let markScheduled = false;
+    const markZoomable = () => {
+      document.querySelectorAll("main img, .section img, .year-section img").forEach((img) => {
+        if (isExcludedImg(img)) return;
+        if (img.dataset.lightboxReady === "1") return;
+        img.dataset.lightboxReady = "1";
+        img.classList.add("lightbox-zoomable");
+        if (!img.hasAttribute("tabindex")) img.setAttribute("tabindex", "0");
+        if (!img.hasAttribute("role")) img.setAttribute("role", "button");
+        if (!img.getAttribute("aria-label") && img.getAttribute("alt")) {
+          img.setAttribute("aria-label", "View larger photo: " + img.getAttribute("alt"));
+        } else if (!img.getAttribute("aria-label")) {
+          img.setAttribute("aria-label", "View larger photo");
+        }
+      });
+      document.querySelectorAll("[data-lightbox]").forEach((el) => {
+        el.classList.add("lightbox-zoomable");
+      });
+    };
+    const scheduleMark = () => {
+      if (markScheduled) return;
+      markScheduled = true;
+      requestAnimationFrame(() => {
+        markScheduled = false;
+        markZoomable();
+      });
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", markZoomable);
+    } else {
+      markZoomable();
+    }
+    // Photos injected later (e.g. dynamic board) — observe lightly, skip attr-only churn
+    try {
+      const mo = new MutationObserver((mutations) => {
+        for (let i = 0; i < mutations.length; i++) {
+          if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
+            scheduleMark();
+            break;
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (_) {
+      /* ignore */
+    }
+
+    document.addEventListener("click", (e) => {
+      // Explicit lightbox trigger (button, figure, anchor, etc.)
+      const trigger = e.target.closest("[data-lightbox]");
+      if (trigger) {
+        // Allow change-photo controls that sit over portraits
+        if (e.target.closest("input, select, textarea, label.btn, .portrait-add-btn, .portrait-add-overlay form, .portrait-add-form")) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        openFromTrigger(trigger, e.target.closest("img"));
+        return;
+      }
+
+      // Any content photo image
+      const img = e.target.closest("img");
+      if (!img || isExcludedImg(img)) return;
+      // Only treat as photo if it looks like site media or sits in a photo region
+      const src = img.getAttribute("src") || "";
+      const inPhotoRegion = !!img.closest(
+        ".photo-tile, .photo-grid, .couple-photo, .card-portrait, .member-card-photo, .tribute-card-photo, .year-cover, .board-media, .tl-card-cover, .living-tree-avatar, .living-tree-node, .fs-tree, .member-portrait-wrap, main"
+      );
+      if (!inPhotoRegion && !/\/(uploads|portraits)\//i.test(src)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      openFromTrigger(img.closest("a, button, figure, .photo-tile") || img, img);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const img = e.target.closest && e.target.closest("img.lightbox-zoomable");
+      if (!img || isExcludedImg(img)) return;
+      e.preventDefault();
+      openFromTrigger(img.closest("[data-lightbox], a, button, figure") || img, img);
     });
   })();
 

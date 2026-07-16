@@ -81,38 +81,6 @@
   </div>
 </section>
 
-<% if (recentPhotos && recentPhotos.length) { %>
-<section class="section">
-  <div class="container">
-    <header class="section-header">
-      <p class="section-eyebrow">Selected by family administrators</p>
-      <h2 class="section-title">Home Photographs</h2>
-      <div class="section-rule"></div>
-      <p class="section-lead">A curated gallery for the home page. Browse the full family collection in the photo archive and reunion years.</p>
-    </header>
-    <div class="photo-grid">
-      <% recentPhotos.forEach(function(p) { %>
-        <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
-        <% const cap = [p.title, p.reunion_year ? String(p.reunion_year) : ""].filter(Boolean).join(" · ") || "Family photograph"; %>
-        <button
-          type="button"
-          class="photo-tile photo-tile-btn"
-          data-lightbox="<%= fullSrc %>"
-          data-lightbox-caption="<%= cap %>"
-          aria-label="View full photo<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
-        >
-          <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
-          <% if (p.reunion_year) { %><div class="cap"><%= p.reunion_year %></div><% } %>
-        </button>
-      <% }) %>
-    </div>
-    <div style="text-align:center;margin-top:1.5rem">
-      <a class="btn btn-outline" href="/photo-archive">Open full Photo Archive</a>
-    </div>
-  </div>
-</section>
-<% } %>
-
 <section class="section section-alt">
   <div class="container">
     <header class="section-header">

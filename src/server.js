@@ -821,6 +821,7 @@ function repairPhotoArchiveVisibility() {
   }
 }
 
+/** True for solid-color / automation junk that must never appear in Photo Archive. */
 function isAutomatedTestPhotoRow(p) {
   const blob = [
     p.title,
@@ -832,8 +833,16 @@ function isAutomatedTestPhotoRow(p) {
   ]
     .map((x) => String(x || "").toLowerCase())
     .join(" | ");
+  // Exact titles from health-check runs (as shown on photo-archive)
+  if (
+    /auto-?approve verification|bulk multi-?photo test|second automated test photo|automated functionality test photo|cmfr test|open publish check/.test(
+      blob
+    )
+  ) {
+    return true;
+  }
   return (
-    /automated health|auto[- ]?approve|bulk multi-photo|functionality test|second automated|health check|open publish check|board photo health|cmfr-test|healthcheck@example\.com|family auto-publish test/.test(
+    /automated health|auto[- ]?approve|bulk multi-photo|functionality test|second automated|health check|open publish check|board photo health|cmfr-test|healthcheck@example\.com|family auto-publish test|automated functionality|cmfr-test-photo/.test(
       blob
     )
   );
@@ -850,16 +859,55 @@ function deletePhotoRecord(photoId) {
   return true;
 }
 
-/** Remove automated health-check / test uploads from the live archive. */
+/**
+ * Remove automated health-check / test uploads from the live archive.
+ * Also rejects any leftover junk so public queries never surface them.
+ */
 function purgeAutomatedTestContent() {
   try {
     const photos = db.prepare("SELECT * FROM photos ORDER BY id DESC").all();
     let removed = 0;
+    let rejected = 0;
     for (const p of photos) {
-      if (isAutomatedTestPhotoRow(p)) {
-        if (deletePhotoRecord(p.id)) removed += 1;
+      if (!isAutomatedTestPhotoRow(p)) continue;
+      if (deletePhotoRecord(p.id)) {
+        removed += 1;
+      } else {
+        try {
+          db.prepare(`
+            UPDATE photos
+            SET status = 'rejected', may_display_public = 0, visibility = 'private'
+            WHERE id = ?
+          `).run(p.id);
+          rejected += 1;
+        } catch (_) { /* ignore */ }
       }
     }
+
+    // Catch-all by title patterns (SQL) — belt and suspenders
+    try {
+      const hide = db.prepare(`
+        UPDATE photos
+        SET status = 'rejected', may_display_public = 0, visibility = 'private'
+        WHERE status != 'rejected'
+          AND (
+            lower(coalesce(title,'')) LIKE '%auto-approve%'
+            OR lower(coalesce(title,'')) LIKE '%auto approve%'
+            OR lower(coalesce(title,'')) LIKE '%bulk multi-photo%'
+            OR lower(coalesce(title,'')) LIKE '%bulk multi photo%'
+            OR lower(coalesce(title,'')) LIKE '%second automated%'
+            OR lower(coalesce(title,'')) LIKE '%automated functionality%'
+            OR lower(coalesce(title,'')) LIKE '%cmfr test%'
+            OR lower(coalesce(contributor_name,'')) LIKE '%automated health%'
+            OR lower(coalesce(contributor_name,'')) LIKE '%auto approve%'
+            OR lower(coalesce(contributor_email,'')) = 'healthcheck@example.com'
+            OR lower(coalesce(description,'')) LIKE '%functionality test%'
+            OR lower(coalesce(description,'')) LIKE '%automated health test%'
+            OR lower(coalesce(description,'')) LIKE '%safe to delete%'
+          )
+      `).run();
+      if (hide.changes) rejected += hide.changes;
+    } catch (_) { /* ignore */ }
 
     // Test board posts from health checks
     const boardPosts = db.prepare("SELECT id, title, body, author_name FROM board_posts").all();
@@ -867,7 +915,7 @@ function purgeAutomatedTestContent() {
     for (const post of boardPosts) {
       const blob = `${post.title || ""} ${post.body || ""} ${post.author_name || ""}`.toLowerCase();
       if (
-        /automated health|open publish check|board photo health|health check|family auto-publish test/.test(
+        /automated health|open publish check|board photo health|health check|family auto-publish test|auto-approve|bulk multi/.test(
           blob
         )
       ) {
@@ -895,12 +943,21 @@ function purgeAutomatedTestContent() {
       }
     } catch (_) { /* ignore */ }
 
-    if (removed || boardRemoved) {
-      console.log(`[cleanup] removed test photos=${removed} board_posts=${boardRemoved}`);
+    if (removed || rejected || boardRemoved) {
+      console.log(
+        `[cleanup] removed test photos=${removed} rejected=${rejected} board_posts=${boardRemoved}`
+      );
     }
+    return { removed, rejected, boardRemoved };
   } catch (err) {
     console.warn("purgeAutomatedTestContent note:", err.message);
+    return { removed: 0, rejected: 0, boardRemoved: 0, error: err.message };
   }
+}
+
+/** Public listing filter — never show automation junk even if a row slipped through. */
+function filterPublicPhotos(rows) {
+  return (rows || []).filter((p) => !isAutomatedTestPhotoRow(p) && p.status !== "rejected");
 }
 
 /**
@@ -1172,10 +1229,10 @@ app.get("/reunion/:year", (req, res) => {
     db.prepare("INSERT INTO reunions (year, title) VALUES (?, ?)").run(year, `${year} Capoccia–Miotto Family Reunion`);
     reunion = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   }
-  const photos = db.prepare(`
+  const photos = filterPublicPhotos(db.prepare(`
     SELECT * FROM photos WHERE reunion_year = ? AND status = 'approved' AND may_display_public = 1
     ORDER BY featured DESC, submitted_at DESC, id DESC
-  `).all(year);
+  `).all(year));
   const { coverPhoto, galleryPhotos } = resolveYearCoverAndGallery(reunion, photos);
   // If we have a photo cover but reunion.cover_photo_path empty, keep UI consistent
   if (coverPhoto && coverPhoto.web_path && !reunion.cover_photo_path) {
@@ -1204,24 +1261,45 @@ app.get("/reunion/:year", (req, res) => {
 });
 
 app.get("/photo-archive", (req, res) => {
-  // Keep archive complete: re-assert open visibility for any held photos
+  // Delete / hide automation junk on every archive view (self-healing)
+  try {
+    purgeAutomatedTestContent();
+  } catch (_) { /* ignore */ }
+
+  // Keep real family photos visible
   try {
     db.prepare(`
       UPDATE photos
       SET status = 'approved', may_display_public = 1
-      WHERE status = 'pending' OR (status = 'approved' AND COALESCE(may_display_public, 0) = 0)
+      WHERE (status = 'pending' OR (status = 'approved' AND COALESCE(may_display_public, 0) = 0))
+        AND status != 'rejected'
+        AND lower(coalesce(title,'')) NOT LIKE '%auto-approve%'
+        AND lower(coalesce(title,'')) NOT LIKE '%bulk multi%'
+        AND lower(coalesce(title,'')) NOT LIKE '%automated%'
+        AND lower(coalesce(contributor_name,'')) NOT LIKE '%automated health%'
     `).run();
   } catch (_) { /* ignore */ }
 
   const q = (req.query.q || "").trim();
   const year = req.query.year ? parseInt(req.query.year, 10) : null;
   const branch = (req.query.branch || "").trim();
-  // Show every approved family photo (home, contribute, portraits, board catalog)
+  // Show every approved family photo — never test/automation tiles
   let sql = `
     SELECT * FROM photos
     WHERE status = 'approved'
       AND COALESCE(may_display_public, 1) = 1
       AND COALESCE(visibility, 'public') != 'private'
+      AND lower(coalesce(title,'')) NOT LIKE '%auto-approve%'
+      AND lower(coalesce(title,'')) NOT LIKE '%auto approve%'
+      AND lower(coalesce(title,'')) NOT LIKE '%bulk multi%'
+      AND lower(coalesce(title,'')) NOT LIKE '%second automated%'
+      AND lower(coalesce(title,'')) NOT LIKE '%automated functionality%'
+      AND lower(coalesce(title,'')) NOT LIKE '%cmfr test%'
+      AND lower(coalesce(contributor_name,'')) NOT LIKE '%automated health%'
+      AND lower(coalesce(contributor_name,'')) NOT LIKE '%auto approve test%'
+      AND lower(coalesce(contributor_email,'')) != 'healthcheck@example.com'
+      AND lower(coalesce(description,'')) NOT LIKE '%functionality test%'
+      AND lower(coalesce(description,'')) NOT LIKE '%safe to delete%'
   `;
   const params = [];
   if (year) { sql += " AND reunion_year = ?"; params.push(year); }
@@ -1235,7 +1313,7 @@ app.get("/photo-archive", (req, res) => {
     params.push(like, like, like, like, like);
   }
   sql += " ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500";
-  const photos = db.prepare(sql).all(...params);
+  const photos = filterPublicPhotos(db.prepare(sql).all(...params));
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
@@ -3261,6 +3339,20 @@ app.post("/admin/recordings/:id/feature", requireRole(...ADMIN_ROLES), (req, res
 });
 
 app.get("/healthz", (_req, res) => res.type("text").send("ok"));
+
+/**
+ * One-shot maintenance: purge colored test tiles from Photo Archive.
+ * POST with header X-Maintenance-Token matching SESSION_SECRET or MAINTENANCE_TOKEN.
+ */
+app.post("/api/maintenance/purge-test-photos", (req, res) => {
+  const token = (req.get("x-maintenance-token") || req.body?.token || req.query?.token || "").toString();
+  const expected = process.env.MAINTENANCE_TOKEN || process.env.SESSION_SECRET || SECRET;
+  if (!token || !expected || token !== expected) {
+    return res.status(403).json({ ok: false, error: "forbidden" });
+  }
+  const result = purgeAutomatedTestContent();
+  return res.json({ ok: true, ...result });
+});
 
 app.use((err, req, res, _next) => {
   console.error(err);

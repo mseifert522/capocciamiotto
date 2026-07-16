@@ -1630,6 +1630,7 @@ app.get("/upcoming-reunion", (req, res) => {
   ensureUpcomingReunionColumns();
   try {
     apply2025FamilyEmailDetails(db, { force: false });
+    // Apply Gretchen’s 2026 submission whenever source is outdated
     apply2026FamilyEmailDetails(db, { force: false });
   } catch (e) {
     console.warn("reunion seed note:", e.message);
@@ -2956,7 +2957,7 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
       title = ?, date_text = ?, location = ?, host_family = ?, summary = ?,
       event_date = ?, event_date_end = ?, event_time = ?,
       place_name = ?, address = ?, city = ?, state = ?, room_name = ?,
-      organizer_phone = ?, rsvp_deadline = ?, rsvp_notes = ?,
+      organizer_phone = ?, organizer_email = ?, rsvp_deadline = ?, rsvp_notes = ?,
       main_event_label = ?, main_event_when = ?,
       pricing_json = ?, payment_info = ?, venmo_url = ?, venmo_label = ?,
       schedule_json = ?, attending_list = ?, not_attending_list = ?,
@@ -2977,6 +2978,7 @@ app.post("/admin/reunions/:year", requireRole(...ADMIN_ROLES), (req, res) => {
     (req.body.state || "").trim() || null,
     (req.body.room_name || "").trim() || null,
     (req.body.organizer_phone || "").trim() || null,
+    (req.body.organizer_email || "").trim() || null,
     (req.body.rsvp_deadline || "").trim() || null,
     (req.body.rsvp_notes || "").trim() || null,
     (req.body.main_event_label || "").trim() || null,

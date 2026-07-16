@@ -66,6 +66,7 @@
             <span class="upcoming-fact-label">Organizer</span>
             <span class="upcoming-fact-value">
               <%= u.host_family %>
+              <% if (u.organizer_email) { %><br /><span class="upcoming-fact-sub"><a class="upcoming-map-link" href="mailto:<%= u.organizer_email %>"><%= u.organizer_email %></a></span><% } %>
               <% if (u.organizer_phone) { %><br /><span class="upcoming-fact-sub"><a class="upcoming-map-link" href="tel:<%= String(u.organizer_phone).replace(/[^\d+]/g,'') %>"><%= u.organizer_phone %></a></span><% } %>
             </span>
           </div>
@@ -132,8 +133,11 @@
               </p>
             <% } %>
             <% if (u.rsvp_notes) { %><p><%= u.rsvp_notes %></p><% } %>
+            <% if (u.organizer_email) { %>
+              <p>Email <a href="mailto:<%= u.organizer_email %>"><%= u.organizer_email %></a><% if (u.host_family) { %> (<%= u.host_family %>)<% } %>.</p>
+            <% } %>
             <% if (u.organizer_phone) { %>
-              <p>Text or call <a href="tel:<%= String(u.organizer_phone).replace(/[^\d+]/g,'') %>"><%= u.organizer_phone %></a>, or reply to the family organizer email.</p>
+              <p>Text or call <a href="tel:<%= String(u.organizer_phone).replace(/[^\d+]/g,'') %>"><%= u.organizer_phone %></a>.</p>
             <% } %>
           </div>
         <% } %>

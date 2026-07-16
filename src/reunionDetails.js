@@ -9,6 +9,7 @@ const REUNION_DETAIL_COLUMNS = [
   ["state", "TEXT"],
   ["room_name", "TEXT"],
   ["organizer_phone", "TEXT"],
+  ["organizer_email", "TEXT"],
   ["rsvp_deadline", "TEXT"],
   ["rsvp_notes", "TEXT"],
   ["main_event_label", "TEXT"],
@@ -272,8 +273,8 @@ function apply2025FamilyEmailDetails(db, { force = false } = {}) {
 }
 
 /**
- * Seed / refresh 2026 details from the family organizer email (Lori).
- * Only fills empty structured fields unless force=true.
+ * Seed / refresh 2026 details from the family submission (Gretchen Miotto).
+ * Core public facts match the organizer form; optional weekend activities retained.
  */
 function apply2026FamilyEmailDetails(db, { force = false } = {}) {
   ensureReunionDetailSchema(db);
@@ -287,129 +288,46 @@ function apply2026FamilyEmailDetails(db, { force = false } = {}) {
     row = db.prepare("SELECT * FROM reunions WHERE year = ?").get(year);
   }
 
-  // Skip overwrite if already fully seeded and not forced
-  if (!force && row.details_source === "family-email-lori-2026" && row.place_name) {
+  // Skip overwrite if this Gretchen submission is already applied (unless force)
+  if (!force && row.details_source === "family-submit-gretchen-2026-07" && row.place_name) {
     return { ok: true, skipped: true, year };
   }
 
-  const pricing = [
-    { label: "Adults", price: "$42", note: "Sunday lunch" },
-    { label: "Ages 6–12", price: "$10", note: "Sunday lunch" },
-    { label: "Ages 5 and under", price: "$6", note: "Sunday lunch" },
-  ];
+  // Pricing not provided in this submission — leave empty until organizer supplies it
+  const pricing = [];
 
   const activities = [
     {
       day_label: "Friday",
       activity_date: "2026-07-17",
-      time_text: "8:00 PM",
-      title: "1st generation cousin get-together",
-      location: "Lorelie Lounge, Bavarian Inn",
+      time_text: null,
+      title: "Reunion weekend begins",
+      location: "Bavarian Inn Lodge",
       price_info: null,
-      notes: "Casual gathering for first-generation cousins.",
+      notes: "Friday, July 17, 2026 — start of the Capoccia–Miotto family reunion weekend.",
       reservation_required: 0,
       sort_order: 10,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "10:00 AM",
-      title: "Golf",
-      location: null,
-      price_info: null,
-      notes: "First tee time at 10:00 AM.",
-      reservation_required: 0,
-      sort_order: 20,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "10:00 AM",
-      title: "Pretzel making at Bavarian Inn",
-      location: "Bavarian Inn",
-      price_info: "$20 per person · 1 hour",
-      notes: "Need 10 people. Reservation required.",
-      reservation_required: 1,
-      sort_order: 30,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "3:30 PM",
-      title: "Bavarian Belle river boat tour",
-      location: "Frankenmuth",
-      price_info: "$18 adult · $7 ages 12 & under · free ages 4 & under · 1 hour",
-      notes: "No reservation needed.",
-      reservation_required: 0,
-      sort_order: 40,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "5:00 PM",
-      title: "German beer tasting",
-      location: "Bavarian Inn area",
-      price_info: "$20 · ½ hour",
-      notes: "Need 10 people. Reservation required.",
-      reservation_required: 1,
-      sort_order: 50,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "5:00 PM",
-      title: "German wine tasting",
-      location: "Bavarian Inn area",
-      price_info: "$20 · ½ hour",
-      notes: "Need 10 people. Reservation required.",
-      reservation_required: 1,
-      sort_order: 60,
-    },
-    {
-      day_label: "Saturday",
-      activity_date: "2026-07-18",
-      time_text: "8:00 PM",
-      title: "2nd generation cousin get-together",
-      location: "Lorelie Lounge, Bavarian Inn",
-      price_info: null,
-      notes: "Casual gathering for second-generation cousins.",
-      reservation_required: 0,
-      sort_order: 70,
-    },
-    {
-      day_label: "Weekend",
-      activity_date: null,
-      time_text: null,
-      title: "Water park",
-      location: "Bavarian Inn",
-      price_info: null,
-      notes: "Great for kids throughout the weekend.",
-      reservation_required: 0,
-      sort_order: 80,
     },
     {
       day_label: "Sunday",
       activity_date: "2026-07-19",
       time_text: "12:00 PM (noon)",
-      title: "Family lunch & bocce",
-      location: "Austrian Room, Bavarian Inn",
-      price_info: "Adults $42 · Ages 6–12 $10 · Ages 5 & under $6",
-      notes: "Final lunch count requested by July 5. Payment at lunch, by mail, or Venmo to Lori.",
+      title: "Family gathering",
+      location: "Bavarian Inn Lodge",
+      price_info: null,
+      notes: "Sunday, July 19, 2026 at noon. Contact organizer Gretchen Miotto for details.",
       reservation_required: 0,
       sort_order: 90,
     },
   ];
 
-  const attending =
-    "Lori, Wayne, Linda, Ron, Lisa, Joe, Lauren, Grant (4 kids), Steve, Sam, Kelly, Shaun (3 kids), Debbie, Jaclyn, Joe (3 kids), Cindy, Mike, Meghan, Rick (2 kids), Carol, Trisha, Terry, Rachel, Ryan (2 kids), Jen, Ryan (3 kids), Kerri, Mia, Kelly, Adam";
-
-  const notAttending = "Mary Ann, Jack, Michelle, Nick, Tony, Kelly";
+  const attending = "Gretchen, John, Mark, Jamie (and Sloan) are attending.";
 
   const summary =
-    "Weekend reunion at Bavarian Inn in Frankenmuth, Michigan (July 17–19, 2026). " +
-    "Sunday lunch and bocce at noon in the Austrian Room. " +
-    "Optional Friday and Saturday cousin gatherings, golf, pretzel making, river boat tour, tastings, and water park. " +
-    "Contact Lori by email reply or text 817-313-8087. Final lunch count requested by July 5.";
+    "The 2026 Capoccia–Miotto Family Reunion is at Bavarian Inn Lodge in Frankenmuth, Michigan. " +
+    "Weekend begins Friday, July 17, 2026. Main gathering Sunday, July 19, 2026 at noon. " +
+    "Organizer: Gretchen Miotto (ghmiotto@yahoo.com). " +
+    "Gretchen, John, Mark, Jamie (and Sloan) are attending.";
 
   db.prepare(`
     UPDATE reunions SET
@@ -427,6 +345,7 @@ function apply2026FamilyEmailDetails(db, { force = false } = {}) {
       state = ?,
       room_name = ?,
       organizer_phone = ?,
+      organizer_email = ?,
       rsvp_deadline = ?,
       rsvp_notes = ?,
       main_event_label = ?,
@@ -446,32 +365,33 @@ function apply2026FamilyEmailDetails(db, { force = false } = {}) {
     WHERE year = ?
   `).run(
     "2026 Capoccia–Miotto Family Reunion",
-    "July 17–19, 2026",
+    "Friday, July 17 – Sunday, July 19, 2026",
     "Bavarian Inn Lodge, Frankenmuth, MI",
-    "Lori",
+    "Gretchen Miotto",
     summary,
     "2026-07-17",
     "2026-07-19",
-    "Weekend schedule — Sunday lunch at noon",
-    "Bavarian Inn Lodge",
-    "One Covered Bridge Lane",
-    "Frankenmuth",
-    "MI 48734",
-    "Austrian Room",
-    "817-313-8087",
-    "2026-07-05",
-    "Please RSVP for Sunday lunch and bocce if your name is not already on the list, or send any changes. Reply by email or text Lori.",
-    "Sunday lunch & bocce",
     "Sunday, July 19, 2026 at noon",
-    JSON.stringify(pricing),
-    "Payment at the lunch, by mail, or Venmo to Lori.",
-    "https://venmo.com/u/Lori-Irwin-13",
-    "Venmo: Lori-Irwin-13",
+    "Bavarian Inn Lodge",
+    "One Covered Bridge Lane, Frankenmuth, MI 48734",
+    "Frankenmuth",
+    "MI",
+    null,
+    null,
+    "ghmiotto@yahoo.com",
+    null,
+    "Questions or RSVP updates: email Gretchen Miotto at ghmiotto@yahoo.com.",
+    "Main gathering",
+    "Sunday, July 19, 2026 at noon",
+    pricing.length ? JSON.stringify(pricing) : null,
+    null,
+    null,
+    null,
     JSON.stringify(activities),
     attending,
-    notAttending,
-    "family-email-lori-2026",
-    "Lori (family organizer email)",
+    null,
+    "family-submit-gretchen-2026-07",
+    "Gretchen Miotto (family submission)",
     year
   );
 

@@ -44,7 +44,11 @@
           </div>
           <div class="form-row two">
             <div><label>Organizer / host</label><input name="host_family" value="<%= r.host_family || '' %>" /></div>
-            <div><label>Organizer phone</label><input name="organizer_phone" value="<%= r.organizer_phone || '' %>" /></div>
+            <div><label>Organizer email</label><input name="organizer_email" type="email" value="<%= r.organizer_email || '' %>" placeholder="ghmiotto@yahoo.com" /></div>
+          </div>
+          <div class="form-row">
+            <label>Organizer phone</label>
+            <input name="organizer_phone" value="<%= r.organizer_phone || '' %>" />
           </div>
           <div class="form-row two">
             <div><label>Main event label</label><input name="main_event_label" value="<%= r.main_event_label || '' %>" placeholder="Sunday lunch & bocce" /></div>

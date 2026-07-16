@@ -82,45 +82,52 @@ main { overflow-x: clip; }
   padding-top: var(--safe-top);
   isolation: isolate;
 }
+/* Reserve right edge for Log out so nav stays balanced */
+.site-header--signed-in .nav {
+  padding-right: 6.75rem;
+}
 .nav {
   min-height: var(--header-h);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.5rem 0.65rem;
-  padding: 0.45rem 0;
+  padding: 0.55rem 0;
   position: relative;
   z-index: 1;
 }
-/* Top-right Log out — always pinned at end of header row */
+/*
+ * Log out — fixed to the header’s top-right corner (outside the wrapping nav),
+ * so it never drops to a second line or gets hidden by flex wrap.
+ */
 .header-logout {
-  display: flex !important;
-  align-items: center;
-  flex: 0 0 auto;
-  margin: 0 0 0 0.25rem;
-  order: 10;
-  position: relative;
-  z-index: 10005;
+  position: absolute !important;
+  top: calc(var(--safe-top) + 0.55rem);
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  z-index: 10020;
+  display: block !important;
+  margin: 0;
+  padding: 0;
 }
 .header-logout-btn {
   font-family: var(--font-ui);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: #fff !important;
   background: var(--burgundy) !important;
   border: 1px solid var(--burgundy) !important;
   border-radius: 999px;
-  min-height: 2.45rem;
-  padding: 0.4rem 1.05rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 1.15rem;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(107, 31, 42, 0.22);
-  transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease), transform 0.12s var(--ease);
+  box-shadow: 0 4px 14px rgba(107, 31, 42, 0.28);
+  transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 .header-logout-btn:hover {
   background: #5a1a24 !important;
   border-color: #5a1a24 !important;
-  box-shadow: 0 6px 16px rgba(107, 31, 42, 0.28);
+  box-shadow: 0 6px 16px rgba(107, 31, 42, 0.32);
 }
 .header-logout-btn:focus-visible {
   outline: 3px solid var(--gold, #c4a35a);
@@ -131,13 +138,13 @@ main { overflow-x: clip; }
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 0.2rem 0.7rem;
+  gap: 0.2rem 0.55rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
   flex: 1 1 auto;
-  width: auto;
+  width: 100%;
   min-width: 0;
-  max-width: calc(100% - 7rem);
+  max-width: 100%;
 }
 .nav-links a {
   font-family: var(--font-ui);
@@ -3753,26 +3760,6 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
 /* Tablets and below — hamburger menu + 2-col cards */
 @media (max-width: 960px) {
   :root { --header-h: 3.25rem; }
-  .nav.nav--with-logout {
-    flex-wrap: nowrap;
-  }
-  .header-logout {
-    order: 2;
-    margin-left: auto;
-    margin-right: 0.15rem;
-  }
-  .header-logout-btn {
-    font-size: 0.78rem;
-    padding: 0.4rem 0.85rem;
-    min-height: 2.5rem;
-  }
-  .nav-toggle {
-    order: 3;
-    margin-left: 0;
-  }
-  .nav-links {
-    max-width: none;
-  }
 
   /*
    * backdrop-filter on sticky header traps position:fixed children (menu behind page).
@@ -3783,6 +3770,18 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: #faf6f0;
+  }
+  .site-header--signed-in .nav {
+    padding-right: 5.75rem; /* room for absolute Log out */
+  }
+  .header-logout {
+    top: calc(var(--safe-top) + 0.35rem);
+    right: max(3.25rem, calc(env(safe-area-inset-right, 0px) + 3.1rem)); /* left of hamburger */
+  }
+  .header-logout-btn {
+    font-size: 0.78rem;
+    padding: 0.38rem 0.8rem;
+    min-height: 2.4rem;
   }
   .nav-mobile-label { display: none !important; }
   .nav-toggle {

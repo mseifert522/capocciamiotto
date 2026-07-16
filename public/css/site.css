@@ -82,52 +82,52 @@ main { overflow-x: clip; }
   padding-top: var(--safe-top);
   isolation: isolate;
 }
-/* Reserve right edge for Log out so nav stays balanced */
-.site-header--signed-in .nav {
-  padding-right: 6.75rem;
-}
+/*
+ * Desktop header: [ nav links ... ]  [ Contribute | Log out ]
+ * Actions stay top-right; main links stay centered — no orphan second row.
+ */
 .nav {
   min-height: var(--header-h);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem 0.65rem;
-  padding: 0.55rem 0;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  padding: 0.5rem 0;
   position: relative;
   z-index: 1;
 }
-/*
- * Log out — fixed to the header’s top-right corner (outside the wrapping nav),
- * so it never drops to a second line or gets hidden by flex wrap.
- */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  z-index: 10005;
+}
 .header-logout {
-  position: absolute !important;
-  top: calc(var(--safe-top) + 0.55rem);
-  right: max(0.75rem, env(safe-area-inset-right, 0px));
-  z-index: 10020;
   display: block !important;
   margin: 0;
   padding: 0;
 }
 .header-logout-btn {
   font-family: var(--font-ui);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #fff !important;
   background: var(--burgundy) !important;
   border: 1px solid var(--burgundy) !important;
   border-radius: 999px;
-  min-height: 2.5rem;
-  padding: 0.45rem 1.15rem;
+  min-height: 2.45rem;
+  padding: 0.4rem 1rem;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(107, 31, 42, 0.28);
+  box-shadow: 0 4px 12px rgba(107, 31, 42, 0.22);
   transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 .header-logout-btn:hover {
   background: #5a1a24 !important;
   border-color: #5a1a24 !important;
-  box-shadow: 0 6px 16px rgba(107, 31, 42, 0.32);
 }
 .header-logout-btn:focus-visible {
   outline: 3px solid var(--gold, #c4a35a);
@@ -138,23 +138,23 @@ main { overflow-x: clip; }
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 0.2rem 0.55rem;
+  gap: 0.15rem 0.45rem;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1 1 auto;
-  width: 100%;
+  width: auto;
   min-width: 0;
-  max-width: 100%;
+  max-width: none;
 }
 .nav-links a {
   font-family: var(--font-ui);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--ink-soft);
-  min-height: var(--touch);
+  min-height: 2.2rem;
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 0.55rem;
+  padding: 0.3rem 0.48rem;
   border-radius: 999px;
   border: 1px solid transparent;
   transition: color 0.15s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
@@ -178,10 +178,17 @@ main { overflow-x: clip; }
 .nav-cta {
   background: var(--green) !important;
   color: #fff !important;
-  padding: 0.55rem 1.05rem !important;
+  padding: 0.45rem 0.95rem !important;
   border-radius: 999px;
   border: 1px solid transparent !important;
   box-shadow: 0 6px 16px rgba(47, 93, 58, 0.22);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 2.45rem;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 .nav-cta:hover {
   background: #274f31 !important;
@@ -192,11 +199,15 @@ main { overflow-x: clip; }
   border-color: var(--gold) !important;
   box-shadow: 0 4px 14px rgba(107, 31, 42, 0.28), 0 0 0 2px rgba(196, 163, 90, 0.45);
 }
+/* Desktop: Contribute lives in right actions; hide the in-menu copy */
+.nav-cta--in-menu { display: none !important; }
+.nav-cta--bar { display: inline-flex !important; }
+
 .nav-toggle {
   display: none;
   width: var(--touch);
   height: var(--touch);
-  margin-left: auto;
+  margin-left: 0;
   border: 0;
   background: transparent;
   flex-direction: column;
@@ -3752,9 +3763,11 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
 /* ===== Responsive: tablets & phones ===== */
 
 /* Large tablets / small laptops — tighten nav text */
-@media (max-width: 1100px) {
-  .nav-links { gap: 0.15rem 0.55rem; }
-  .nav-links a { font-size: 0.74rem; }
+@media (max-width: 1200px) {
+  .nav-links { gap: 0.1rem 0.35rem; }
+  .nav-links a { font-size: 0.72rem; padding: 0.28rem 0.4rem; }
+  .nav-cta--bar { padding: 0.4rem 0.8rem !important; font-size: 0.78rem; }
+  .header-logout-btn { font-size: 0.78rem; padding: 0.38rem 0.85rem; }
 }
 
 /* Tablets and below — hamburger menu + 2-col cards */
@@ -3771,22 +3784,11 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     -webkit-backdrop-filter: none;
     background: #faf6f0;
   }
-  .site-header--signed-in .nav {
-    padding-right: 5.75rem; /* room for absolute Log out */
-  }
-  .header-logout {
-    top: calc(var(--safe-top) + 0.35rem);
-    right: max(3.25rem, calc(env(safe-area-inset-right, 0px) + 3.1rem)); /* left of hamburger */
-  }
-  .header-logout-btn {
-    font-size: 0.78rem;
-    padding: 0.38rem 0.8rem;
-    min-height: 2.4rem;
-  }
   .nav-mobile-label { display: none !important; }
   .nav-toggle {
     display: flex;
-    margin-left: auto;
+    order: 3;
+    margin-left: 0.15rem;
     z-index: 10003;
     background: rgba(250, 246, 240, 0.95);
   }
@@ -3795,6 +3797,22 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     width: 100%;
     min-height: var(--header-h);
     padding: 0.25rem 0;
+    gap: 0.35rem;
+  }
+  .nav-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  .nav-cta--bar {
+    display: none !important; /* use in-menu Contribute on mobile drawer */
+  }
+  .nav-cta--in-menu {
+    display: inline-flex !important;
+  }
+  .header-logout-btn {
+    font-size: 0.78rem;
+    padding: 0.38rem 0.8rem;
+    min-height: 2.4rem;
   }
   /* Shorter labels on mobile only */
   .nav-text--long { display: none; }

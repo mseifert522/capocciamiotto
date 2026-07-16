@@ -10,7 +10,7 @@ const rateLimit = require("express-rate-limit");
 const multer = require("multer");
 const bcrypt = require("bcryptjs");
 const db = require("./db");
-const { processUpload, isAllowedMime } = require("./photos");
+const { processUpload, isAllowedMime, UPLOAD_ROOT } = require("./photos");
 const { saveAudioUpload, isAllowedAudioMime } = require("./audio");
 const {
   processBoardFile,
@@ -602,13 +602,264 @@ function publishMemberSubmission(sub, reviewedByUserId) {
   return { ok: true, mainId, createdSpouseId, spouseFull };
 }
 
+/** Resolve on-disk path for a public /uploads/... URL. */
+function resolveUploadFsPath(publicPath) {
+  if (!publicPath || typeof publicPath !== "string") return null;
+  const rel = publicPath.replace(/^\/+/, "");
+  if (!rel.startsWith("uploads/")) return null;
+  const underUploadRoot = path.join(UPLOAD_ROOT, rel.replace(/^uploads[\\/]/, ""));
+  const underPublic = path.join(__dirname, "..", "public", rel);
+  if (fs.existsSync(underUploadRoot)) return underUploadRoot;
+  if (fs.existsSync(underPublic)) return underPublic;
+  return underUploadRoot;
+}
+
+function unlinkPublicUpload(publicPath) {
+  const abs = resolveUploadFsPath(publicPath);
+  if (!abs) return;
+  try {
+    if (fs.existsSync(abs)) fs.unlinkSync(abs);
+  } catch (_) { /* ignore */ }
+}
+
+/**
+ * Insert or refresh a row so a file is always visible in Photo Archive + admin.
+ * Used by family contribute, home uploads, portraits, and board images.
+ */
+function ensurePhotoInArchive(fields) {
+  const web = fields.web_path || fields.original_path || null;
+  const original = fields.original_path || fields.web_path || null;
+  const thumb = fields.thumb_path || fields.web_path || null;
+  if (!web && !original) return null;
+
+  const existing = db.prepare(`
+    SELECT id FROM photos
+    WHERE (web_path IS NOT NULL AND web_path = ?)
+       OR (original_path IS NOT NULL AND original_path = ?)
+       OR (thumb_path IS NOT NULL AND thumb_path = ?)
+       OR (web_path IS NOT NULL AND web_path = ?)
+       OR (original_path IS NOT NULL AND original_path = ?)
+    LIMIT 1
+  `).get(web, original, thumb, original, web);
+
+  if (existing) {
+    db.prepare(`
+      UPDATE photos SET
+        status = 'approved',
+        may_display_public = 1,
+        visibility = COALESCE(NULLIF(visibility, ''), 'public'),
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        contributor_name = COALESCE(?, contributor_name),
+        web_path = COALESCE(web_path, ?),
+        thumb_path = COALESCE(thumb_path, ?),
+        original_path = COALESCE(original_path, ?)
+      WHERE id = ? AND status != 'rejected'
+    `).run(
+      fields.title || null,
+      fields.description || null,
+      fields.contributor_name || null,
+      web,
+      thumb,
+      original,
+      existing.id
+    );
+    return existing.id;
+  }
+
+  const info = db.prepare(`
+    INSERT INTO photos (
+      original_filename, original_path, web_path, thumb_path, title, description,
+      reunion_year, family_branch, contributor_name, contributor_email,
+      permission_confirmed, may_display_public, status, visibility,
+      file_size, mime_type, width, height, featured, show_on_home, home_sort, home_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'approved', 'public', ?, ?, ?, ?, 0, ?, ?, ?)
+  `).run(
+    fields.original_filename || null,
+    original,
+    web,
+    thumb,
+    fields.title || null,
+    fields.description || null,
+    fields.reunion_year != null ? fields.reunion_year : null,
+    fields.family_branch || "both",
+    fields.contributor_name || null,
+    fields.contributor_email || null,
+    fields.file_size || null,
+    fields.mime_type || null,
+    fields.width || null,
+    fields.height || null,
+    fields.show_on_home ? 1 : 0,
+    fields.home_sort || 0,
+    fields.home_status || null
+  );
+  return info.lastInsertRowid;
+}
+
+/** Every non-rejected photo must appear in the public archive. */
+function repairPhotoArchiveVisibility() {
+  try {
+    ensureHomePhotoColumns();
+    const fixed = db.prepare(`
+      UPDATE photos
+      SET status = 'approved',
+          may_display_public = 1,
+          visibility = CASE
+            WHEN visibility IS NULL OR visibility = '' OR visibility = 'family' THEN 'public'
+            ELSE visibility
+          END
+      WHERE status IS NULL
+         OR status = ''
+         OR status = 'pending'
+         OR (status = 'approved' AND COALESCE(may_display_public, 0) = 0)
+    `).run();
+
+    // Catalog member portraits that live only on family_members rows
+    let portraitsAdded = 0;
+    const members = db.prepare(`
+      SELECT id, full_name, preferred_name, portrait_path
+      FROM family_members
+      WHERE portrait_path IS NOT NULL AND trim(portrait_path) != ''
+    `).all();
+    for (const m of members) {
+      const name = m.preferred_name || m.full_name || "Family member";
+      const id = ensurePhotoInArchive({
+        web_path: m.portrait_path,
+        original_path: m.portrait_path,
+        thumb_path: m.portrait_path,
+        title: name,
+        description: `Portrait of ${name}`,
+        contributor_name: "Family archive",
+        family_branch: "both",
+      });
+      if (id) portraitsAdded += 1;
+    }
+
+    // Catalog community-board images into the main photo archive
+    let boardAdded = 0;
+    try {
+      ensureBoardMediaTable(db);
+      const boardImgs = db.prepare(`
+        SELECT m.*, p.title AS post_title, p.author_name
+        FROM board_post_media m
+        LEFT JOIN board_posts p ON p.id = m.board_post_id
+        WHERE m.media_type = 'image'
+      `).all();
+      for (const m of boardImgs) {
+        const id = ensurePhotoInArchive({
+          web_path: m.file_path,
+          original_path: m.file_path,
+          thumb_path: m.thumb_path || m.file_path,
+          original_filename: m.original_filename,
+          title: m.post_title ? `Board: ${m.post_title}` : "Community board photo",
+          description: "Shared on the community board",
+          contributor_name: m.author_name || "Family member",
+          mime_type: m.mime_type,
+          file_size: m.file_size,
+        });
+        if (id) boardAdded += 1;
+      }
+    } catch (e) {
+      console.warn("board→archive sync note:", e.message);
+    }
+
+    console.log(
+      `[photo-archive] repaired=${fixed.changes} portraits_cataloged=${portraitsAdded} board_cataloged=${boardAdded}`
+    );
+  } catch (err) {
+    console.warn("repairPhotoArchiveVisibility note:", err.message);
+  }
+}
+
+function isAutomatedTestPhotoRow(p) {
+  const blob = [
+    p.title,
+    p.description,
+    p.contributor_name,
+    p.contributor_email,
+    p.original_filename,
+    p.admin_notes,
+  ]
+    .map((x) => String(x || "").toLowerCase())
+    .join(" | ");
+  return (
+    /automated health|auto[- ]?approve|bulk multi-photo|functionality test|second automated|health check|open publish check|board photo health|cmfr-test|healthcheck@example\.com|family auto-publish test/.test(
+      blob
+    )
+  );
+}
+
+function deletePhotoRecord(photoId) {
+  const p = db.prepare("SELECT * FROM photos WHERE id = ?").get(photoId);
+  if (!p) return false;
+  unlinkPublicUpload(p.original_path);
+  unlinkPublicUpload(p.web_path);
+  unlinkPublicUpload(p.thumb_path);
+  db.prepare("DELETE FROM photo_people WHERE photo_id = ?").run(photoId);
+  db.prepare("DELETE FROM photos WHERE id = ?").run(photoId);
+  return true;
+}
+
+/** Remove automated health-check / test uploads from the live archive. */
+function purgeAutomatedTestContent() {
+  try {
+    const photos = db.prepare("SELECT * FROM photos ORDER BY id DESC").all();
+    let removed = 0;
+    for (const p of photos) {
+      if (isAutomatedTestPhotoRow(p)) {
+        if (deletePhotoRecord(p.id)) removed += 1;
+      }
+    }
+
+    // Test board posts from health checks
+    const boardPosts = db.prepare("SELECT id, title, body, author_name FROM board_posts").all();
+    let boardRemoved = 0;
+    for (const post of boardPosts) {
+      const blob = `${post.title || ""} ${post.body || ""} ${post.author_name || ""}`.toLowerCase();
+      if (
+        /automated health|open publish check|board photo health|health check|family auto-publish test/.test(
+          blob
+        )
+      ) {
+        try {
+          const media = db.prepare("SELECT * FROM board_post_media WHERE board_post_id = ?").all(post.id);
+          for (const m of media) {
+            unlinkPublicUpload(m.file_path);
+            unlinkPublicUpload(m.thumb_path);
+          }
+          db.prepare("DELETE FROM board_post_media WHERE board_post_id = ?").run(post.id);
+        } catch (_) { /* table may not exist */ }
+        db.prepare("DELETE FROM board_posts WHERE id = ?").run(post.id);
+        boardRemoved += 1;
+      }
+    }
+
+    // Test family-member submissions
+    try {
+      const subs = db.prepare("SELECT id, full_name, contributor_name, contributor_email FROM family_member_submissions").all();
+      for (const s of subs) {
+        const blob = `${s.full_name || ""} ${s.contributor_name || ""} ${s.contributor_email || ""}`.toLowerCase();
+        if (/healthcheck|automated health|test healthcheck/.test(blob)) {
+          db.prepare("DELETE FROM family_member_submissions WHERE id = ?").run(s.id);
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    if (removed || boardRemoved) {
+      console.log(`[cleanup] removed test photos=${removed} board_posts=${boardRemoved}`);
+    }
+  } catch (err) {
+    console.warn("purgeAutomatedTestContent note:", err.message);
+  }
+}
+
 /**
  * Publish any backlog still sitting in pending.
  * All family-PIN content types auto-approve — never leave contributions waiting.
  */
 function publishPendingBacklog() {
   try {
-    const photos = db.prepare("UPDATE photos SET status = 'approved' WHERE status = 'pending'").run();
+    const photos = db.prepare("UPDATE photos SET status = 'approved', may_display_public = 1 WHERE status = 'pending'").run();
     db.prepare("UPDATE photo_people SET status = 'approved' WHERE status = 'pending'").run();
     const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
     const stories = db.prepare("UPDATE stories SET status = 'approved' WHERE status = 'pending'").run();
@@ -637,7 +888,12 @@ function publishPendingBacklog() {
   }
 }
 
+// Order: open-publish pending → archive every photo → remove automated test clutter
 publishPendingBacklog();
+repairPhotoArchiveVisibility();
+purgeAutomatedTestContent();
+// Re-run archive repair after purge so real portraits/board images remain cataloged
+repairPhotoArchiveVisibility();
 
 // Restore family PIN from 90-day browser cookie on every request
 app.use(restorePinFromCookie);
@@ -843,10 +1099,25 @@ app.get("/reunion/:year", (req, res) => {
 });
 
 app.get("/photo-archive", (req, res) => {
+  // Keep archive complete: re-assert open visibility for any held photos
+  try {
+    db.prepare(`
+      UPDATE photos
+      SET status = 'approved', may_display_public = 1
+      WHERE status = 'pending' OR (status = 'approved' AND COALESCE(may_display_public, 0) = 0)
+    `).run();
+  } catch (_) { /* ignore */ }
+
   const q = (req.query.q || "").trim();
   const year = req.query.year ? parseInt(req.query.year, 10) : null;
   const branch = (req.query.branch || "").trim();
-  let sql = `SELECT * FROM photos WHERE status = 'approved' AND may_display_public = 1`;
+  // Show every approved family photo (home, contribute, portraits, board catalog)
+  let sql = `
+    SELECT * FROM photos
+    WHERE status = 'approved'
+      AND COALESCE(may_display_public, 1) = 1
+      AND COALESCE(visibility, 'public') != 'private'
+  `;
   const params = [];
   if (year) { sql += " AND reunion_year = ?"; params.push(year); }
   if (branch) { sql += " AND (family_branch = ? OR family_branch = 'both')"; params.push(branch); }
@@ -858,7 +1129,7 @@ app.get("/photo-archive", (req, res) => {
     const like = `%${q}%`;
     params.push(like, like, like, like, like);
   }
-  sql += " ORDER BY reunion_year DESC, featured DESC, submitted_at DESC LIMIT 120";
+  sql += " ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500";
   const photos = db.prepare(sql).all(...params);
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
@@ -936,22 +1207,32 @@ app.post(
     }
     try {
       const processed = await processUpload(req.file);
+      const portraitUrl = processed.web_path || processed.original_path;
       db.prepare(`
         UPDATE family_members
         SET portrait_path = ?, updated_at = datetime('now')
         WHERE id = ?
-      `).run(processed.web_path || processed.original_path, memberId);
+      `).run(portraitUrl, memberId);
 
+      const memberName = member.preferred_name || member.full_name;
       const actor =
         (req.session.contributorPin && req.session.contributorPin.assignedName) ||
         (req.session.user && (req.session.user.name || req.session.user.email)) ||
         "Family member";
+      // Also land in Photo Archive automatically
+      ensurePhotoInArchive({
+        ...processed,
+        title: memberName,
+        description: `Portrait of ${memberName}`,
+        contributor_name: actor,
+        family_branch: member.family_branch || "both",
+      });
       logSiteActivity(req, "portrait_upload", {
         actorName: actor,
-        details: `Portrait for ${member.preferred_name || member.full_name} (id ${memberId})`,
+        details: `Portrait for ${memberName} (id ${memberId}) · archive`,
       });
 
-      setFlash(req, "success", `Photo added for ${member.preferred_name || member.full_name}. Thank you!`);
+      setFlash(req, "success", `Photo added for ${memberName} and published in the Photo Archive. Thank you!`);
       return redirectAfterPost(res, `/family-members/${memberId}`);
     } catch (err) {
       console.error(err);
@@ -1054,6 +1335,21 @@ app.post(
           processed.file_size,
           sort++
         );
+        // Board photos also appear in the main Photo Archive automatically
+        if (processed.media_type === "image") {
+          ensurePhotoInArchive({
+            original_filename: processed.original_filename,
+            original_path: processed.file_path,
+            web_path: processed.file_path,
+            thumb_path: processed.thumb_path || processed.file_path,
+            title: `Board: ${title}`.slice(0, 200),
+            description: body ? body.slice(0, 500) : "Shared on the community board",
+            contributor_name: author_name,
+            contributor_email: author_email || null,
+            mime_type: processed.mime_type,
+            file_size: processed.file_size,
+          });
+        }
       }
 
       const mediaNote = allFiles.length
@@ -1063,7 +1359,7 @@ app.post(
       logSiteActivity(req, "board_post", {
         actorName: author_name,
         actorEmail: author_email || null,
-        details: `Board: ${title.slice(0, 80)}${mediaNote} · live`,
+        details: `Board: ${title.slice(0, 80)}${mediaNote} · live · archive`,
       });
 
       setFlash(
@@ -1692,10 +1988,11 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
         contributor_name,
         contributor_email: (req.body.contributor_email || "").trim() || null,
         contributor_phone: (req.body.contributor_phone || "").trim() || null,
-        may_display_public: req.body.may_display_public === "0" ? 0 : 1,
-        status: CONTENT_STATUS,
+        // Family PIN uploads always enter the public Photo Archive immediately
+        may_display_public: 1,
+        status: "approved",
       });
-      peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name, CONTENT_STATUS));
+      peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name, "approved"));
     }
 
     const actor =
@@ -2064,27 +2361,41 @@ app.get("/admin", requireRole(...ADMIN_ROLES), (req, res) => {
 });
 
 app.get("/admin/photos", requireRole(...ADMIN_ROLES), (req, res) => {
-  const status = req.query.status || "pending";
-  const photos = db.prepare(`
-    SELECT * FROM photos WHERE status = ? ORDER BY submitted_at DESC LIMIT 200
-  `).all(status);
+  // Default to all photos — auto-approved uploads no longer sit in "pending"
+  const status = (req.query.status || "all").toLowerCase();
+  let photos;
+  if (status === "all") {
+    photos = db.prepare(`
+      SELECT * FROM photos ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500
+    `).all();
+  } else {
+    photos = db.prepare(`
+      SELECT * FROM photos WHERE status = ? ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500
+    `).all(status);
+  }
   const people = {};
   photos.forEach((p) => {
     people[p.id] = db.prepare("SELECT * FROM photo_people WHERE photo_id = ?").all(p.id);
   });
+  const counts = {
+    all: db.prepare("SELECT COUNT(*) AS c FROM photos").get().c,
+    approved: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'approved'").get().c,
+    pending: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'pending'").get().c,
+    rejected: db.prepare("SELECT COUNT(*) AS c FROM photos WHERE status = 'rejected'").get().c,
+  };
   const data = localsBase(req);
   clearFlash(req);
-  res.render("admin/photos", { ...data, photos, people, status });
+  res.render("admin/photos", { ...data, photos, people, status, counts });
 });
 
 app.post("/admin/photos/:id/approve", requireRole(...ADMIN_ROLES), (req, res) => {
   db.prepare(`
-    UPDATE photos SET status = 'approved', reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?
+    UPDATE photos SET status = 'approved', may_display_public = 1, reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?
   `).run(req.session.user.id, req.params.id);
   db.prepare(`UPDATE photo_people SET status = 'approved' WHERE photo_id = ?`).run(req.params.id);
   logActivity(req.session.user.id, "approve_photo", `photo ${req.params.id}`);
-  setFlash(req, "success", "Photograph approved.");
-  res.redirect("/admin/photos?status=pending");
+  setFlash(req, "success", "Photograph approved and visible in the Photo Archive.");
+  res.redirect("/admin/photos?status=all");
 });
 
 app.post("/admin/photos/:id/reject", requireRole(...ADMIN_ROLES), (req, res) => {
@@ -2092,8 +2403,28 @@ app.post("/admin/photos/:id/reject", requireRole(...ADMIN_ROLES), (req, res) => 
     UPDATE photos SET status = 'rejected', reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?
   `).run(req.session.user.id, req.params.id);
   logActivity(req.session.user.id, "reject_photo", `photo ${req.params.id}`);
-  setFlash(req, "success", "Photograph rejected.");
-  res.redirect("/admin/photos?status=pending");
+  setFlash(req, "success", "Photograph rejected (hidden from the Photo Archive).");
+  res.redirect("/admin/photos?status=all");
+});
+
+app.post("/admin/photos/:id/delete", requireRole(...ADMIN_ROLES), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = db.prepare("SELECT id, title, original_filename FROM photos WHERE id = ?").get(id);
+  if (!row) {
+    setFlash(req, "error", "Photograph not found.");
+    return res.redirect("/admin/photos?status=all");
+  }
+  deletePhotoRecord(id);
+  logActivity(req.session.user.id, "delete_photo", `photo ${id} · ${row.title || row.original_filename || ""}`);
+  setFlash(req, "success", "Photograph permanently deleted from the archive.");
+  res.redirect(`/admin/photos?status=${encodeURIComponent(req.body.return_status || "all")}`);
+});
+
+app.post("/admin/photos/purge-tests", requireRole("super_admin", "family_admin"), (req, res) => {
+  purgeAutomatedTestContent();
+  repairPhotoArchiveVisibility();
+  setFlash(req, "success", "Automated test photographs and board posts were removed. Real family photos kept.");
+  res.redirect("/admin/photos?status=all");
 });
 
 app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => {
@@ -2142,7 +2473,7 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
   );
   const back = req.body.return_to === "home"
     ? "/admin/home-photos"
-    : `/admin/photos?status=${req.body.return_status || "pending"}`;
+    : `/admin/photos?status=${req.body.return_status || "all"}`;
   res.redirect(back);
 });
 
@@ -2186,6 +2517,9 @@ app.post(
     try {
       for (const file of files) {
         const processed = await processUpload(file);
+        const photoTitle = files.length === 1 ? titleBase : `${titleBase} (${count + 1})`;
+        // Always approved + public so the photo appears in Photo Archive immediately.
+        // Home page placement still waits for explicit Approve under Home Photos.
         db.prepare(`
           INSERT INTO photos (
             original_filename, original_path, web_path, thumb_path,
@@ -2199,8 +2533,8 @@ app.post(
           processed.original_path,
           processed.web_path,
           processed.thumb_path,
-          files.length === 1 ? titleBase : `${titleBase} (${count + 1})`,
-          (req.body.description || "").trim() || "Homepage gallery photograph (awaiting approval).",
+          photoTitle,
+          (req.body.description || "").trim() || "Homepage gallery photograph (visible in Photo Archive; home placement pending approval).",
           req.session.user.name || req.session.user.email || "Administrator",
           sort,
           processed.file_size,
@@ -2212,11 +2546,11 @@ app.post(
         sort += 10;
         count += 1;
       }
-      logActivity(req.session.user.id, "home_photo_upload", `${count} home photo(s) pending approval`);
+      logActivity(req.session.user.id, "home_photo_upload", `${count} home photo(s) in archive; home placement pending`);
       setFlash(
         req,
         "success",
-        `${count} photograph${count === 1 ? "" : "s"} uploaded and waiting for your approval. Nothing is live on the home page until you click Approve.`
+        `${count} photograph${count === 1 ? "" : "s"} uploaded and already in the Photo Archive. Home page placement still needs Approve on this screen.`
       );
     } catch (err) {
       console.error(err);

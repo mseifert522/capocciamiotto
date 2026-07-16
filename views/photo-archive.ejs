@@ -5,6 +5,7 @@
       <p class="section-eyebrow">Search the album</p>
       <h2 class="section-title">Photo Archive</h2>
       <div class="section-rule"></div>
+      <p class="section-lead">Every family photograph uploaded with the family PIN — including home gallery uploads, member portraits, and board photos — appears here automatically once it is approved (approval is automatic for family PIN logins).</p>
     </header>
     <form class="form-card" method="get" action="/photo-archive" style="margin-bottom:1.5rem">
       <div class="form-row two">
@@ -41,13 +42,21 @@
     <% if (photos.length) { %>
       <div class="photo-grid">
         <% photos.forEach(function(p) { %>
-          <a class="photo-tile<%= p.featured ? ' photo-tile--cover' : '' %>" href="<%= p.reunion_year ? '/reunion/' + p.reunion_year : '/photo-archive' %>">
+          <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
+          <% const cap = [p.featured ? "Cover" : "", p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Family photograph"; %>
+          <button
+            type="button"
+            class="photo-tile photo-tile-btn<%= p.featured ? ' photo-tile--cover' : '' %>"
+            data-lightbox="<%= fullSrc %>"
+            data-lightbox-caption="<%= cap %>"
+            aria-label="View full photo<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
+          >
             <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
             <div class="cap">
               <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
               <%= p.reunion_year || 'Year TBD' %><% if (p.title) { %> · <%= p.title %><% } %>
             </div>
-          </a>
+          </button>
         <% }) %>
       </div>
     <% } else { %>

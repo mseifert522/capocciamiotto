@@ -1,4 +1,4 @@
-<%- include('../partials/header', { pageTitle: 'Moderate Photos' }) %>
+<%- include('../partials/header', { pageTitle: 'Manage Photos' }) %>
 <section class="section" style="padding-top:1rem">
   <div class="container admin-shell">
     <aside class="admin-nav">
@@ -13,21 +13,36 @@
       <a href="/admin/pins">Family PINs</a>
     </aside>
     <div class="admin-main">
-      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Photograph moderation</h2>
-      <p style="margin-bottom:1rem">
-        <a href="/admin/photos?status=pending">Pending</a> ·
-        <a href="/admin/photos?status=approved">Approved</a> ·
-        <a href="/admin/photos?status=rejected">Rejected</a>
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Photograph archive</h2>
+      <p class="hint" style="margin-bottom:1rem">
+        Family PIN uploads are approved automatically and appear in the public Photo Archive right away.
+        Use this screen to edit details, nominate for the home page, or permanently delete mistakes / test uploads.
       </p>
+      <p style="margin-bottom:1rem">
+        <a href="/admin/photos?status=all">All (<%= typeof counts !== 'undefined' ? counts.all : '—' %>)</a> ·
+        <a href="/admin/photos?status=approved">Approved (<%= typeof counts !== 'undefined' ? counts.approved : '—' %>)</a> ·
+        <a href="/admin/photos?status=pending">Pending (<%= typeof counts !== 'undefined' ? counts.pending : '—' %>)</a> ·
+        <a href="/admin/photos?status=rejected">Rejected (<%= typeof counts !== 'undefined' ? counts.rejected : '—' %>)</a>
+        · <strong>viewing: <%= status %></strong>
+      </p>
+      <form method="post" action="/admin/photos/purge-tests" style="margin-bottom:1.25rem" onsubmit="return confirm('Remove automated test photographs and test board posts? Real family photos are kept.');">
+        <button class="btn btn-outline" type="submit">Delete automated test photos</button>
+      </form>
+      <% if (!photos || !photos.length) { %>
+        <div class="empty"><h3>No photographs in this filter.</h3></div>
+      <% } else { %>
       <div class="table-wrap"><table>
         <thead><tr><th>Photo</th><th>Info</th><th>Edit / actions</th></tr></thead>
         <tbody>
         <% photos.forEach(function(p) { %>
           <tr>
-            <td><% if (p.web_path) { %><img class="thumb-sm" src="<%= p.thumb_path || p.web_path %>" alt="" /><% } %></td>
+            <td><% if (p.web_path || p.thumb_path) { %><img class="thumb-sm" src="<%= p.thumb_path || p.web_path %>" alt="" /><% } %></td>
             <td>
-              <strong><%= p.original_filename %></strong><br />
-              By <%= p.contributor_name %> · <%= p.submitted_at %><br />
+              <strong><%= p.title || p.original_filename || ('Photo #' + p.id) %></strong>
+              <span style="display:inline-block;margin-left:0.35rem;font-size:0.8rem;color:var(--ink-muted)">[<%= p.status %>]</span><br />
+              By <%= p.contributor_name || '—' %> · <%= p.submitted_at %><br />
+              Year: <%= p.reunion_year || 'TBD' %>
+              <% if (p.show_on_home || p.home_status) { %> · home: <%= p.home_status || (p.show_on_home ? 'live' : '—') %><% } %><br />
               People: <%= (people[p.id] || []).map(x => x.person_name).join(', ') || '—' %>
             </td>
             <td>
@@ -55,18 +70,25 @@
                   <button class="btn btn-outline" type="submit">Save</button>
                 </div>
               </form>
-              <% if (status === 'pending') { %>
               <div class="inline-actions" style="margin-top:0.5rem">
-                <form method="post" action="/admin/photos/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form>
-                <form method="post" action="/admin/photos/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form>
+                <% if (p.status !== 'approved') { %>
+                  <form method="post" action="/admin/photos/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve / show in archive</button></form>
+                <% } %>
+                <% if (p.status !== 'rejected') { %>
+                  <form method="post" action="/admin/photos/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject / hide</button></form>
+                <% } %>
+                <form method="post" action="/admin/photos/<%= p.id %>/delete" onsubmit="return confirm('Permanently delete this photograph from the archive?');">
+                  <input type="hidden" name="return_status" value="<%= status %>" />
+                  <button class="btn btn-outline" type="submit" style="color:#8b1e1e;border-color:#8b1e1e">Delete forever</button>
+                </form>
               </div>
-              <% } %>
-              <% if (p.original_path) { %><p style="margin-top:0.5rem"><a href="<%= p.original_path %>" target="_blank" rel="noopener">Download original</a></p><% } %>
+              <% if (p.original_path || p.web_path) { %><p style="margin-top:0.5rem"><a href="<%= p.original_path || p.web_path %>" target="_blank" rel="noopener">Open file</a></p><% } %>
             </td>
           </tr>
         <% }) %>
         </tbody>
       </table></div>
+      <% } %>
     </div>
   </div>
 </section>

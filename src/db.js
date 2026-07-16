@@ -1051,13 +1051,15 @@ function seedFamilyTributes() {
       "    └── Patricia, Carol, John, Michael, MaryAnn (and families)"
   );
 
-  // Portrait photos (bundled under /portraits — not under uploads volume)
+  // George Capoccia: always keep the official army portrait (bundled under /portraits).
+  // Do not leave accidental health-check / solid-color uploads on the home page.
   db.prepare(`
     UPDATE family_members
     SET portrait_path = '/portraits/george-capoccia-army.jpg',
         updated_at = datetime('now')
-    WHERE full_name LIKE 'George%Capoccia%'
-       OR preferred_name LIKE 'George%Capoccia%'
+    WHERE full_name LIKE '%George%Capoccia%'
+       OR preferred_name LIKE '%George%Capoccia%'
+       OR preferred_name LIKE 'George G.%Capoccia%'
   `).run();
 
   // Anna portrait (prefer durable uploads path when present; fall back to bundled)

@@ -938,6 +938,59 @@ function publishPendingBacklog() {
   }
 }
 
+/** Keep official leader portraits when a path looks like a lost/test upload. */
+function restoreCanonicalLeaderPortraits() {
+  try {
+    // George: official army portrait (static file always shipped with the app)
+    const georgeFixed = db.prepare(`
+      UPDATE family_members
+      SET portrait_path = '/portraits/george-capoccia-army.jpg',
+          updated_at = datetime('now')
+      WHERE (
+          full_name LIKE '%George%Capoccia%'
+          OR preferred_name LIKE '%George%Capoccia%'
+        )
+        AND (
+          portrait_path IS NULL
+          OR trim(portrait_path) = ''
+          OR portrait_path LIKE '%88b550ba%'
+          OR portrait_path LIKE '%cmfr-test%'
+          OR (
+            portrait_path LIKE '/uploads/web/%'
+            AND portrait_path NOT LIKE '%george%'
+          )
+        )
+    `).run();
+    if (georgeFixed.changes) {
+      console.log(`[portraits] restored George Capoccia army portrait (${georgeFixed.changes} row(s))`);
+    }
+
+    // Christine / Anna: only fill when missing (family-uploaded durable paths preferred)
+    db.prepare(`
+      UPDATE family_members
+      SET portrait_path = '/uploads/portraits/christine-capoccia.jpg',
+          updated_at = datetime('now')
+      WHERE (
+          full_name LIKE '%Christine%Capoccia%'
+          OR preferred_name LIKE '%Christine%Capoccia%'
+        )
+        AND (portrait_path IS NULL OR trim(portrait_path) = '')
+    `).run();
+    db.prepare(`
+      UPDATE family_members
+      SET portrait_path = '/uploads/portraits/anna-miotto-portrait.jpg',
+          updated_at = datetime('now')
+      WHERE (
+          full_name LIKE '%Anna%Miotto%'
+          OR preferred_name LIKE '%Anna%Miotto%'
+        )
+        AND (portrait_path IS NULL OR trim(portrait_path) = '')
+    `).run();
+  } catch (e) {
+    console.warn("restoreCanonicalLeaderPortraits note:", e.message);
+  }
+}
+
 // Order: open-publish pending → archive every photo → remove automated test clutter
 ensureBoardPostOwnershipColumns();
 publishPendingBacklog();
@@ -945,6 +998,7 @@ repairPhotoArchiveVisibility();
 purgeAutomatedTestContent();
 // Re-run archive repair after purge so real portraits/board images remain cataloged
 repairPhotoArchiveVisibility();
+restoreCanonicalLeaderPortraits();
 
 // Restore family PIN from 90-day browser cookie on every request
 app.use(restorePinFromCookie);

@@ -1062,6 +1062,24 @@ function seedFamilyTributes() {
        OR preferred_name LIKE 'George G.%Capoccia%'
   `).run();
 
+  // Tony Capoccia: prefer close-up portrait (less foliage headroom) when missing or still on old wide garden scan
+  db.prepare(`
+    UPDATE family_members
+    SET portrait_path = '/uploads/portraits/tony-capoccia.jpg',
+        updated_at = datetime('now')
+    WHERE (
+        full_name LIKE '%Tony%Capoccia%'
+        OR preferred_name LIKE '%Tony%Capoccia%'
+        OR full_name LIKE '%Anthony%Capoccia%'
+        OR preferred_name LIKE '%Anthony%Capoccia%'
+      )
+      AND (
+        portrait_path IS NULL
+        OR trim(portrait_path) = ''
+        OR portrait_path LIKE '%91f141fc-0de7-4e5a-902a-4f4da79e323e%'
+      )
+  `).run();
+
   // Anna portrait (prefer durable uploads path when present; fall back to bundled)
   db.prepare(`
     UPDATE family_members

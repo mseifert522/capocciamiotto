@@ -46,13 +46,14 @@ const CURRENT_YEAR = new Date().getFullYear();
 const SECRET = process.env.SESSION_SECRET || "Capoccia-Miotto-tribute-change-in-production";
 
 /**
- * Family contributions publish immediately until further notice.
- * To re-enable admin review: set MODERATION_ENABLED=true in secrets and redeploy.
+ * Family PIN contributions always publish immediately — no approval queue.
+ * Photos, family-tree names, stories, and community board posts go live on submit.
+ * (Home-page featured photos remain a separate admin curation step.)
  *
- * Community board is always open-publish for family PIN holders — never held for review.
+ * MODERATION_ENABLED is forced off so a production env flag cannot re-hold PIN content.
  */
-const MODERATION_ENABLED = process.env.MODERATION_ENABLED === "true";
-const CONTENT_STATUS = MODERATION_ENABLED ? "pending" : "approved";
+const MODERATION_ENABLED = false;
+const CONTENT_STATUS = "approved";
 const BOARD_STATUS = "approved";
 
 /** Remember family PIN in this browser for up to 90 days (signed cookie). */
@@ -602,33 +603,34 @@ function publishMemberSubmission(sub, reviewedByUserId) {
 }
 
 /**
- * Publish backlog still sitting in pending.
- * Board posts always go live (family community board is open-publish).
- * Other content only auto-publishes when MODERATION_ENABLED is off.
+ * Publish any backlog still sitting in pending.
+ * All family-PIN content types auto-approve — never leave contributions waiting.
  */
 function publishPendingBacklog() {
   try {
-    // Always release any held community board posts
-    const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
-    if (board.changes) {
-      console.log(`[open-publish] community board backlog approved=${board.changes}`);
-    }
-
-    if (MODERATION_ENABLED) return;
-
     const photos = db.prepare("UPDATE photos SET status = 'approved' WHERE status = 'pending'").run();
     db.prepare("UPDATE photo_people SET status = 'approved' WHERE status = 'pending'").run();
+    const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
     const stories = db.prepare("UPDATE stories SET status = 'approved' WHERE status = 'pending'").run();
+    db.prepare(`
+      UPDATE contributions_log SET status = 'approved'
+      WHERE status = 'pending' AND kind IN ('photo', 'photos', 'family_member', 'story', 'board')
+    `).run();
+
     const pendingMembers = db.prepare(`
       SELECT * FROM family_member_submissions WHERE status = 'pending' ORDER BY id ASC
     `).all();
     let membersPublished = 0;
     for (const sub of pendingMembers) {
-      const result = publishMemberSubmission(sub, null);
-      if (result.ok && !result.already) membersPublished += 1;
+      try {
+        const result = publishMemberSubmission(sub, null);
+        if (result.ok && !result.already) membersPublished += 1;
+      } catch (memberErr) {
+        console.warn("publish member backlog note:", memberErr.message, "id=", sub.id);
+      }
     }
     console.log(
-      `[open-publish] backlog photos=${photos.changes} stories=${stories.changes} members=${membersPublished}`
+      `[open-publish] backlog photos=${photos.changes} board=${board.changes} stories=${stories.changes} members=${membersPublished}`
     );
   } catch (err) {
     console.warn("publishPendingBacklog note:", err.message);
@@ -1709,9 +1711,7 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
     setFlash(
       req,
       "success",
-      MODERATION_ENABLED
-        ? "Thank you. Your photographs were received and will appear after a family administrator reviews them."
-        : "Thank you. Your photographs are live in the family archive."
+      "Thank you. Your photographs are approved and live in the family archive for the whole family to see."
     );
     redirectAfterPost(res, "/contribute/thanks");
   } catch (err) {
@@ -1842,23 +1842,16 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
   logSiteActivity(req, "member_submit", {
     actorName: contributor_name,
     actorEmail: contributor_email,
-    details: `Member: ${full_name}${spouseNote} · ${CONTENT_STATUS}`,
+    details: `Member: ${full_name}${spouseNote} · approved live`,
   });
-  if (!MODERATION_ENABLED) {
-    const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(subId);
-    publishMemberSubmission(sub, null);
-    setFlash(
-      req,
-      "success",
-      `Thank you. Your name${spouseNote} is now on the family tree and Family Members list.`
-    );
-  } else {
-    setFlash(
-      req,
-      "success",
-      `Thank you. Your name${spouseNote} was submitted and will appear on the family tree after a family administrator reviews it.`
-    );
-  }
+  // Family PIN members always land on the tree immediately
+  const sub = db.prepare("SELECT * FROM family_member_submissions WHERE id = ?").get(subId);
+  publishMemberSubmission(sub, null);
+  setFlash(
+    req,
+    "success",
+    `Thank you. Your name${spouseNote} is approved and now live on the family tree and Family Members list.`
+  );
   return redirectAfterPost(res, "/contribute/thanks");
 });
 
@@ -1899,14 +1892,12 @@ app.post("/contribute/story", contributeLimiter, requireContributorPin, (req, re
   logSiteActivity(req, "story_submit", {
     actorName: contributor_name,
     actorEmail: (req.body.contributor_email || "").trim() || null,
-    details: `Story: ${(storyTitle || body).slice(0, 80)} · ${CONTENT_STATUS}`,
+    details: `Story: ${(storyTitle || body).slice(0, 80)} · approved live`,
   });
   setFlash(
     req,
     "success",
-    MODERATION_ENABLED
-      ? "Thank you. Your story was submitted for review."
-      : "Thank you. Your story is now published for the family."
+    "Thank you. Your story is approved and now published for the whole family."
   );
   return redirectAfterPost(res, "/contribute/thanks");
 });

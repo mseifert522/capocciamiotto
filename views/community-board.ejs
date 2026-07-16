@@ -2,9 +2,13 @@
 <section class="section board-section">
   <div class="container board-page">
     <header class="section-header board-page-header">
-      <p class="section-eyebrow">Family only · PIN protected</p>
+      <p class="section-eyebrow">Family only · PIN protected · posts go live automatically</p>
       <h2 class="section-title">Community Board</h2>
       <div class="section-rule"></div>
+      <p class="section-lead" style="max-width:42rem;margin-left:auto;margin-right:auto">
+        Every family member with the family PIN can post messages, photos, and videos.
+        Your post appears for the whole family immediately — no waiting for approval.
+      </p>
       <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
         <p class="board-pin-status">
           Signed in as <strong><%= pinHolder.assignedName %></strong>
@@ -23,7 +27,7 @@
         >
           <h3 class="board-compose-title">Post a family message</h3>
           <p class="hint board-compose-hint">
-            Share a message, photos, and/or video. Posts appear on the right for the whole family right away.
+            Share a message, photos, and/or video. Posts go live on the right for the whole family automatically.
           </p>
 
           <div class="form-row">
@@ -110,20 +114,26 @@
 
           <div class="form-row">
             <label for="author_name">Your name *</label>
+            <%
+              var boardPinName = (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? String(pinHolder.assignedName) : '';
+              var boardSharedPin = /capoccia/i.test(boardPinName) && /family/i.test(boardPinName);
+              var boardAuthorPrefill = (!boardSharedPin && boardPinName) ? boardPinName : '';
+            %>
             <input
               type="text"
               id="author_name"
               name="author_name"
               required
               maxlength="120"
-              value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>"
+              value="<%= boardAuthorPrefill %>"
+              placeholder="Your full name"
             />
           </div>
           <div class="form-row">
             <label for="author_email">Email (private)</label>
             <input type="email" id="author_email" name="author_email" maxlength="160" />
           </div>
-          <button class="btn btn-primary btn-block" type="submit">Post to Board</button>
+          <button class="btn btn-primary btn-block" type="submit">Post to Board — goes live now</button>
         </form>
       </aside>
 

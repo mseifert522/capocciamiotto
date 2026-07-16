@@ -48,9 +48,12 @@ const SECRET = process.env.SESSION_SECRET || "Capoccia-Miotto-tribute-change-in-
 /**
  * Family contributions publish immediately until further notice.
  * To re-enable admin review: set MODERATION_ENABLED=true in secrets and redeploy.
+ *
+ * Community board is always open-publish for family PIN holders — never held for review.
  */
 const MODERATION_ENABLED = process.env.MODERATION_ENABLED === "true";
 const CONTENT_STATUS = MODERATION_ENABLED ? "pending" : "approved";
+const BOARD_STATUS = "approved";
 
 /** Remember family PIN in this browser for up to 90 days (signed cookie). */
 const PIN_COOKIE_NAME = "cmfr.family";
@@ -598,13 +601,23 @@ function publishMemberSubmission(sub, reviewedByUserId) {
   return { ok: true, mainId, createdSpouseId, spouseFull };
 }
 
-/** When moderation is off, publish any backlog still sitting in pending. */
+/**
+ * Publish backlog still sitting in pending.
+ * Board posts always go live (family community board is open-publish).
+ * Other content only auto-publishes when MODERATION_ENABLED is off.
+ */
 function publishPendingBacklog() {
-  if (MODERATION_ENABLED) return;
   try {
+    // Always release any held community board posts
+    const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
+    if (board.changes) {
+      console.log(`[open-publish] community board backlog approved=${board.changes}`);
+    }
+
+    if (MODERATION_ENABLED) return;
+
     const photos = db.prepare("UPDATE photos SET status = 'approved' WHERE status = 'pending'").run();
     db.prepare("UPDATE photo_people SET status = 'approved' WHERE status = 'pending'").run();
-    const board = db.prepare("UPDATE board_posts SET status = 'approved' WHERE status = 'pending'").run();
     const stories = db.prepare("UPDATE stories SET status = 'approved' WHERE status = 'pending'").run();
     const pendingMembers = db.prepare(`
       SELECT * FROM family_member_submissions WHERE status = 'pending' ORDER BY id ASC
@@ -615,7 +628,7 @@ function publishPendingBacklog() {
       if (result.ok && !result.already) membersPublished += 1;
     }
     console.log(
-      `[open-publish] backlog photos=${photos.changes} board=${board.changes} stories=${stories.changes} members=${membersPublished}`
+      `[open-publish] backlog photos=${photos.changes} stories=${stories.changes} members=${membersPublished}`
     );
   } catch (err) {
     console.warn("publishPendingBacklog note:", err.message);
@@ -993,8 +1006,10 @@ app.post(
       ensureBoardMediaTable(db);
       const title = (req.body.title || "").trim();
       const body = (req.body.body || "").trim();
+      const pinName = (req.session.contributorPin && req.session.contributorPin.assignedName) || "";
+      const sharedLabel = /^capoccia/i.test(pinName) && /family/i.test(pinName);
       const author_name = (req.body.author_name || "").trim()
-        || (req.session.contributorPin && req.session.contributorPin.assignedName)
+        || (!sharedLabel ? pinName : "")
         || "";
       const author_email = (req.body.author_email || "").trim();
       const category = (req.body.category || "general").trim();
@@ -1003,18 +1018,19 @@ app.post(
       const allFiles = photoFiles.concat(videoFiles);
 
       if (!title || !author_name) {
-        setFlash(req, "error", "Please include a title and your name.");
-        return res.redirect("/community-board");
+        setFlash(req, "error", "Please include a title and your name so the family knows who posted.");
+        return redirectAfterPost(res, "/community-board");
       }
       if (!body && !allFiles.length) {
         setFlash(req, "error", "Please write a message and/or attach at least one photo or video.");
-        return res.redirect("/community-board");
+        return redirectAfterPost(res, "/community-board");
       }
 
+      // Family PIN holders publish straight to the live board (no admin approval queue).
       const info = db.prepare(`
         INSERT INTO board_posts (title, body, category, author_name, author_email, status)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(title, body || "", category, author_name, author_email || null, CONTENT_STATUS);
+      `).run(title, body || "", category, author_name, author_email || null, BOARD_STATUS);
       const postId = info.lastInsertRowid;
 
       const insertMedia = db.prepare(`
@@ -1045,15 +1061,13 @@ app.post(
       logSiteActivity(req, "board_post", {
         actorName: author_name,
         actorEmail: author_email || null,
-        details: `Board: ${title.slice(0, 80)}${mediaNote} · ${CONTENT_STATUS}`,
+        details: `Board: ${title.slice(0, 80)}${mediaNote} · live`,
       });
 
       setFlash(
         req,
         "success",
-        MODERATION_ENABLED
-          ? "Thank you. Your message was submitted for family administrator review."
-          : `Thank you. Your message${mediaNote} is now live on the community board.`
+        `Thank you. Your message${mediaNote} is now live on the community board for the whole family.`
       );
       return redirectAfterPost(res, "/community-board");
     } catch (err) {

@@ -146,6 +146,8 @@ function migrate() {
       category TEXT NOT NULL DEFAULT 'general',
       author_name TEXT,
       author_email TEXT,
+      author_ip TEXT,
+      author_pin_id INTEGER,
       is_pinned INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -1056,6 +1058,22 @@ function seedFamilyTributes() {
         updated_at = datetime('now')
     WHERE full_name LIKE 'George%Capoccia%'
        OR preferred_name LIKE 'George%Capoccia%'
+  `).run();
+
+  // Anna portrait (prefer durable uploads path when present; fall back to bundled)
+  db.prepare(`
+    UPDATE family_members
+    SET portrait_path = CASE
+          WHEN portrait_path IS NULL
+            OR portrait_path = ''
+            OR portrait_path LIKE '%anna-miotto-portrait%'
+          THEN '/uploads/portraits/anna-miotto-portrait.jpg'
+          ELSE portrait_path
+        END,
+        updated_at = datetime('now')
+    WHERE full_name LIKE '%Anna%Miotto%'
+       OR preferred_name LIKE '%Anna%Miotto%'
+       OR preferred_name LIKE '%Anna%Capoccia%'
   `).run();
 }
 

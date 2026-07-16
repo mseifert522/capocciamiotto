@@ -939,6 +939,7 @@ function publishPendingBacklog() {
 }
 
 // Order: open-publish pending → archive every photo → remove automated test clutter
+ensureBoardPostOwnershipColumns();
 publishPendingBacklog();
 repairPhotoArchiveVisibility();
 purgeAutomatedTestContent();

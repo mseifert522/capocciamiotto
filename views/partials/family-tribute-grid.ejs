@@ -1,5 +1,5 @@
 <%
-  /* Couple pairs in order: Tony+Fran, George+Christine, Anna+Mickey */
+  /* Couple pairs in order: Anna+Mickey, Tony+Fran, George+Christine */
   function findOne(list, tests) {
     for (let i = 0; i < (list || []).length; i++) {
       const m = list[i];
@@ -19,6 +19,14 @@
 
   const couples = [
     {
+      key: "anna",
+      label: "Miotto Matriarch & Patriarch",
+      person: anna,
+      spouse: mickey,
+      personShort: "Anna Miotto",
+      spouseShort: "Mickey Miotto",
+    },
+    {
       key: "tony",
       label: "Capoccia Patriarch & Matriarch",
       person: tony,
@@ -33,14 +41,6 @@
       spouse: christine,
       personShort: "George Capoccia",
       spouseShort: "Christine Capoccia",
-    },
-    {
-      key: "anna",
-      label: "Miotto Matriarch & Patriarch",
-      person: anna,
-      spouse: mickey,
-      personShort: "Anna Miotto",
-      spouseShort: "Mickey Miotto",
     },
   ];
 

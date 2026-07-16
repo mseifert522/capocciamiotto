@@ -289,10 +289,15 @@ function clearPinRememberCookie(res) {
 /** Restore contributor PIN from 90-day browser cookie when session is empty. */
 function restorePinFromCookie(req, res, next) {
   if (req.session.contributorPin && req.session.contributorPin.pinId) {
+    // Keep current request IP on the session for ownership / activity
+    if (!req.session.contributorPin.loginIp) {
+      req.session.contributorPin.loginIp = clientIp(req);
+    }
     return next();
   }
   const remembered = verifyPinRememberToken(req.cookies && req.cookies[PIN_COOKIE_NAME]);
   if (remembered) {
+    remembered.loginIp = clientIp(req);
     req.session.contributorPin = remembered;
   } else if (req.cookies && req.cookies[PIN_COOKIE_NAME]) {
     // Invalid / expired / revoked PIN cookie
@@ -352,7 +357,52 @@ function logActivity(userId, action, details) {
 
 function clientIp(req) {
   const xf = (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim();
-  return xf || req.ip || req.socket?.remoteAddress || null;
+  return normalizeClientIp(xf || req.ip || req.socket?.remoteAddress || null);
+}
+
+/** Normalize IPv4-mapped IPv6 and trim so ownership compares reliably. */
+function normalizeClientIp(ip) {
+  if (!ip) return null;
+  let s = String(ip).trim().toLowerCase();
+  if (s.startsWith("::ffff:")) s = s.slice(7);
+  if (s === "::1") s = "127.0.0.1";
+  return s || null;
+}
+
+/** Ensure board posts can store creator IP (family edit ownership). */
+function ensureBoardPostOwnershipColumns() {
+  try {
+    const cols = db.prepare("PRAGMA table_info(board_posts)").all().map((c) => c.name);
+    if (!cols.includes("author_ip")) {
+      db.exec("ALTER TABLE board_posts ADD COLUMN author_ip TEXT");
+    }
+    if (!cols.includes("author_pin_id")) {
+      db.exec("ALTER TABLE board_posts ADD COLUMN author_pin_id INTEGER");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_board_posts_author_ip ON board_posts(author_ip)");
+  } catch (e) {
+    console.warn("board post ownership columns note:", e.message);
+  }
+}
+
+/**
+ * Only the IP that created the post (or a family admin) may edit it.
+ * Another family PIN session on a different IP cannot modify this post.
+ */
+function canEditBoardPost(req, post) {
+  if (!post) return false;
+  if (req.session.user && ADMIN_ROLES.includes(req.session.user.role)) return true;
+  const mine = normalizeClientIp(clientIp(req));
+  const owner = normalizeClientIp(post.author_ip);
+  if (!mine || !owner) return false;
+  return mine === owner;
+}
+
+function attachBoardPostOwnership(req, posts) {
+  return (posts || []).map((p) => ({
+    ...p,
+    canEdit: canEditBoardPost(req, p),
+  }));
 }
 
 function logSiteActivity(req, kind, { actorName, actorEmail, details } = {}) {
@@ -1259,6 +1309,7 @@ app.get("/voice-recordings", (req, res) => {
 
 app.get("/community-board", requireContributorPin, (req, res) => {
   ensureBoardMediaTable(db);
+  ensureBoardPostOwnershipColumns();
   const posts = db.prepare(`
     SELECT * FROM board_posts WHERE status = 'approved'
     ORDER BY is_pinned DESC, created_at DESC LIMIT 100
@@ -1267,12 +1318,14 @@ app.get("/community-board", requireContributorPin, (req, res) => {
   posts.forEach((p) => {
     p.media = mediaMap[p.id] || [];
   });
+  const ownedPosts = attachBoardPostOwnership(req, posts);
   const data = localsBase(req);
   clearFlash(req);
   res.render("community-board", {
     ...data,
-    posts,
+    posts: ownedPosts,
     pinHolder: req.session.contributorPin || null,
+    viewerIp: clientIp(req),
   });
 });
 
@@ -1287,6 +1340,7 @@ app.post(
   async (req, res) => {
     try {
       ensureBoardMediaTable(db);
+      ensureBoardPostOwnershipColumns();
       const title = (req.body.title || "").trim();
       const body = (req.body.body || "").trim();
       const pinName = (req.session.contributorPin && req.session.contributorPin.assignedName) || "";
@@ -1299,6 +1353,9 @@ app.post(
       const photoFiles = (req.files && req.files.photos) || [];
       const videoFiles = (req.files && req.files.videos) || [];
       const allFiles = photoFiles.concat(videoFiles);
+      const authorIp = clientIp(req);
+      const authorPinId =
+        (req.session.contributorPin && req.session.contributorPin.pinId) || null;
 
       if (!title || !author_name) {
         setFlash(req, "error", "Please include a title and your name so the family knows who posted.");
@@ -1310,10 +1367,21 @@ app.post(
       }
 
       // Family PIN holders publish straight to the live board (no admin approval queue).
+      // author_ip locks edits to this network address only.
       const info = db.prepare(`
-        INSERT INTO board_posts (title, body, category, author_name, author_email, status)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(title, body || "", category, author_name, author_email || null, BOARD_STATUS);
+        INSERT INTO board_posts (
+          title, body, category, author_name, author_email, status, author_ip, author_pin_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        title,
+        body || "",
+        category,
+        author_name,
+        author_email || null,
+        BOARD_STATUS,
+        authorIp,
+        authorPinId
+      );
       const postId = info.lastInsertRowid;
 
       const insertMedia = db.prepare(`
@@ -1359,13 +1427,14 @@ app.post(
       logSiteActivity(req, "board_post", {
         actorName: author_name,
         actorEmail: author_email || null,
-        details: `Board: ${title.slice(0, 80)}${mediaNote} · live · archive`,
+        details: `Board: ${title.slice(0, 80)}${mediaNote} · live · archive${authorIp ? ` · ip=${authorIp}` : ""}`,
       });
 
       setFlash(
         req,
         "success",
-        `Thank you. Your message${mediaNote} is now live on the community board for the whole family.`
+        `Thank you. Your message${mediaNote} is now live on the community board. ` +
+          `Only you (from this internet connection) can edit this post later.`
       );
       return redirectAfterPost(res, "/community-board");
     } catch (err) {
@@ -1373,6 +1442,105 @@ app.post(
       setFlash(req, "error", err.message || "Could not publish your message. Please try again.");
       return redirectAfterPost(res, "/community-board");
     }
+  }
+);
+
+/** Edit own board post — allowed only for the same IP that created it (or admins). */
+app.post(
+  "/community-board/:id/edit",
+  contributeLimiter,
+  requireContributorPin,
+  (req, res) => {
+    ensureBoardPostOwnershipColumns();
+    const postId = parseInt(req.params.id, 10);
+    const post = db.prepare("SELECT * FROM board_posts WHERE id = ?").get(postId);
+    if (!post || Number.isNaN(postId)) {
+      setFlash(req, "error", "That message was not found.");
+      return redirectAfterPost(res, "/community-board");
+    }
+    if (!canEditBoardPost(req, post)) {
+      setFlash(
+        req,
+        "error",
+        "You can only edit messages you posted from this same internet connection (IP). You cannot change another family member’s post."
+      );
+      logSiteActivity(req, "board_edit_denied", {
+        actorName:
+          (req.session.contributorPin && req.session.contributorPin.assignedName) ||
+          (req.session.user && req.session.user.name) ||
+          null,
+        details: `Denied edit of board post ${postId} (owner_ip=${post.author_ip || "unknown"})`,
+      });
+      return redirectAfterPost(res, "/community-board");
+    }
+
+    const title = (req.body.title || "").trim();
+    const body = (req.body.body || "").trim();
+    const category = (req.body.category || post.category || "general").trim();
+    const author_name = (req.body.author_name || "").trim() || post.author_name || "";
+
+    if (!title || !author_name) {
+      setFlash(req, "error", "Please keep a title and your name on the message.");
+      return redirectAfterPost(res, "/community-board#board-post-" + postId);
+    }
+
+    // Empty body is allowed (e.g. media-only posts); otherwise use submitted text
+    const nextBody = body;
+    db.prepare(`
+      UPDATE board_posts
+      SET title = ?, body = ?, category = ?, author_name = ?,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `).run(title, nextBody, category, author_name, postId);
+
+    logSiteActivity(req, "board_edit", {
+      actorName: author_name,
+      details: `Edited board post ${postId}: ${title.slice(0, 80)}`,
+    });
+    setFlash(req, "success", "Your message was updated. Only you can change this post from this connection.");
+    return redirectAfterPost(res, "/community-board#board-post-" + postId);
+  }
+);
+
+/** Delete own board post — same IP ownership rule as edit. */
+app.post(
+  "/community-board/:id/delete",
+  contributeLimiter,
+  requireContributorPin,
+  (req, res) => {
+    ensureBoardPostOwnershipColumns();
+    const postId = parseInt(req.params.id, 10);
+    const post = db.prepare("SELECT * FROM board_posts WHERE id = ?").get(postId);
+    if (!post || Number.isNaN(postId)) {
+      setFlash(req, "error", "That message was not found.");
+      return redirectAfterPost(res, "/community-board");
+    }
+    if (!canEditBoardPost(req, post)) {
+      setFlash(
+        req,
+        "error",
+        "You can only delete messages you posted from this same internet connection. You cannot remove another family member’s post."
+      );
+      return redirectAfterPost(res, "/community-board");
+    }
+
+    try {
+      ensureBoardMediaTable(db);
+      const media = db.prepare("SELECT * FROM board_post_media WHERE board_post_id = ?").all(postId);
+      for (const m of media) {
+        unlinkPublicUpload(m.file_path);
+        unlinkPublicUpload(m.thumb_path);
+      }
+      db.prepare("DELETE FROM board_post_media WHERE board_post_id = ?").run(postId);
+    } catch (_) { /* media optional */ }
+    db.prepare("DELETE FROM board_posts WHERE id = ?").run(postId);
+
+    logSiteActivity(req, "board_delete", {
+      actorName: post.author_name || "Family member",
+      details: `Deleted board post ${postId}: ${(post.title || "").slice(0, 80)}`,
+    });
+    setFlash(req, "success", "Your message was removed from the community board.");
+    return redirectAfterPost(res, "/community-board");
   }
 );
 
@@ -1853,6 +2021,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     UPDATE family_pins SET use_count = use_count + 1, last_used_at = datetime('now') WHERE id = ?
   `).run(row.id);
 
+  const loginIp = clientIp(req);
   const rememberUntil = setPinRememberCookie(res, row);
   req.session.contributorPin = {
     pinId: row.id,
@@ -1860,6 +2029,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
     verifiedAt: Date.now(),
     rememberUntil,
     fromRememberCookie: false,
+    loginIp,
   };
   // Touch session so cookie maxAge is issued with the longer remember window
   req.session.cookie.maxAge = PIN_REMEMBER_MS;
@@ -1867,7 +2037,7 @@ app.post("/contribute/pin", contributeLimiter, (req, res) => {
   ensureSiteActivityTable();
   logSiteActivity(req, "pin_login", {
     actorName: row.assigned_name || "Family member",
-    details: `Family PIN accepted (pin id ${row.id})${next && next !== "photos" ? ` · next=${next}` : ""}${memberId ? ` · member=${memberId}` : ""}`,
+    details: `Family PIN accepted (pin id ${row.id})${loginIp ? ` · ip=${loginIp}` : ""}${next && next !== "photos" ? ` · next=${next}` : ""}${memberId ? ` · member=${memberId}` : ""}`,
   });
 
   setFlash(

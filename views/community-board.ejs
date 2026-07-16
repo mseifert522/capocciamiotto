@@ -8,6 +8,7 @@
       <p class="section-lead" style="max-width:42rem;margin-left:auto;margin-right:auto">
         Every family member with the family PIN can post messages, photos, and videos.
         Your post appears for the whole family immediately — no waiting for approval.
+        <strong>Only you can edit or delete your own posts</strong> (matched by the internet connection used when you posted). You cannot change someone else’s message.
       </p>
       <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
         <p class="board-pin-status">
@@ -28,6 +29,7 @@
           <h3 class="board-compose-title">Post a family message</h3>
           <p class="hint board-compose-hint">
             Share a message, photos, and/or video. Posts go live on the right for the whole family automatically.
+            Later you can edit only the posts you made from this same connection.
           </p>
 
           <div class="form-row">
@@ -140,7 +142,7 @@
       <div class="board-feed-wrap">
         <div class="board-feed-head">
           <h3 class="board-feed-title">Family messages</h3>
-          <p class="hint">Newest at the top · scroll for older posts · photos &amp; video welcome</p>
+          <p class="hint">Newest at the top · only your own posts show an Edit button on this device/connection</p>
         </div>
         <div class="board-feed" role="feed" aria-label="Community board messages, newest first">
           <% if (!posts || !posts.length) { %>
@@ -150,14 +152,24 @@
             </div>
           <% } else { %>
             <% posts.forEach(function(post, idx) { %>
-              <article class="board-post <%= post.is_pinned ? 'pinned' : '' %>" aria-posinset="<%= idx + 1 %>">
+              <article
+                class="board-post <%= post.is_pinned ? 'pinned' : '' %>"
+                id="board-post-<%= post.id %>"
+                aria-posinset="<%= idx + 1 %>"
+              >
                 <h3><%= post.title %></h3>
                 <p class="board-meta">
                   <%= post.is_pinned ? 'Pinned · ' : '' %><%= post.category %>
                   · <%= post.author_name || 'Family' %>
                   · <%= (post.created_at || '').slice(0, 10) %>
+                  <% if (post.updated_at && post.updated_at !== post.created_at) { %>
+                    · edited <%= (post.updated_at || '').slice(0, 10) %>
+                  <% } %>
                   <% if (post.media && post.media.length) { %>
                     · <%= post.media.length %> attachment<%= post.media.length === 1 ? '' : 's' %>
+                  <% } %>
+                  <% if (post.canEdit) { %>
+                    · <span style="color:var(--green);font-weight:600">Your post</span>
                   <% } %>
                 </p>
                 <% if (post.body) { %>
@@ -193,6 +205,69 @@
                         </a>
                       <% } %>
                     <% }) %>
+                  </div>
+                <% } %>
+
+                <% if (post.canEdit) { %>
+                  <div class="board-owner-actions" style="margin-top:0.85rem">
+                    <details class="board-edit-details">
+                      <summary class="btn btn-secondary" style="display:inline-block;cursor:pointer;list-style:none">
+                        Edit my message
+                      </summary>
+                      <form
+                        class="form-card"
+                        method="post"
+                        action="/community-board/<%= post.id %>/edit"
+                        style="margin-top:0.75rem;padding:1rem"
+                      >
+                        <p class="hint" style="margin-bottom:0.75rem">
+                          Only this internet connection can save changes to this post. Other family members cannot edit it.
+                        </p>
+                        <div class="form-row">
+                          <label for="edit-title-<%= post.id %>">Title *</label>
+                          <input type="text" id="edit-title-<%= post.id %>" name="title" required maxlength="200" value="<%= post.title || '' %>" />
+                        </div>
+                        <div class="form-row">
+                          <label for="edit-category-<%= post.id %>">Category</label>
+                          <select id="edit-category-<%= post.id %>" name="category">
+                            <%
+                              var cats = [
+                                ['announcement','Announcement'],
+                                ['photo_request','Request for old photographs'],
+                                ['identify','Help identify someone'],
+                                ['planning','Reunion planning'],
+                                ['news','Family news'],
+                                ['recipe','Recipe or tradition'],
+                                ['memorial','Memorial'],
+                                ['general','General']
+                              ];
+                              cats.forEach(function(c) {
+                            %>
+                              <option value="<%= c[0] %>" <%= post.category === c[0] ? 'selected' : '' %>><%= c[1] %></option>
+                            <% }) %>
+                          </select>
+                        </div>
+                        <div class="form-row">
+                          <label for="edit-body-<%= post.id %>">Message</label>
+                          <textarea id="edit-body-<%= post.id %>" name="body" maxlength="5000" rows="5"><%= post.body || '' %></textarea>
+                        </div>
+                        <div class="form-row">
+                          <label for="edit-name-<%= post.id %>">Your name *</label>
+                          <input type="text" id="edit-name-<%= post.id %>" name="author_name" required maxlength="120" value="<%= post.author_name || '' %>" />
+                        </div>
+                        <div class="btn-row">
+                          <button class="btn btn-primary" type="submit">Save changes</button>
+                        </div>
+                      </form>
+                    </details>
+                    <form
+                      method="post"
+                      action="/community-board/<%= post.id %>/delete"
+                      style="display:inline-block;margin-left:0.5rem;margin-top:0.5rem"
+                      onsubmit="return confirm('Delete this message from the community board? This cannot be undone.');"
+                    >
+                      <button class="btn btn-outline" type="submit" style="color:#8b1e1e;border-color:#8b1e1e">Delete my message</button>
+                    </form>
                   </div>
                 <% } %>
               </article>

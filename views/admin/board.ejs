@@ -14,10 +14,10 @@
     <div class="admin-main">
       <h2 class="section-title" style="font-size:1.8rem;margin-bottom:1rem">Community board</h2>
       <p class="hint" style="margin-bottom:1rem">
-        Family members with a PIN post live automatically. Use Approve only for any legacy pending items; Reject removes a post from public view; Pin highlights important messages.
+        Family members with a PIN post live automatically. Each post stores the author’s IP so only that connection can edit or delete their own message. Admins can still moderate any post. Use Approve for legacy pending items; Reject hides a post; Pin highlights important messages.
       </p>
       <div class="table-wrap"><table>
-        <thead><tr><th>Post</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Post</th><th>Status / IP</th><th>Actions</th></tr></thead>
         <tbody>
         <% posts.forEach(function(p) { %>
           <tr>
@@ -26,7 +26,10 @@
               <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.author_name %> · <%= p.category %></span><br />
               <%= (p.body || '').slice(0,180) %>
             </td>
-            <td><%= p.status %></td>
+            <td>
+              <%= p.status %><br />
+              <span style="font-size:0.8rem;color:var(--ink-muted)">IP: <%= p.author_ip || '— (legacy)' %></span>
+            </td>
             <td class="inline-actions">
               <% if (p.status !== 'approved') { %><form method="post" action="/admin/board/<%= p.id %>/approve"><button class="btn btn-secondary" type="submit">Approve</button></form><% } %>
               <% if (p.status !== 'rejected') { %><form method="post" action="/admin/board/<%= p.id %>/reject"><button class="btn btn-outline" type="submit">Reject</button></form><% } %>

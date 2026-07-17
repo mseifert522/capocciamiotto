@@ -984,7 +984,7 @@ function seedFamilyTributes() {
           "David Capoccia is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
       },
       {
-        full_name: "Debbie Fallucca",
+        full_name: "Debbie Capoccia Fallucca",
         preferred_name: "Debbie Capoccia Fallucca",
         maiden_name: "Capoccia",
         role_in_family: "Daughter of George & Christine Capoccia",
@@ -1076,6 +1076,55 @@ function seedFamilyTributes() {
       georgeSort += 10;
     }
 
+    // Ron Fallucca — husband of Debbie Capoccia Fallucca (listed next to Debbie)
+    const debbieRow = db.prepare(`
+      SELECT id, sort_order FROM family_members
+      WHERE full_name LIKE '%Debbie%Falluc%'
+         OR preferred_name LIKE '%Debbie%Falluc%'
+         OR full_name LIKE '%Debbie%Capoccia%Falluc%'
+         OR preferred_name LIKE '%Debbie%Capoccia%Falluc%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    let ronFallucca = db.prepare(`
+      SELECT id FROM family_members
+      WHERE full_name LIKE '%Ron%Falluc%'
+         OR preferred_name LIKE '%Ron%Falluc%'
+         OR full_name LIKE '%Ronald%Falluc%'
+         OR preferred_name LIKE '%Ronald%Falluc%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    if (!ronFallucca) {
+      const ins = db.prepare(`
+        INSERT INTO family_members (
+          full_name, preferred_name, family_branch, is_patriarch, is_matriarch, is_memorial, is_placeholder,
+          sort_order, role_in_family, biography, visibility, tree_lineage, generation, relation_type
+        ) VALUES (
+          'Ron Fallucca', 'Ron Fallucca', 'Capoccia', 0, 0, 0, 0,
+          105, 'Spouse of Debbie Capoccia Fallucca',
+          'Ron Fallucca is the husband of Debbie Capoccia Fallucca.',
+          'public', 'george', 2, 'spouse_of'
+        )
+      `).run();
+      ronFallucca = { id: Number(ins.lastInsertRowid) };
+    } else {
+      db.prepare(`
+        UPDATE family_members SET
+          full_name = 'Ron Fallucca',
+          preferred_name = 'Ron Fallucca',
+          family_branch = 'Capoccia',
+          role_in_family = COALESCE(NULLIF(role_in_family, ''), 'Spouse of Debbie Capoccia Fallucca'),
+          visibility = 'public',
+          updated_at = datetime('now')
+        WHERE id = ?
+      `).run(ronFallucca.id);
+    }
+    if (debbieRow && ronFallucca) {
+      db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(ronFallucca.id, debbieRow.id);
+      db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(debbieRow.id, ronFallucca.id);
+      db.prepare("UPDATE family_members SET sort_order = 100, full_name = 'Debbie Capoccia Fallucca', preferred_name = 'Debbie Capoccia Fallucca', updated_at = datetime('now') WHERE id = ?").run(debbieRow.id);
+      db.prepare("UPDATE family_members SET sort_order = 105, updated_at = datetime('now') WHERE id = ?").run(ronFallucca.id);
+    }
+
     // Michael Seifert — husband of Jeanette Capoccia Seifert
     const jeanetteRow = db.prepare(`
       SELECT id FROM family_members
@@ -1100,7 +1149,7 @@ function seedFamilyTributes() {
           sort_order, role_in_family, biography, visibility, tree_lineage, generation, relation_type
         ) VALUES (
           'Michael Seifert', 'Michael Seifert', 'Capoccia', 0, 0, 0, 0,
-          152, 'Spouse of Jeanette Capoccia Seifert',
+          120, 'Spouse of Jeanette Capoccia Seifert',
           'Michael Seifert is the husband of Jeanette Capoccia Seifert.',
           'public', 'george', 2, 'spouse_of'
         )
@@ -1121,7 +1170,7 @@ function seedFamilyTributes() {
     if (jeanetteRow && michaelSeifert) {
       db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(michaelSeifert.id, jeanetteRow.id);
       db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(jeanetteRow.id, michaelSeifert.id);
-      // Jeanette Capoccia Seifert then Michael Seifert (husband), after David & Debbie
+      // Jeanette Capoccia Seifert then Michael Seifert (husband), after Debbie & Ron
       db.prepare("UPDATE family_members SET sort_order = 110, updated_at = datetime('now') WHERE id = ?").run(jeanetteRow.id);
       db.prepare("UPDATE family_members SET sort_order = 120, updated_at = datetime('now') WHERE id = ?").run(michaelSeifert.id);
     }
@@ -1131,6 +1180,7 @@ function seedFamilyTributes() {
       ["%George%Capoccia%", "%Christine%Capoccia%"],
       ["%Tony%Capoccia%", "%Fran%Capoccia%"],
       ["%Jeanette%Seifert%", "%Michael%Seifert%"],
+      ["%Debbie%Falluc%", "%Ron%Falluc%"],
     ];
     for (const [aLike, bLike] of pairs) {
       const a = db.prepare("SELECT id FROM family_members WHERE full_name LIKE ? OR preferred_name LIKE ? LIMIT 1").get(aLike, aLike);

@@ -458,10 +458,11 @@ main { overflow-x: clip; }
 .card-portrait img {
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
 }
 .portrait-lightbox-btn {
   display: block;
@@ -474,6 +475,7 @@ main { overflow-x: clip; }
   cursor: zoom-in;
   font: inherit;
   color: inherit;
+  overflow: hidden;
 }
 .portrait-lightbox-btn:focus-visible {
   outline: 3px solid var(--gold, #c4a35a);
@@ -483,18 +485,18 @@ main { overflow-x: clip; }
 .tribute-card-photo-btn {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  overflow: hidden;
 }
 .member-card-photo-btn img,
 .tribute-card-photo-btn img {
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
 }
 .card-portrait .placeholder-mark {
   text-align: center;
@@ -664,22 +666,25 @@ main { overflow-x: clip; }
   background: rgba(255, 253, 248, 0.9);
 }
 .couple-photo {
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(ellipse 70% 65% at 50% 45%, rgba(255, 253, 248, 0.95), transparent 72%),
-    linear-gradient(160deg, #f0e8dc, #e4d5c3);
-  border-radius: 12px;
-  padding: 0.55rem;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin-inline: auto;
   margin-bottom: 0.55rem;
+  display: block;
+  position: relative;
+  background: linear-gradient(160deg, #f0e8dc, #e4d5c3);
+  border-radius: 12px;
+  padding: 0;
   border: 1px solid rgba(196, 163, 90, 0.2);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(43, 33, 28, 0.1);
 }
 .couple-photo-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   margin: 0;
@@ -689,22 +694,30 @@ main { overflow-x: clip; }
   cursor: zoom-in;
   font: inherit;
   color: inherit;
-  border-radius: 8px;
+  border-radius: 0;
+  overflow: hidden;
+}
+.couple-photo .couple-ph {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 72px;
+  height: 72px;
 }
 .couple-photo-btn:focus-visible {
   outline: 3px solid var(--gold, #c4a35a);
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
 .couple-photo img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  object-position: center center;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center 18%;
   display: block;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(43, 33, 28, 0.1);
+  border-radius: 0;
+  box-shadow: none;
 }
 .couple-person h3 a {
   color: inherit;
@@ -806,20 +819,26 @@ main { overflow-x: clip; }
 .tribute-card-photo {
   flex-shrink: 0;
   width: 100%;
-  height: 168px;
+  height: auto;
+  aspect-ratio: 1 / 1;
   background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   overflow: hidden;
   position: relative;
-  padding: 0.5rem;
+  padding: 0;
+}
+.tribute-card-photo .tribute-card-photo-btn,
+.tribute-card-photo .portrait-lightbox-btn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .tribute-card-photo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  object-fit: cover;
+  object-position: center 18%;
   display: block;
 }
 .tribute-card-photo-placeholder {
@@ -997,27 +1016,35 @@ main { overflow-x: clip; }
   min-width: 0;
 }
 .member-card-photo {
-  /* Tall enough for full-body / full-head portraits without cropping */
+  /* Uniform square frame — photo fills edge-to-edge */
   height: auto;
-  aspect-ratio: 4 / 5;
-  min-height: 200px;
-  max-height: 300px;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  max-height: none;
   background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
+  display: block;
+  padding: 0;
+  position: relative;
+}
+.member-card-photo .member-card-photo-btn,
+.member-card-photo .portrait-lightbox-btn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .member-card-photo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  object-fit: cover;
+  object-position: center 18%;
   display: block;
-  border-radius: 8px;
+  border-radius: 0;
 }
 .member-card-placeholder {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: flex;
@@ -4193,13 +4220,13 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     pointer-events: auto;
   }
 
-  .couple-photo { height: 160px; }
+  .couple-photo { max-width: 180px; }
   .couple-join { padding-top: 2.75rem; }
   .tribute-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
-  .tribute-card-photo { height: 150px; }
+  .tribute-card-photo { aspect-ratio: 1 / 1; }
   .card-grid-uniform {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4269,7 +4296,7 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
   }
 
   .couple-gallery { gap: 1.15rem; }
-  .couple-photo { height: 170px; }
+  .couple-photo { max-width: 200px; }
   .couple-person h3 { font-size: 1.05rem; }
   .couple-join { padding-top: 3rem; }
   /* Tribute / family cards: one column for readability */
@@ -4277,7 +4304,7 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  .tribute-card-photo { height: 200px; }
+  .tribute-card-photo { aspect-ratio: 1 / 1; }
   .tribute-card-body { padding: 1rem 1rem 1.15rem; }
   .tribute-card-name {
     font-size: 1.25rem;
@@ -4309,9 +4336,9 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     gap: 0.9rem;
   }
   .member-card-photo {
-    min-height: 220px;
-    max-height: 340px;
-    aspect-ratio: 4 / 5;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1 / 1;
   }
 
   .special-memory-hero {

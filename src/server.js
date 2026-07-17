@@ -1156,11 +1156,14 @@ app.use(enforceAuthTimeout);
 app.get("/", (req, res) => {
   const members = db.prepare(`
     SELECT * FROM family_members
+    WHERE visibility = 'public' OR visibility IS NULL
     ORDER BY sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
-    m.display_name = m.preferred_name || m.full_name;
+    m.display_name = (m.full_name || m.preferred_name || "").trim() || "Family member";
   });
+  // Everyone on the home page (leaders also appear in the tribute couples above)
+  const allMembers = members.slice();
   // Home gallery: only photos you (admin) have explicitly approved for the home page
   ensureHomePhotoColumns();
   const recentPhotos = db.prepare(`
@@ -1178,7 +1181,7 @@ app.get("/", (req, res) => {
   `).all();
   const data = localsBase(req);
   clearFlash(req);
-  res.render("home", { ...data, members, recentPhotos, pinned });
+  res.render("home", { ...data, members, allMembers, recentPhotos, pinned });
 });
 
 function ensureSpecialMemoryColumns() {

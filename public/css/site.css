@@ -1016,31 +1016,52 @@ main { overflow-x: clip; }
   min-width: 0;
 }
 .member-card-photo {
-  /* Uniform square frame — photo fills edge-to-edge */
+  /* Uniform square frame — photo fills edge-to-edge (no padding/letterbox) */
+  width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
   min-height: 0;
   max-height: none;
-  background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
+  background: #d9cbb8;
   overflow: hidden;
   display: block;
-  padding: 0;
+  padding: 0 !important;
+  margin: 0;
   position: relative;
+  border: 0;
+  border-radius: 0;
+  line-height: 0;
 }
 .member-card-photo .member-card-photo-btn,
 .member-card-photo .portrait-lightbox-btn {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  display: block !important;
+  overflow: hidden !important;
+  background: transparent !important;
 }
-.member-card-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
-  display: block;
-  border-radius: 0;
+.member-card-photo img,
+.member-card-photo .member-card-photo-btn img,
+.member-card-photo .portrait-lightbox-btn img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover !important;
+  object-position: center 15% !important;
+  display: block !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 .member-card-placeholder {
   position: absolute;

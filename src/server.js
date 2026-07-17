@@ -633,7 +633,27 @@ function publishMemberSubmission(sub, reviewedByUserId) {
     return { ok: true, already: true, mainId: sub.family_member_id };
   }
 
-  const role = [sub.role_in_family, sub.relation_to_family].filter(Boolean).join(" · ") || null;
+  // Prefer a single clear relationship line (avoid "Child of X · Daughter of X")
+  const roleParts = [sub.role_in_family, sub.relation_to_family]
+    .map((s) => (s || "").trim())
+    .filter(Boolean);
+  let role = null;
+  if (roleParts.length === 1) {
+    role = roleParts[0];
+  } else if (roleParts.length > 1) {
+    const a = roleParts[0].toLowerCase();
+    const b = roleParts[1].toLowerCase();
+    // Drop generic "child of" when a more specific son/daughter phrase is present
+    const prefer = roleParts.find((p) => /^(son|daughter) of\b/i.test(p));
+    const generic = roleParts.find((p) => /^child of\b/i.test(p));
+    if (prefer && generic) {
+      role = prefer;
+    } else if (a === b || a.includes(b) || b.includes(a)) {
+      role = prefer || roleParts[0];
+    } else {
+      role = roleParts.join(" · ");
+    }
+  }
   const bio = sub.short_bio || null;
   const maxSort = db.prepare("SELECT COALESCE(MAX(sort_order), 50) AS m FROM family_members").get().m;
   const sortOrder = Math.max(100, (maxSort || 50) + 1);

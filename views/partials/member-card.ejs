@@ -17,10 +17,11 @@
   );
   const ctaLabel = isLeader ? "View full tribute" : "View Bio";
   const ctaHref = "/family-members/" + m.id;
+  // Debbie's headshot stays edge-to-edge fill; everyone else shows the full photo (no hard crop)
+  const fillFrame = /debbie/i.test(nameBlob) && /falluc/i.test(nameBlob);
 %>
 <article class="member-card" role="listitem">
-  <%/* Inline styles force edge-to-edge fill even if an old CSS file is cached */%>
-  <div class="member-card-photo" style="aspect-ratio:1/1;position:relative;overflow:hidden;padding:0;margin:0;line-height:0;min-height:180px;">
+  <div class="member-card-photo<%= fillFrame ? ' member-card-photo--fill' : '' %>">
     <% if (m.portrait_path) { %>
       <button
         type="button"
@@ -28,7 +29,6 @@
         data-lightbox="<%= m.portrait_path %>"
         data-lightbox-caption="<%= m.display_name %>"
         aria-label="View full photo of <%= m.display_name %>"
-        style="position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;background:transparent;cursor:zoom-in;overflow:hidden;display:block;"
       >
         <%/* Empty alt: name is already shown in the card title */%>
         <img
@@ -37,12 +37,11 @@
           loading="lazy"
           decoding="async"
           data-fallback-initial="<%= (m.display_name || '?').charAt(0) %>"
-          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block;margin:0;padding:0;border:0;border-radius:0;"
-          onerror="var w=this.closest('.member-card-photo'); if(w){ w.innerHTML='<div class=\'member-card-placeholder\' aria-hidden=\'true\' style=\'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;\'><span>'+(this.getAttribute('data-fallback-initial')||'?')+'</span></div>'; }"
+          onerror="var w=this.closest('.member-card-photo'); if(w){ w.innerHTML='<div class=\'member-card-placeholder\' aria-hidden=\'true\'><span>'+(this.getAttribute('data-fallback-initial')||'?')+'</span></div>'; }"
         />
       </button>
     <% } else { %>
-      <div class="member-card-placeholder" aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+      <div class="member-card-placeholder" aria-hidden="true">
         <span><%= (m.display_name || "?").charAt(0) %></span>
       </div>
     <% } %>

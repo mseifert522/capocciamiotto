@@ -1,5 +1,17 @@
 <%
-  const isLeader = !!(member.is_patriarch || member.is_matriarch);
+  const role = String(member.role_in_family || "");
+  const nameBlob = String(member.full_name || "") + " " + String(member.preferred_name || "");
+  const isLeader = !!(
+    member.is_patriarch ||
+    member.is_matriarch ||
+    /patriarch|matriarch/i.test(role) ||
+    (/anna/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
+    (/mickey|amerigo/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
+    (/(tony|anthony)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/(fran|frances)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/george/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/christine/i.test(nameBlob) && /capoccia/i.test(nameBlob))
+  );
   const pageKind = isLeader ? "Tribute" : "Bio";
 %>
 <%- include('partials/header', { pageTitle: member.display_name + ' · ' + pageKind }) %>

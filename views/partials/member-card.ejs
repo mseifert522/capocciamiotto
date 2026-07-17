@@ -28,11 +28,12 @@
         data-lightbox-caption="<%= m.display_name %>"
         aria-label="View full photo of <%= m.display_name %>"
       >
-        <%/* Empty alt: name is already shown in the card title (avoids "Anthony Capoccia" twice if image breaks) */%>
+        <%/* Empty alt: name is already shown in the card title */%>
         <img
           src="<%= m.portrait_path %>"
           alt=""
           loading="lazy"
+          decoding="async"
           data-fallback-initial="<%= (m.display_name || '?').charAt(0) %>"
           onerror="var w=this.closest('.member-card-photo'); if(w){ w.innerHTML='<div class=\'member-card-placeholder\' aria-hidden=\'true\'><span>'+(this.getAttribute('data-fallback-initial')||'?')+'</span></div>'; }"
         />

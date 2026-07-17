@@ -1104,7 +1104,7 @@ function seedFamilyTributes() {
           sort_order, role_in_family, biography, visibility, tree_lineage, generation, relation_type
         ) VALUES (
           'Ron Fallucca', 'Ron Fallucca', 'Capoccia', 0, 0, 0, 0,
-          105, 'Spouse of Debbie Capoccia Fallucca',
+          101, 'Spouse of Debbie Capoccia Fallucca',
           'Ron Fallucca is the husband of Debbie Capoccia Fallucca.',
           'public', 'george', 2, 'spouse_of'
         )
@@ -1118,6 +1118,7 @@ function seedFamilyTributes() {
           family_branch = 'Capoccia',
           role_in_family = COALESCE(NULLIF(role_in_family, ''), 'Spouse of Debbie Capoccia Fallucca'),
           visibility = 'public',
+          sort_order = 101,
           updated_at = datetime('now')
         WHERE id = ?
       `).run(ronFallucca.id);
@@ -1125,8 +1126,9 @@ function seedFamilyTributes() {
     if (debbieRow && ronFallucca) {
       db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(ronFallucca.id, debbieRow.id);
       db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(debbieRow.id, ronFallucca.id);
+      // Always keep Ron immediately next to Debbie (before their children at 102+)
       db.prepare("UPDATE family_members SET sort_order = 100, full_name = 'Debbie Capoccia Fallucca', preferred_name = 'Debbie Capoccia Fallucca', updated_at = datetime('now') WHERE id = ?").run(debbieRow.id);
-      db.prepare("UPDATE family_members SET sort_order = 105, updated_at = datetime('now') WHERE id = ?").run(ronFallucca.id);
+      db.prepare("UPDATE family_members SET sort_order = 101, updated_at = datetime('now') WHERE id = ?").run(ronFallucca.id);
     }
 
     // Michael Seifert — husband of Jeanette Capoccia Seifert

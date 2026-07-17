@@ -1,6 +1,18 @@
 <%
   /* Shared family member card for home + family-members list */
-  const isLeader = !!(m.is_patriarch || m.is_matriarch);
+  const role = String(m.role_in_family || "");
+  const nameBlob = String(m.full_name || "") + " " + String(m.preferred_name || "");
+  const isLeader = !!(
+    m.is_patriarch ||
+    m.is_matriarch ||
+    /patriarch|matriarch/i.test(role) ||
+    (/anna/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
+    (/mickey|amerigo/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
+    (/(tony|anthony)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/(fran|frances)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/george/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/christine/i.test(nameBlob) && /capoccia/i.test(nameBlob))
+  );
   const ctaLabel = isLeader ? "View full tribute" : "View Bio";
   const ctaHref = "/family-members/" + m.id;
 %>

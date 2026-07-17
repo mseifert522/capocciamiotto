@@ -7,33 +7,31 @@ cd "$REPO"
 sudo git fetch origin
 sudo git reset --hard origin/master
 
-# Copy files into running container
 sudo docker cp "$REPO/public/css/site.css" "$C:/app/public/css/site.css"
 sudo docker cp "$REPO/views/partials/header.ejs" "$C:/app/views/partials/header.ejs"
 sudo docker cp "$REPO/views/partials/member-card.ejs" "$C:/app/views/partials/member-card.ejs"
+sudo docker cp "$REPO/src/server.js" "$C:/app/src/server.js"
 
-# CRITICAL: Express caches EJS in production — restart to pick up views
+# Express caches compiled EJS in production — restart required for views + server.js
 sudo docker restart "$C"
-sleep 6
+sleep 7
 
-echo "=== verify disk ==="
+echo "=== origin verify ==="
 sudo docker exec "$C" grep site.css /app/views/partials/header.ejs
-sudo docker exec "$C" grep -n 'object-fit: cover !important' /app/public/css/site.css | head -3
-
-echo "=== verify live render ==="
 sudo docker exec "$C" node -e '
 const http=require("http");
-http.get("http://127.0.0.1:3080/",res=>{let d="";res.on("data",c=>d+=c);res.on("end",()=>{
-  const m=d.match(/site\.css[^"\x27]*/);
-  console.log("html_css_link", m&&m[0]);
-  if(!m||!String(m[0]).includes("portrait-fill-2")) process.exit(2);
-});}).on("error",e=>{console.error(e);process.exit(1);});
+function get(path){return new Promise((resolve,reject)=>{
+  http.get("http://127.0.0.1:3080"+path,res=>{let d="";res.on("data",c=>d+=c);res.on("end",()=>resolve({status:res.statusCode,headers:res.headers,body:d}));}).on("error",reject);
+});}
+(async()=>{
+  const home=await get("/");
+  console.log("status", home.status);
+  console.log("cache_control", home.headers["cache-control"]);
+  console.log("html_css", (home.body.match(/site\.css[^"\x27]*/)||[])[0]);
+  console.log("has_inline_object_fit", home.body.includes("object-fit:cover"));
+  if(!String((home.body.match(/site\.css[^"\x27]*/)||[])[0]||"").includes("portrait-fill-3")) process.exit(2);
+  if(!home.body.includes("object-fit:cover")) process.exit(3);
+  console.log("ORIGIN_OK");
+})().catch(e=>{console.error(e);process.exit(1);});
 '
-sudo docker exec "$C" node -e '
-const http=require("http");
-http.get("http://127.0.0.1:3080/css/site.css?v=portrait-fill-2",res=>{let d="";res.on("data",c=>d+=c);res.on("end",()=>{
-  console.log("has_absolute_img", d.includes("position: absolute !important") && d.includes("object-fit: cover !important"));
-  if(!d.includes("object-fit: cover !important")) process.exit(3);
-});}).on("error",e=>{console.error(e);process.exit(1);});
-'
-echo "DONE OK"
+echo DONE

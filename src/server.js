@@ -92,11 +92,42 @@ app.use(session({
   },
 }));
 
+// HTML pages must not be cached at the CDN/browser so style/view deploys show up immediately
+app.use((req, res, next) => {
+  const p = req.path || "";
+  const isAsset =
+    p.startsWith("/css/") ||
+    p.startsWith("/js/") ||
+    p.startsWith("/uploads/") ||
+    p.startsWith("/portraits/") ||
+    p.startsWith("/favicon") ||
+    p.startsWith("/apple-touch") ||
+    /\.(css|js|jpg|jpeg|png|webp|gif|svg|ico|woff2?|map)$/i.test(p);
+  if (!isAsset) {
+    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("CDN-Cache-Control", "no-store");
+    res.setHeader("Cloudflare-CDN-Cache-Control", "no-store");
+  }
+  next();
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "..", "public", "uploads"), {
   maxAge: "7d",
   fallthrough: true,
 }));
-app.use(express.static(path.join(__dirname, "..", "public"), { maxAge: "1d" }));
+// Short cache for CSS/JS so query-string busts apply quickly
+app.use(express.static(path.join(__dirname, "..", "public"), {
+  maxAge: process.env.NODE_ENV === "production" ? "5m" : 0,
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    if (/\.css$/i.test(filePath) || /\.js$/i.test(filePath)) {
+      res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+    }
+  },
+}));
 
 const BULK_PHOTO_MAX = 50;
 const upload = multer({

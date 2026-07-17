@@ -9,15 +9,27 @@
     return null;
   }
   const all = (typeof members !== "undefined" && members) ? members : [];
-  const tony = findOne(all, [/tony|anthony/, /capoccia/]);
+  // Prefer patriarch Tony (not younger Anthony Capoccia, son of David)
+  const tony =
+    findOne(all, [/tony/, /capoccia/]) ||
+    findOne(all, [/anthony.*joseph|joseph.*anthony/, /capoccia/]);
   const fran = findOne(all, [/fran|frances/, /capoccia/]);
   const george = findOne(all, [/george/, /capoccia/]);
   const christine = findOne(all, [/christine/, /capoccia/]);
   const anna = findOne(all, [/anna/, /miotto/]);
   const mickey = findOne(all, [/mickey|amerigo/]);
 
-  // Correct order: each sibling with their spouse
+  // Oldest sibling line first: Anna, then Tony, then George
   const couples = [
+    {
+      label: "Miotto Matriarch & Patriarch",
+      left: anna,
+      right: mickey,
+      leftName: "Anna Miotto",
+      rightName: "Mickey Miotto",
+      leftRole: "Miotto Matriarch",
+      rightRole: "Miotto Patriarch",
+    },
     {
       label: "Capoccia Patriarch & Matriarch",
       left: tony,
@@ -35,15 +47,6 @@
       rightName: "Christine Capoccia",
       leftRole: "Capoccia Patriarch",
       rightRole: "Capoccia Matriarch",
-    },
-    {
-      label: "Miotto Matriarch & Patriarch",
-      left: anna,
-      right: mickey,
-      leftName: "Anna Miotto",
-      rightName: "Mickey Miotto",
-      leftRole: "Miotto Matriarch",
-      rightRole: "Miotto Patriarch",
     },
   ];
 
@@ -75,7 +78,7 @@
       Anna’s marriage to Mickey bridges the Capoccia and Miotto names into one extended family.
     </p>
     <h3 class="fs-subhead">Our Patriarchs &amp; Matriarchs</h3>
-    <p class="fs-order-note">Tony &amp; Fran · George &amp; Christine · Anna &amp; Mickey</p>
+    <p class="fs-order-note">Anna &amp; Mickey · Tony &amp; Fran · George &amp; Christine</p>
 
     <div class="couple-gallery couple-gallery--story">
       <% couples.forEach(function(c) { %>
@@ -143,8 +146,8 @@
       <div class="fs-tree-stem" aria-hidden="true"></div>
       <div class="fs-tree-branches">
         <% 
-          // Force correct branch order: Tony line, George line, Anna line
-          const lineOrder = ["tony", "george", "anna"];
+          // Oldest sibling line first: Anna, then Tony, then George
+          const lineOrder = ["anna", "tony", "george"];
           const linesByKey = {};
           if (typeof tree !== "undefined" && tree && tree.lines) {
             tree.lines.forEach(function(l) { linesByKey[l.key] = l; });

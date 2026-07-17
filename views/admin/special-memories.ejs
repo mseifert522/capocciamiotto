@@ -152,7 +152,7 @@
                   <td>
                     <strong><%= p.title || p.original_filename %></strong><br />
                     <span style="font-size:0.85rem;color:var(--ink-muted)">
-                      <%= p.reunion_year || 'Year TBD' %> · <%= p.submitted_at %>
+                      <% if (p.reunion_year) { %><%= p.reunion_year %> · <% } %><%= p.submitted_at %>
                     </span>
                   </td>
                   <td>

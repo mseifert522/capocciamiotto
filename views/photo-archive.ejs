@@ -35,12 +35,12 @@
             <span class="special-memory-badge">Special Memory</span>
             <% if (hero.reunion_year || hero.title) { %>
               <p class="special-memory-hero-cap">
-                <% if (hero.reunion_year) { %><strong><%= hero.reunion_year %></strong><% } %>
-                <% if (hero.reunion_year && hero.title) { %> · <% } %>
                 <% if (hero.title) { %><%= hero.title %><% } %>
+                <% if (hero.title && hero.reunion_year) { %> · <% } %>
+                <% if (hero.reunion_year) { %><strong><%= hero.reunion_year %></strong><% } %>
               </p>
             <% } %>
-            <% if (hero.description) { %>
+            <% if (hero.description && !/^Portrait of /i.test(String(hero.description))) { %>
               <p class="special-memory-hero-desc"><%= hero.description %></p>
             <% } %>
           </div>
@@ -60,10 +60,12 @@
                 aria-label="View special memory<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
               >
                 <img src="<%= p.web_path || p.thumb_path || p.original_path %>" alt="<%= p.title || 'Special memory' %>" loading="lazy" />
-                <div class="special-memory-tile-cap">
-                  <% if (p.reunion_year) { %><span class="special-memory-year"><%= p.reunion_year %></span><% } %>
-                  <% if (p.title) { %><span class="special-memory-title"><%= p.title %></span><% } %>
-                </div>
+                <% if (p.title || p.reunion_year) { %>
+                  <div class="special-memory-tile-cap">
+                    <% if (p.title) { %><span class="special-memory-title"><%= p.title %></span><% } %>
+                    <% if (p.reunion_year) { %><span class="special-memory-year"><%= p.reunion_year %></span><% } %>
+                  </div>
+                <% } %>
               </button>
             <% }) %>
           </div>
@@ -127,20 +129,27 @@
       <div class="photo-grid">
         <% photos.forEach(function(p) { %>
           <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
-          <% const cap = [p.featured ? "Cover" : "", p.special_memory ? "Special Memory" : "", p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Family photograph"; %>
+          <% const displayName = (p.title || p.person_names || "").trim(); %>
+          <% const capParts = []; %>
+          <% if (p.reunion_year) capParts.push(String(p.reunion_year)); %>
+          <% if (displayName) capParts.push(displayName); %>
+          <% const cap = capParts.join(" · ") || "Family photograph"; %>
+          <% const hasCap = !!(p.reunion_year || displayName || p.special_memory || p.featured); %>
           <button
             type="button"
             class="photo-tile photo-tile-btn<%= p.featured ? ' photo-tile--cover' : '' %><%= p.special_memory ? ' photo-tile--special' : '' %>"
             data-lightbox="<%= fullSrc %>"
             data-lightbox-caption="<%= cap %>"
-            aria-label="View full photo<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
+            aria-label="View full photo<%= displayName ? ': ' + displayName : (p.reunion_year ? ' from ' + p.reunion_year : '') %>"
           >
-            <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
-            <div class="cap">
-              <% if (p.special_memory) { %><span class="photo-special-tag">Special</span> <% } %>
-              <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
-              <%= p.reunion_year || 'Year TBD' %><% if (p.title) { %> · <%= p.title %><% } %>
-            </div>
+            <img src="<%= p.thumb_path || p.web_path %>" alt="<%= displayName || 'Family photograph' %>" loading="lazy" />
+            <% if (hasCap) { %>
+              <div class="cap">
+                <% if (p.special_memory) { %><span class="photo-special-tag">Special</span> <% } %>
+                <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
+                <%= capParts.join(" · ") %>
+              </div>
+            <% } %>
           </button>
         <% }) %>
       </div>

@@ -841,17 +841,39 @@ function repairPhotoArchiveVisibility() {
       WHERE portrait_path IS NOT NULL AND trim(portrait_path) != ''
     `).all();
     for (const m of members) {
-      const name = m.preferred_name || m.full_name || "Family member";
+      // Prefer legal/full name on archive tiles — never invent year or filler labels
+      const name = (m.full_name || m.preferred_name || "").trim() || "Family member";
       const id = ensurePhotoInArchive({
         web_path: m.portrait_path,
         original_path: m.portrait_path,
         thumb_path: m.portrait_path,
         title: name,
-        description: `Portrait of ${name}`,
+        description: null,
         contributor_name: "Family archive",
         family_branch: "both",
       });
-      if (id) portraitsAdded += 1;
+      if (id) {
+        portraitsAdded += 1;
+        // Keep title synced to full name when portrait is re-cataloged
+        try {
+          db.prepare(`
+            UPDATE photos
+            SET title = ?, reunion_year = NULL
+            WHERE id = ?
+              AND (
+                title IS NULL OR trim(title) = ''
+                OR title = ?
+                OR title = ?
+                OR title LIKE 'Portrait of %'
+              )
+          `).run(
+            name,
+            id,
+            m.preferred_name || "",
+            m.full_name || ""
+          );
+        } catch (_) { /* ignore */ }
+      }
     }
 
     // Catalog community-board images into the main photo archive
@@ -1418,6 +1440,37 @@ app.get("/photo-archive", (req, res) => {
   }
   sql += " ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500";
   const photos = filterPublicPhotos(db.prepare(sql).all(...params));
+  // Attach people names for captions; prefer full title when present
+  photos.forEach((p) => {
+    try {
+      const people = db.prepare(`
+        SELECT person_name FROM photo_people
+        WHERE photo_id = ? AND COALESCE(status, 'approved') != 'rejected'
+        ORDER BY id ASC
+      `).all(p.id);
+      p.person_names = people.map((x) => x.person_name).filter(Boolean).join(", ");
+      if ((!p.title || !String(p.title).trim()) && p.person_names) {
+        p.title = p.person_names;
+      }
+    } catch (_) {
+      p.person_names = "";
+    }
+  });
+  specialMemories.forEach((p) => {
+    try {
+      const people = db.prepare(`
+        SELECT person_name FROM photo_people
+        WHERE photo_id = ? AND COALESCE(status, 'approved') != 'rejected'
+        ORDER BY id ASC
+      `).all(p.id);
+      p.person_names = people.map((x) => x.person_name).filter(Boolean).join(", ");
+      if ((!p.title || !String(p.title).trim()) && p.person_names) {
+        p.title = p.person_names;
+      }
+    } catch (_) {
+      p.person_names = "";
+    }
+  });
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
@@ -1510,16 +1563,16 @@ app.post(
         WHERE id = ?
       `).run(portraitUrl, memberId);
 
-      const memberName = member.preferred_name || member.full_name;
+      const memberName = (member.full_name || member.preferred_name || "").trim() || "Family member";
       const actor =
         (req.session.contributorPin && req.session.contributorPin.assignedName) ||
         (req.session.user && (req.session.user.name || req.session.user.email)) ||
         "Family member";
-      // Also land in Photo Archive automatically
+      // Also land in Photo Archive automatically (title = full name; no invented year)
       ensurePhotoInArchive({
         ...processed,
         title: memberName,
-        description: `Portrait of ${memberName}`,
+        description: null,
         contributor_name: actor,
         family_branch: member.family_branch || "both",
       });

@@ -1,6 +1,6 @@
 /**
  * Living Capoccia–Miotto family tree builder.
- * Root: Costanzo & Madeline → Tony, George, Anna lines → descendants as they join.
+ * Root: Costanzo & Madeline → Anna, Tony, George lines (oldest first) → descendants as they join.
  */
 
 function displayName(m) {

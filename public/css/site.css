@@ -620,7 +620,7 @@ main { overflow-x: clip; }
   padding: 0.28rem 0.85rem;
 }
 
-/* Couple pairs: Tony+Fran, George+Christine, Anna+Mickey */
+/* Couple pairs: Anna+Mickey, Tony+Fran, George+Christine (oldest line first) */
 .couple-gallery {
   display: grid;
   grid-template-columns: 1fr;

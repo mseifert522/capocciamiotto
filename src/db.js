@@ -1232,9 +1232,15 @@ function seedFamilyTributes() {
     WHERE (
         full_name LIKE '%Tony%Capoccia%'
         OR preferred_name LIKE '%Tony%Capoccia%'
-        OR full_name LIKE '%Anthony%Capoccia%'
-        OR preferred_name LIKE '%Anthony%Capoccia%'
+        OR full_name LIKE '%Anthony “Tony”%'
+        OR full_name LIKE '%Anthony "Tony"%'
+        OR preferred_name LIKE '%Anthony “Tony”%'
+        OR preferred_name LIKE '%Anthony "Tony"%'
+        OR (full_name LIKE '%Anthony%Joseph%Capoccia%')
       )
+      -- Do NOT match younger Anthony Capoccia (son of David)
+      AND COALESCE(role_in_family, '') NOT LIKE '%Son of David%'
+      AND COALESCE(role_in_family, '') NOT LIKE '%son of David%'
       AND (
         portrait_path IS NULL
         OR trim(portrait_path) = ''

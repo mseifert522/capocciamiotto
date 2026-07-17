@@ -1187,8 +1187,25 @@ app.get("/", (req, res) => {
   members.forEach((m) => {
     m.display_name = memberDisplayName(m);
   });
-  // Everyone on the home page, already ordered by sort_order (leaders first, then family)
-  const allMembers = members.slice();
+  // Family Members grid: exclude great-grandparents + patriarch/matriarch couples
+  // (they are featured above in the family-tree tribute section)
+  function isFeaturedInTree(m) {
+    const blob = `${m.full_name || ""} ${m.preferred_name || ""} ${m.role_in_family || ""}`.toLowerCase();
+    if (/costanzo/.test(blob) && /capoccia/.test(blob)) return true;
+    if (/(maddalena|madeline)/.test(blob) && /capoccia/.test(blob)) return true;
+    if (/anna/.test(blob) && /miotto/.test(blob)) return true;
+    if (/(mickey|amerigo)/.test(blob) && /miotto/.test(blob)) return true;
+    if (/(tony|anthony)/.test(blob) && /capoccia/.test(blob) && (/joseph|tony|patriarch/.test(blob) || m.is_memorial)) return true;
+    // Younger Anthony Capoccia (son of David) stays in the members grid
+    if (/^anthony capoccia$/i.test(String(m.full_name || "").trim()) && /son of david/i.test(m.role_in_family || "")) {
+      return false;
+    }
+    if (/(fran|frances)/.test(blob) && /capoccia/.test(blob)) return true;
+    if (/^george\b/.test(blob) && /capoccia/.test(blob) && !/son of/.test(blob)) return true;
+    if (/christine/.test(blob) && /capoccia/.test(blob) && !/son of|daughter of/.test(blob)) return true;
+    return false;
+  }
+  const allMembers = members.filter((m) => !isFeaturedInTree(m));
   // Home gallery: only photos you (admin) have explicitly approved for the home page
   ensureHomePhotoColumns();
   const recentPhotos = db.prepare(`

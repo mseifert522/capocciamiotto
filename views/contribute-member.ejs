@@ -2,67 +2,55 @@
 <section class="section">
   <div class="container narrow">
     <header class="section-header">
-      <p class="section-eyebrow">Family Members · Living tree · auto-approved</p>
-      <h2 class="section-title">Add Your Name to This Tribute</h2>
+      <p class="section-eyebrow">Join the living family tree</p>
+      <h2 class="section-title">Add Your Name</h2>
       <div class="section-rule"></div>
-      <p class="section-lead">With the family PIN, your name is approved automatically and appears on the family tree and Family Members list right away.</p>
+      <p class="section-lead">
+        Tell us who you are and how you connect to the Capoccia–Miotto family.
+        Your name and bio will appear with Family Members. To add photos of reunions or albums, use
+        <a href="/contribute">Contribute Photos</a> instead.
+      </p>
     </header>
 
     <% if (typeof pinHolder !== 'undefined' && pinHolder) { %>
-      <p style="margin-bottom:0.35rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
-        Contributing as: <%= pinHolder.assignedName %>
+      <p style="margin-bottom:1rem;font-family:var(--font-ui);color:var(--green);font-weight:600">
+        Signed in with family PIN<% if (pinHolder.assignedName) { %> · <%= pinHolder.assignedName %><% } %>
       </p>
-
     <% } %>
 
     <form class="form-card" method="post" action="/contribute/member">
-      <div class="form-row">
-        <label for="full_name">Full name *</label>
-        <input type="text" id="full_name" name="full_name" required maxlength="160"
-          value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
-      </div>
-
+      <h3 class="form-section-title">Your name</h3>
       <div class="form-row two">
         <div>
-          <label for="preferred_name">Preferred name on the tribute</label>
-          <input type="text" id="preferred_name" name="preferred_name" maxlength="160" placeholder="How your name should appear" />
+          <label for="first_name">First name *</label>
+          <input type="text" id="first_name" name="first_name" required maxlength="80"
+            autocomplete="given-name"
+            value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? String(pinHolder.assignedName).split(/\s+/)[0] || '' : '' %>" />
         </div>
         <div>
-          <label for="maiden_name">Maiden name (if applicable)</label>
-          <input type="text" id="maiden_name" name="maiden_name" maxlength="120" />
-        </div>
-      </div>
-
-      <div class="form-row two">
-        <div>
-          <label for="family_branch">Family branch *</label>
-          <select id="family_branch" name="family_branch" required>
-            <option value="both">Both Capoccia &amp; Miotto</option>
-            <option value="Capoccia">Capoccia</option>
-            <option value="Miotto">Miotto</option>
-          </select>
-        </div>
-        <div>
-          <label for="role_in_family">Your place in the family</label>
-          <input type="text" id="role_in_family" name="role_in_family" maxlength="200" placeholder="Example: Grandchild of Anna &amp; Mickey" />
+          <label for="last_name">Last name *</label>
+          <input type="text" id="last_name" name="last_name" required maxlength="80"
+            autocomplete="family-name" />
         </div>
       </div>
 
       <div class="form-row">
-        <label for="relation_type">How do you connect to the family tree? *</label>
-        <select id="relation_type" name="relation_type" required>
-          <option value="child_of">I am a child of…</option>
-          <option value="grandchild_of">I am a grandchild of…</option>
-          <option value="great_grandchild_of">I am a great-grandchild of…</option>
-          <option value="spouse_of">I am the spouse of…</option>
-          <option value="other">Other family connection</option>
-        </select>
+        <label for="maiden_name">Maiden name (optional)</label>
+        <input type="text" id="maiden_name" name="maiden_name" maxlength="120" placeholder="If different from last name" />
+      </div>
+
+      <h3 class="form-section-title">Your place in the family</h3>
+      <div class="form-row">
+        <label for="relation_to_family">Relationship to the family *</label>
+        <input type="text" id="relation_to_family" name="relation_to_family" required maxlength="300"
+          placeholder="Example: Daughter of Lori and Wayne Irwin · Grandson of George and Christine" />
+        <p class="hint">One clear sentence: how you connect (child, grandchild, spouse, in-law, etc.).</p>
       </div>
 
       <div class="form-row">
-        <label for="parent_member_id">Place me under this patriarch / matriarch / family member *</label>
+        <label for="parent_member_id">Related to (place me under) *</label>
         <select id="parent_member_id" name="parent_member_id" required>
-          <option value="">Select who you descend from or connect to…</option>
+          <option value="">Select a family member…</option>
           <optgroup label="Patriarchs &amp; Matriarchs">
             <% (treeAnchors || []).filter(function(m){ return m.is_patriarch || m.is_matriarch || (m.generation === 1); }).forEach(function(m) { %>
               <option value="<%= m.id %>">
@@ -70,7 +58,7 @@
               </option>
             <% }) %>
           </optgroup>
-          <optgroup label="Other family members already on the tree">
+          <optgroup label="Other family members">
             <% (treeAnchors || []).filter(function(m){ return !(m.is_patriarch || m.is_matriarch || m.generation === 1); }).forEach(function(m) { %>
               <option value="<%= m.id %>">
                 <%= m.preferred_name || m.full_name %><%= m.role_in_family ? ' — ' + m.role_in_family : '' %>
@@ -78,67 +66,63 @@
             <% }) %>
           </optgroup>
         </select>
-        <p class="hint">Your name will appear on the living family tree under this person once approved.</p>
+        <p class="hint">Choose the parent, grandparent, or spouse you connect to on the tree.</p>
       </div>
 
       <div class="form-row">
-        <label for="relation_to_family">Describe your relationship *</label>
-        <input type="text" id="relation_to_family" name="relation_to_family" required maxlength="300"
-          placeholder="Example: Daughter of … / Son of … / Grandson of George &amp; Christine" />
+        <label for="family_branch">Family branch *</label>
+        <select id="family_branch" name="family_branch" required>
+          <option value="Capoccia">Capoccia</option>
+          <option value="Miotto">Miotto</option>
+          <option value="both">Both Capoccia &amp; Miotto</option>
+        </select>
+      </div>
+
+      <h3 class="form-section-title">Your bio</h3>
+      <div class="form-row">
+        <label for="short_bio">Bio *</label>
+        <textarea id="short_bio" name="short_bio" required maxlength="2000" rows="5"
+          placeholder="A short bio for your family page — where you live, family notes, a memory, or anything you want relatives to know."></textarea>
+        <p class="hint">Shown on your “View Bio” page. You can keep it to a few sentences.</p>
       </div>
 
       <fieldset class="form-fieldset spouse-fields">
-        <legend>Your spouse (optional)</legend>
-        <p class="hint" style="margin-top:0">
-          Adding a name to the family tree? You can include your spouse here so you appear together on the living tree after approval.
-        </p>
-        <div class="form-row">
-          <label for="spouse_full_name">Spouse’s full name</label>
-          <input type="text" id="spouse_full_name" name="spouse_full_name" maxlength="160"
-            placeholder="Leave blank if not adding a spouse" />
-        </div>
+        <legend>Spouse (optional)</legend>
+        <p class="hint" style="margin-top:0">Add your spouse so you appear together on the family tree.</p>
         <div class="form-row two">
           <div>
-            <label for="spouse_preferred_name">Spouse’s preferred name on the tribute</label>
-            <input type="text" id="spouse_preferred_name" name="spouse_preferred_name" maxlength="160"
-              placeholder="How their name should appear" />
+            <label for="spouse_first_name">Spouse first name</label>
+            <input type="text" id="spouse_first_name" name="spouse_first_name" maxlength="80" />
           </div>
           <div>
-            <label for="spouse_maiden_name">Spouse’s maiden name (if applicable)</label>
-            <input type="text" id="spouse_maiden_name" name="spouse_maiden_name" maxlength="120" />
+            <label for="spouse_last_name">Spouse last name</label>
+            <input type="text" id="spouse_last_name" name="spouse_last_name" maxlength="80" />
           </div>
         </div>
       </fieldset>
 
-      <div class="form-row">
-        <label for="short_bio">A short note about you (optional)</label>
-        <textarea id="short_bio" name="short_bio" maxlength="2000" rows="4" placeholder="A sentence or two for your family tribute card."></textarea>
-      </div>
-
+      <h3 class="form-section-title">Contact (private)</h3>
       <div class="form-row two">
         <div>
-          <label for="contributor_name">Your name for the submission *</label>
-          <input type="text" id="contributor_name" name="contributor_name" required maxlength="120"
-            value="<%= (typeof pinHolder !== 'undefined' && pinHolder && pinHolder.assignedName) ? pinHolder.assignedName : '' %>" />
+          <label for="contributor_email">Email (optional)</label>
+          <input type="email" id="contributor_email" name="contributor_email" maxlength="160" autocomplete="email" />
         </div>
         <div>
-          <label for="contributor_email">Email (private)</label>
-          <input type="email" id="contributor_email" name="contributor_email" maxlength="160" />
+          <label for="contributor_phone">Phone (optional)</label>
+          <input type="tel" id="contributor_phone" name="contributor_phone" maxlength="40" autocomplete="tel" />
         </div>
       </div>
 
-      <div class="form-row">
-        <label for="contributor_phone">Telephone (private, optional)</label>
-        <input type="tel" id="contributor_phone" name="contributor_phone" maxlength="40" />
-      </div>
-
-      <button class="btn btn-primary btn-block" type="submit">Add My Name to the Tree</button>
+      <button class="btn btn-primary btn-block" type="submit">Add My Name &amp; Bio</button>
+      <p class="hint" style="text-align:center;margin-top:0.85rem">
+        Need to upload reunion photos? That is a separate step:
+        <a href="/contribute">Contribute Photos</a>
+      </p>
     </form>
 
     <div class="btn-row" style="margin-top:1.5rem;justify-content:center">
-      <a class="btn btn-outline" href="/family-tree">View Living Family Tree</a>
-      <a class="btn btn-outline" href="/contribute">Contribute Photos</a>
-      <a class="btn btn-outline" href="/family-members">View Family Members</a>
+      <a class="btn btn-outline" href="/family-tree">View Family Tree</a>
+      <a class="btn btn-outline" href="/family-members">Family Members</a>
     </div>
   </div>
 </section>

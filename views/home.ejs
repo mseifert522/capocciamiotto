@@ -55,35 +55,7 @@
     <% if (typeof allMembers !== 'undefined' && allMembers && allMembers.length) { %>
       <div class="member-grid" role="list">
         <% allMembers.forEach(function(m) { %>
-          <article class="member-card" role="listitem">
-            <div class="member-card-photo">
-              <% if (m.portrait_path) { %>
-                <button
-                  type="button"
-                  class="portrait-lightbox-btn member-card-photo-btn"
-                  data-lightbox="<%= m.portrait_path %>"
-                  data-lightbox-caption="<%= m.display_name %>"
-                  aria-label="View full photo of <%= m.display_name %>"
-                >
-                  <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
-                </button>
-              <% } else { %>
-                <div class="member-card-placeholder" aria-hidden="true">
-                  <span><%= (m.display_name || "?").charAt(0) %></span>
-                </div>
-              <% } %>
-            </div>
-            <div class="member-card-body">
-              <h3><%= m.display_name %></h3>
-              <% if (m.role_in_family) { %>
-                <p class="member-card-role"><%= m.role_in_family %></p>
-              <% } %>
-              <% if (m.family_branch) { %>
-                <p class="member-card-branch"><%= m.family_branch === 'both' ? 'Capoccia · Miotto' : m.family_branch %></p>
-              <% } %>
-              <a class="btn btn-outline member-card-cta" href="/family-members/<%= m.id %>">View full tribute</a>
-            </div>
-          </article>
+          <%- include('partials/member-card', { m: m }) %>
         <% }) %>
       </div>
     <% } else { %>

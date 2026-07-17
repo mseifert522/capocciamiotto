@@ -1153,18 +1153,39 @@ app.use(restorePinFromCookie);
 app.use(enforceAuthTimeout);
 
 // ---------- Public pages ----------
+function memberDisplayName(m) {
+  const full = (m.full_name || "").trim();
+  const pref = (m.preferred_name || "").trim();
+  const looksGeneric = (s) =>
+    !s ||
+    /family/i.test(s) ||
+    /healthcheck/i.test(s) ||
+    /^test\b/i.test(s) ||
+    /safe to reject/i.test(s);
+  if (!looksGeneric(full)) return full;
+  if (!looksGeneric(pref)) return pref;
+  return full || pref || "Family member";
+}
+
+function isTestFamilyMember(m) {
+  const blob = `${m.full_name || ""} ${m.preferred_name || ""} ${m.role_in_family || ""}`.toLowerCase();
+  return (
+    blob.includes("healthcheck") ||
+    blob.includes("safe to reject") ||
+    /\btest healthcheck\b/.test(blob) ||
+    /^test\b/.test((m.full_name || "").trim().toLowerCase())
+  );
+}
+
 app.get("/", (req, res) => {
   const members = db.prepare(`
     SELECT * FROM family_members
     WHERE visibility = 'public' OR visibility IS NULL
     ORDER BY sort_order ASC, full_name ASC
-  `).all();
+  `).all()
+    .filter((m) => !isTestFamilyMember(m));
   members.forEach((m) => {
-    // Prefer full legal name; fall back to preferred when full_name is a generic placeholder
-    const full = (m.full_name || "").trim();
-    const pref = (m.preferred_name || "").trim();
-    const generic = !full || /^capoccia/i.test(full) && /family/i.test(full) || /^healthcheck|test /i.test(full);
-    m.display_name = (generic ? pref || full : full || pref) || "Family member";
+    m.display_name = memberDisplayName(m);
   });
   // Everyone on the home page, already ordered by sort_order (leaders first, then family)
   const allMembers = members.slice();
@@ -1498,15 +1519,14 @@ app.get("/family-members", (req, res) => {
     SELECT * FROM family_members
     WHERE visibility = 'public' OR visibility IS NULL
     ORDER BY sort_order ASC, full_name ASC
-  `).all();
+  `).all()
+    .filter((m) => !isTestFamilyMember(m));
   members.forEach((m) => {
-    const full = (m.full_name || "").trim();
-    const pref = (m.preferred_name || "").trim();
-    const generic = !full || (/^capoccia/i.test(full) && /family/i.test(full)) || /^healthcheck|test /i.test(full);
-    m.display_name = (generic ? pref || full : full || pref) || "Family member";
+    m.display_name = memberDisplayName(m);
   });
-  // Community family members = everyone not in the six patriarch/matriarch leader set
+  // Community family members = everyone not patriarch/matriarch leaders
   function isLeader(m) {
+    if (m.is_patriarch || m.is_matriarch) return true;
     const full = m.full_name || "";
     const n = (full + " " + (m.preferred_name || "")).trim();
     if (/George/i.test(n) && /Capoccia/i.test(n)) return true;
@@ -1526,10 +1546,11 @@ app.get("/family-members", (req, res) => {
 app.get("/family-members/:id", (req, res) => {
   const member = db.prepare("SELECT * FROM family_members WHERE id = ?").get(req.params.id);
   if (!member) return res.status(404).render("404", localsBase(req));
+  if (isTestFamilyMember(member)) return res.status(404).render("404", localsBase(req));
   if (member.is_matriarch && member.family_branch === "Capoccia") {
     member.display_name = matriarchName();
   } else {
-    member.display_name = member.preferred_name || member.full_name;
+    member.display_name = memberDisplayName(member);
   }
   const recordings = db.prepare(`
     SELECT * FROM voice_recordings
@@ -2554,20 +2575,36 @@ app.post("/contribute/recording", (req, res) => {
 });
 
 app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, res) => {
-  const full_name = (req.body.full_name || "").trim();
-  const preferred_name = (req.body.preferred_name || "").trim() || null;
+  // Prefer simple first/last name fields; keep full_name fallback for older clients
+  const first_name = (req.body.first_name || "").trim();
+  const last_name = (req.body.last_name || "").trim();
+  const full_name = [first_name, last_name].filter(Boolean).join(" ").trim()
+    || (req.body.full_name || "").trim();
+  const preferred_name = full_name || null;
   const maiden_name = (req.body.maiden_name || "").trim() || null;
   const family_branch = (req.body.family_branch || "both").trim();
-  const role_in_family = (req.body.role_in_family || "").trim() || null;
   const relation_to_family = (req.body.relation_to_family || "").trim();
+  const role_in_family = relation_to_family || (req.body.role_in_family || "").trim() || null;
   const short_bio = (req.body.short_bio || "").trim() || null;
-  const relation_type = (req.body.relation_type || "child_of").trim();
+  // Infer relation type from relationship text when possible
+  let relation_type = (req.body.relation_type || "").trim();
+  if (!relation_type) {
+    const rel = relation_to_family.toLowerCase();
+    if (/\bspouse\b|\bwife\b|\bhusband\b|\bmarried\b/.test(rel)) relation_type = "spouse_of";
+    else if (/great[- ]?grand/.test(rel)) relation_type = "great_grandchild_of";
+    else if (/\bgrand/.test(rel)) relation_type = "grandchild_of";
+    else if (/\b(son|daughter|child)\b/.test(rel)) relation_type = "child_of";
+    else relation_type = "other";
+  }
   let parent_member_id = req.body.parent_member_id ? parseInt(req.body.parent_member_id, 10) : null;
   if (parent_member_id && Number.isNaN(parent_member_id)) parent_member_id = null;
-  const spouse_full_name = (req.body.spouse_full_name || "").trim() || null;
-  const spouse_preferred_name = (req.body.spouse_preferred_name || "").trim() || null;
+  const spouse_first = (req.body.spouse_first_name || "").trim();
+  const spouse_last = (req.body.spouse_last_name || "").trim();
+  const spouse_full_name = [spouse_first, spouse_last].filter(Boolean).join(" ").trim()
+    || (req.body.spouse_full_name || "").trim() || null;
+  const spouse_preferred_name = spouse_full_name;
   const spouse_maiden_name = (req.body.spouse_maiden_name || "").trim() || null;
-  const contributor_name = (req.body.contributor_name || "").trim()
+  const contributor_name = full_name
     || (req.session.contributorPin && req.session.contributorPin.assignedName)
     || "";
   const contributor_email = (req.body.contributor_email || "").trim() || null;
@@ -2576,8 +2613,8 @@ app.post("/contribute/member", contributeLimiter, requireContributorPin, (req, r
     ? req.session.contributorPin.pinId
     : null;
 
-  if (!full_name || !relation_to_family || !contributor_name || !parent_member_id) {
-    setFlash(req, "error", "Please include your name, relationship, and which family member to place you under on the tree.");
+  if (!full_name || !relation_to_family || !short_bio || !parent_member_id) {
+    setFlash(req, "error", "Please enter first and last name, relationship to the family, who you relate to, and a short bio.");
     return res.redirect("/contribute/member");
   }
 

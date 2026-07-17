@@ -2259,6 +2259,21 @@ main { overflow-x: clip; }
 }
 .empty p { color: var(--ink-muted); max-width: 32em; margin: 0 auto 1.25rem; }
 
+/* Contribute form section titles */
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--burgundy);
+  margin: 1.25rem 0 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(196, 163, 90, 0.22);
+}
+.form-card .form-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 /* Special Memories — main showcase on Photo Archive */
 .special-memories-section {
   background:

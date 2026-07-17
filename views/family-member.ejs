@@ -1,4 +1,8 @@
-<%- include('partials/header', { pageTitle: member.display_name }) %>
+<%
+  const isLeader = !!(member.is_patriarch || member.is_matriarch);
+  const pageKind = isLeader ? "Tribute" : "Bio";
+%>
+<%- include('partials/header', { pageTitle: member.display_name + ' · ' + pageKind }) %>
 <section class="section">
   <div class="container narrow">
     <article class="card">
@@ -27,8 +31,8 @@
           <% } %>
         <% } else { %>
           <div class="placeholder-mark placeholder-with-upload">
-            <span class="placeholder-label">Portrait placeholder<br />for <%= member.display_name %></span>
-            <span class="placeholder-hint">Please upload a favorite photo of the family.</span>
+            <span class="placeholder-label">Photo for <%= member.display_name %></span>
+            <span class="placeholder-hint">Upload a portrait of this family member (separate from reunion photo uploads).</span>
             <% if (canUploadPhoto) { %>
               <form class="portrait-add-form" method="post" action="/family-members/<%= member.id %>/portrait" enctype="multipart/form-data">
                 <label class="btn btn-primary portrait-add-btn">
@@ -36,13 +40,11 @@
                   <input type="file" name="portrait" accept="image/jpeg,image/png,image/webp,image/gif" required hidden onchange="this.form.submit()" />
                 </label>
               </form>
-              <a class="btn btn-outline portrait-add-btn" href="/contribute" style="margin-top:0.4rem">Bulk upload many photos</a>
             <% } else { %>
               <a class="btn btn-primary portrait-add-btn" href="/contribute/pin?next=portrait&amp;member=<%= member.id %>">
                 Add portrait photo
               </a>
-              <a class="btn btn-outline portrait-add-btn" href="/contribute/pin" style="margin-top:0.4rem">Bulk upload many photos</a>
-              <span class="placeholder-pin-note">Family PIN required to upload</span>
+              <span class="placeholder-pin-note">Family PIN required to upload a portrait</span>
             <% } %>
           </div>
         <% } %>
@@ -52,6 +54,7 @@
           <span class="badge <%= member.family_branch === 'Capoccia' ? 'badge-capoccia' : (member.family_branch === 'Miotto' ? 'badge-miotto' : 'badge-both') %>"><%= member.family_branch %> family</span>
           <% if (member.is_patriarch) { %><span class="badge badge-both">Patriarch</span><% } %>
           <% if (member.is_matriarch) { %><span class="badge badge-both">Matriarch</span><% } %>
+          <% if (!isLeader) { %><span class="badge badge-both">Family member</span><% } %>
         </div>
         <h3><%= member.display_name %></h3>
         <% if (member.maiden_name) { %>
@@ -70,11 +73,20 @@
           </p>
         <% } %>
 
-        <% if (member.biography) { %>
-          <% member.biography.split(/\n\n+/).forEach(function(para) { %>
-            <p style="margin-top:0.85rem;line-height:1.75"><%= para %></p>
-          <% }) %>
-        <% } %>
+        <div class="member-bio-block" style="margin-top:1.15rem">
+          <h4 style="font-family:var(--font-display);font-size:1.35rem;color:var(--burgundy);margin:0 0 0.5rem">
+            <%= isLeader ? "Family tribute" : "Bio" %>
+          </h4>
+          <% if (member.biography) { %>
+            <% member.biography.split(/\n\n+/).forEach(function(para) { %>
+              <p style="margin-top:0.85rem;line-height:1.75"><%= para %></p>
+            <% }) %>
+          <% } else if (!isLeader) { %>
+            <p style="margin-top:0.5rem;color:var(--ink-muted);line-height:1.6">
+              No bio yet. Family members can add one when they sign up, or share a memory below.
+            </p>
+          <% } %>
+        </div>
 
         <% if (member.favorite_memories) { %>
           <p style="margin-top:1rem;font-style:italic;color:var(--ink-muted)"><%= member.favorite_memories %></p>
@@ -100,9 +112,9 @@
         <% } %>
 
         <div class="btn-row" style="margin-top:1.25rem">
-          <a class="btn btn-primary" href="/voice-recordings">Listen to Family Voices</a>
+          <a class="btn btn-outline" href="/contribute/member">Add your name &amp; bio</a>
           <a class="btn btn-outline" href="/contribute/story">Share a memory</a>
-          <a class="btn btn-outline" href="/contribute">Contribute a photo</a>
+          <a class="btn btn-outline" href="/contribute">Contribute reunion photos</a>
         </div>
       </div>
     </article>

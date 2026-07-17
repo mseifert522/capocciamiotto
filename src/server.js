@@ -1159,6 +1159,21 @@ app.get("/", (req, res) => {
   res.render("home", { ...data, members, recentPhotos, pinned });
 });
 
+function ensureSpecialMemoryColumns() {
+  try {
+    const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
+    if (!cols.includes("special_memory")) {
+      db.exec("ALTER TABLE photos ADD COLUMN special_memory INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("special_sort")) {
+      db.exec("ALTER TABLE photos ADD COLUMN special_sort INTEGER NOT NULL DEFAULT 0");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_photos_special ON photos(special_memory, special_sort)");
+  } catch (e) {
+    console.warn("special memory columns:", e.message);
+  }
+}
+
 function ensureHomePhotoColumns() {
   try {
     const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
@@ -1350,9 +1365,28 @@ app.get("/photo-archive", (req, res) => {
     `).run();
   } catch (_) { /* ignore */ }
 
+  ensureSpecialMemoryColumns();
+
   const q = (req.query.q || "").trim();
   const year = req.query.year ? parseInt(req.query.year, 10) : null;
   const branch = (req.query.branch || "").trim();
+  const isFiltering = !!(q || year || branch);
+
+  // Featured Special Memories showcase (main display on this page)
+  const specialMemories = filterPublicPhotos(db.prepare(`
+    SELECT * FROM photos
+    WHERE status = 'approved'
+      AND COALESCE(may_display_public, 1) = 1
+      AND COALESCE(visibility, 'public') != 'private'
+      AND COALESCE(special_memory, 0) = 1
+      AND lower(coalesce(title,'')) NOT LIKE '%auto-approve%'
+      AND lower(coalesce(title,'')) NOT LIKE '%bulk multi%'
+      AND lower(coalesce(contributor_name,'')) NOT LIKE '%automated health%'
+      AND lower(coalesce(contributor_email,'')) != 'healthcheck@example.com'
+    ORDER BY special_sort ASC, datetime(submitted_at) DESC, id DESC
+    LIMIT 48
+  `).all());
+
   // Show every approved family photo — never test/automation tiles
   let sql = `
     SELECT * FROM photos
@@ -1387,7 +1421,16 @@ app.get("/photo-archive", (req, res) => {
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
   const data = localsBase(req);
   clearFlash(req);
-  res.render("photo-archive", { ...data, photos, years, q, year, branch });
+  res.render("photo-archive", {
+    ...data,
+    photos,
+    specialMemories,
+    years,
+    q,
+    year,
+    branch,
+    isFiltering,
+  });
 });
 
 app.get("/family-members", (req, res) => {
@@ -2834,10 +2877,13 @@ app.post("/admin/photos/purge-tests", requireRole("super_admin", "family_admin")
 
 app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => {
   ensureHomePhotoColumns();
+  ensureSpecialMemoryColumns();
   const year = req.body.reunion_year ? parseInt(req.body.reunion_year, 10) : null;
   const homeSort = parseInt(req.body.home_sort || "0", 10);
+  const specialSort = parseInt(req.body.special_sort || "0", 10);
   const wantHome = req.body.show_on_home === "1";
-  const existing = db.prepare("SELECT home_status, show_on_home FROM photos WHERE id = ?").get(req.params.id);
+  const wantSpecial = req.body.special_memory === "1";
+  const existing = db.prepare("SELECT home_status, show_on_home, special_memory, special_sort FROM photos WHERE id = ?").get(req.params.id);
   // Nominating for home does NOT publish until you Approve on Home Photos
   let homeStatus = existing && existing.home_status ? existing.home_status : null;
   let showOnHome = existing && existing.show_on_home ? 1 : 0;
@@ -2850,10 +2896,18 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
     homeStatus = null;
     showOnHome = 0;
   }
+  let nextSpecialSort = Number.isFinite(specialSort) ? specialSort : 0;
+  if (wantSpecial && existing && !existing.special_memory && nextSpecialSort === 0) {
+    const maxSort = db.prepare(`
+      SELECT COALESCE(MAX(special_sort), 0) AS m FROM photos WHERE COALESCE(special_memory, 0) = 1
+    `).get().m;
+    nextSpecialSort = (maxSort || 0) + 10;
+  }
   db.prepare(`
     UPDATE photos SET
       title = ?, description = ?, reunion_year = ?, family_branch = ?, location = ?,
-      admin_notes = ?, featured = ?, show_on_home = ?, home_sort = ?, home_status = ?, visibility = ?
+      admin_notes = ?, featured = ?, show_on_home = ?, home_sort = ?, home_status = ?,
+      special_memory = ?, special_sort = ?, visibility = ?
     WHERE id = ?
   `).run(
     (req.body.title || "").trim() || null,
@@ -2866,6 +2920,8 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
     showOnHome,
     Number.isFinite(homeSort) ? homeSort : 0,
     homeStatus,
+    wantSpecial ? 1 : 0,
+    wantSpecial ? nextSpecialSort : 0,
     (req.body.visibility || "public").trim(),
     req.params.id
   );
@@ -2878,7 +2934,9 @@ app.post("/admin/photos/:id/update", requireRole(...ADMIN_ROLES), (req, res) => 
   );
   const back = req.body.return_to === "home"
     ? "/admin/home-photos"
-    : `/admin/photos?status=${req.body.return_status || "all"}`;
+    : req.body.return_to === "special"
+      ? "/admin/special-memories"
+      : `/admin/photos?status=${req.body.return_status || "all"}`;
   res.redirect(back);
 });
 
@@ -2996,6 +3054,127 @@ app.post("/admin/home-photos/:id/sort", requireRole(...ADMIN_ROLES), (req, res) 
   );
   setFlash(req, "success", "Home page order updated.");
   res.redirect("/admin/home-photos");
+});
+
+/** Special Memories — main showcase at the top of Photo Archive */
+app.get("/admin/special-memories", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureSpecialMemoryColumns();
+  const livePhotos = db.prepare(`
+    SELECT * FROM photos
+    WHERE COALESCE(special_memory, 0) = 1
+    ORDER BY special_sort ASC, datetime(submitted_at) DESC, id DESC
+  `).all();
+  const candidates = db.prepare(`
+    SELECT * FROM photos
+    WHERE status = 'approved'
+      AND COALESCE(special_memory, 0) = 0
+      AND COALESCE(may_display_public, 1) = 1
+    ORDER BY datetime(submitted_at) DESC, id DESC
+    LIMIT 80
+  `).all();
+  const data = localsBase(req);
+  clearFlash(req);
+  res.render("admin/special-memories", { ...data, livePhotos, candidates });
+});
+
+app.post(
+  "/admin/special-memories/upload",
+  requireRole(...ADMIN_ROLES),
+  upload.array("photos", BULK_PHOTO_MAX),
+  async (req, res) => {
+    ensureSpecialMemoryColumns();
+    const files = req.files || [];
+    if (!files.length) {
+      setFlash(req, "error", "Please choose at least one photograph for Special Memories.");
+      return res.redirect("/admin/special-memories");
+    }
+    const titleBase = (req.body.title || "").trim() || "Special memory";
+    const maxSort = db.prepare(`
+      SELECT COALESCE(MAX(special_sort), 0) AS m FROM photos WHERE COALESCE(special_memory, 0) = 1
+    `).get().m;
+    let sort = maxSort + 10;
+    let count = 0;
+    try {
+      for (const file of files) {
+        const processed = await processUpload(file);
+        const photoTitle = files.length === 1 ? titleBase : `${titleBase} (${count + 1})`;
+        db.prepare(`
+          INSERT INTO photos (
+            original_filename, original_path, web_path, thumb_path,
+            title, description, reunion_year, family_branch,
+            contributor_name, permission_confirmed, may_display_public,
+            status, featured, special_memory, special_sort,
+            file_size, mime_type, width, height, reviewed_at, reviewed_by
+          ) VALUES (?, ?, ?, ?, ?, ?, NULL, 'both', ?, 1, 1, 'approved', 0, 1, ?, ?, ?, ?, ?, datetime('now'), ?)
+        `).run(
+          processed.original_filename,
+          processed.original_path,
+          processed.web_path,
+          processed.thumb_path,
+          photoTitle,
+          (req.body.description || "").trim() || "Featured in Special Memories on the Photo Archive.",
+          req.session.user.name || req.session.user.email || "Administrator",
+          sort,
+          processed.file_size,
+          processed.mime_type,
+          processed.width,
+          processed.height,
+          req.session.user.id
+        );
+        sort += 10;
+        count += 1;
+      }
+      logActivity(req.session.user.id, "special_memory_upload", `${count} special memory photo(s)`);
+      setFlash(
+        req,
+        "success",
+        `${count} photograph${count === 1 ? "" : "s"} added to Special Memories and the Photo Archive.`
+      );
+    } catch (err) {
+      console.error(err);
+      setFlash(req, "error", err.message || "Could not upload Special Memories photographs.");
+    }
+    res.redirect("/admin/special-memories");
+  }
+);
+
+app.post("/admin/special-memories/:id/add", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureSpecialMemoryColumns();
+  const maxSort = db.prepare(`
+    SELECT COALESCE(MAX(special_sort), 0) AS m FROM photos WHERE COALESCE(special_memory, 0) = 1
+  `).get().m;
+  db.prepare(`
+    UPDATE photos
+    SET special_memory = 1,
+        special_sort = ?,
+        status = 'approved',
+        may_display_public = 1
+    WHERE id = ?
+  `).run((maxSort || 0) + 10, req.params.id);
+  logActivity(req.session.user.id, "special_memory_add", `photo ${req.params.id}`);
+  setFlash(req, "success", "Photograph added to Special Memories.");
+  res.redirect("/admin/special-memories");
+});
+
+app.post("/admin/special-memories/:id/remove", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureSpecialMemoryColumns();
+  db.prepare(`
+    UPDATE photos SET special_memory = 0, special_sort = 0 WHERE id = ?
+  `).run(req.params.id);
+  logActivity(req.session.user.id, "special_memory_remove", `photo ${req.params.id}`);
+  setFlash(req, "success", "Photograph removed from Special Memories (file stays in the archive).");
+  res.redirect("/admin/special-memories");
+});
+
+app.post("/admin/special-memories/:id/sort", requireRole(...ADMIN_ROLES), (req, res) => {
+  ensureSpecialMemoryColumns();
+  const sort = parseInt(req.body.special_sort || "0", 10);
+  db.prepare("UPDATE photos SET special_sort = ? WHERE id = ?").run(
+    Number.isFinite(sort) ? sort : 0,
+    req.params.id
+  );
+  setFlash(req, "success", "Special Memories order updated.");
+  res.redirect("/admin/special-memories");
 });
 
 app.get("/admin/members", requireRole(...ADMIN_ROLES), (req, res) => {

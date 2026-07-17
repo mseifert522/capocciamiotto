@@ -1,11 +1,11 @@
-<%- include('../partials/header', { pageTitle: 'Home Page Photos' }) %>
+<%- include('../partials/header', { pageTitle: 'Special Memories' }) %>
 <section class="section" style="padding-top:1rem">
   <div class="container admin-shell">
     <aside class="admin-nav">
       <a href="/admin">Dashboard</a>
       <a href="/admin/activity">Activity</a>
-      <a class="active" href="/admin/home-photos">Home Photos</a>
-      <a href="/admin/special-memories">Special Memories</a>
+      <a href="/admin/home-photos">Home Photos</a>
+      <a class="active" href="/admin/special-memories">Special Memories</a>
       <a href="/admin/photos">Photos</a>
       <a href="/admin/stories">Stories</a>
       <a href="/admin/recordings">Voice Recordings</a>
@@ -13,25 +13,24 @@
       <a href="/admin/members">Family Members</a>
       <a href="/admin/reunions">Reunions</a>
       <a href="/admin/pins">Family PINs</a>
-      <a href="/">View site</a>
+      <a href="/photo-archive">View Photo Archive</a>
       <form method="post" action="/admin/logout" style="margin-top:1rem"><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" type="submit">Log out</button></form>
     </aside>
     <div class="admin-main">
-      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Home page photographs</h2>
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:0.5rem">Special Memories</h2>
       <p style="margin-bottom:1.25rem;color:var(--ink-muted)">
-        <strong>Nothing appears on the public home page until you click Approve.</strong>
-        Upload candidates below, review them, then approve only the ones you want live.
-        Family contributions never go to the home page automatically.
+        These photographs are the <strong>main showcase</strong> at the top of the public
+        <a href="/photo-archive">Photo Archive</a> page. Upload new ones below, or add from existing archive photos.
       </p>
 
       <form
         class="form-card"
         method="post"
-        action="/admin/home-photos/upload"
+        action="/admin/special-memories/upload"
         enctype="multipart/form-data"
         style="margin-bottom:1.75rem"
       >
-        <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem;color:var(--burgundy)">Upload candidates (not live yet)</h3>
+        <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.75rem;color:var(--burgundy)">Upload to Special Memories</h3>
         <div class="form-row">
           <label>Photographs *</label>
           <div
@@ -43,7 +42,7 @@
           >
             <div class="bulk-dropzone-main" data-bulk-trigger>
               <strong>Drag &amp; drop photos here</strong>
-              <span class="hint">Admin only · bulk upload · up to 50 · saved as pending until you approve</span>
+              <span class="hint">Goes live on Photo Archive → Special Memories · up to 50</span>
             </div>
             <input
               type="file"
@@ -65,23 +64,25 @@
         <div class="form-row two">
           <div>
             <label for="title">Title prefix (optional)</label>
-            <input id="title" name="title" type="text" maxlength="160" placeholder="Home gallery" />
+            <input id="title" name="title" type="text" maxlength="160" placeholder="Special memory" />
           </div>
           <div>
             <label for="description">Description (optional)</label>
             <input id="description" name="description" type="text" maxlength="400" />
           </div>
         </div>
-        <button class="btn btn-primary" type="submit">Upload for my approval</button>
+        <button class="btn btn-primary" type="submit">Add to Special Memories</button>
       </form>
 
-      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--burgundy)">
-        Waiting for your approval
-        <% if (pendingPhotos && pendingPhotos.length) { %><span style="font-size:1rem;color:var(--ink-muted)">(<%= pendingPhotos.length %>)</span><% } %>
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--green)">
+        Live in Special Memories
+        <% if (livePhotos && livePhotos.length) { %><span style="font-size:1rem;color:var(--ink-muted)">(<%= livePhotos.length %>)</span><% } %>
       </h3>
-      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">These are not visible on the public home page.</p>
-      <% if (!pendingPhotos || !pendingPhotos.length) { %>
-        <p style="color:var(--ink-muted);margin-bottom:1.5rem">No photos waiting for approval.</p>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">
+        Lower order numbers appear first. First photo is the large hero image on the public page.
+      </p>
+      <% if (!livePhotos || !livePhotos.length) { %>
+        <p style="color:var(--ink-muted);margin-bottom:1.5rem">No Special Memories photos yet. Upload above or add from the archive list below.</p>
       <% } else { %>
         <div class="table-wrap" style="margin-bottom:2rem">
           <table>
@@ -94,7 +95,7 @@
               </tr>
             </thead>
             <tbody>
-              <% pendingPhotos.forEach(function(p) { %>
+              <% livePhotos.forEach(function(p, idx) { %>
                 <tr>
                   <td>
                     <% if (p.thumb_path || p.web_path) { %>
@@ -102,22 +103,19 @@
                     <% } %>
                   </td>
                   <td>
-                    <strong><%= p.title || p.original_filename %></strong><br />
-                    <span class="badge badge-both">Pending approval</span><br />
+                    <strong><%= p.title || p.original_filename %></strong>
+                    <% if (idx === 0) { %> <span class="badge badge-capoccia">Hero</span><% } %><br />
                     <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.submitted_at %></span>
                   </td>
                   <td>
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/sort" class="inline-actions">
-                      <input type="number" name="home_sort" value="<%= p.home_sort || 0 %>" style="width:5rem" />
+                    <form method="post" action="/admin/special-memories/<%= p.id %>/sort" class="inline-actions">
+                      <input type="number" name="special_sort" value="<%= p.special_sort || 0 %>" style="width:5rem" />
                       <button class="btn btn-outline" type="submit">Save order</button>
                     </form>
                   </td>
                   <td class="inline-actions">
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/approve">
-                      <button class="btn btn-secondary" type="submit">Approve → home page</button>
-                    </form>
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Discard this home-page candidate?');">
-                      <button class="btn btn-outline" type="submit">Discard</button>
+                    <form method="post" action="/admin/special-memories/<%= p.id %>/remove" onsubmit="return confirm('Remove this photo from Special Memories?');">
+                      <button class="btn btn-outline" type="submit">Remove</button>
                     </form>
                   </td>
                 </tr>
@@ -127,13 +125,12 @@
         </div>
       <% } %>
 
-      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--green)">
-        Live on the home page
-        <% if (livePhotos && livePhotos.length) { %><span style="font-size:1rem;color:var(--ink-muted)">(<%= livePhotos.length %>)</span><% } %>
+      <h3 style="font-family:var(--font-display);font-size:1.35rem;margin:0 0 0.5rem;color:var(--burgundy)">
+        Add from Photo Archive
       </h3>
-      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">Public visitors only see this list.</p>
-      <% if (!livePhotos || !livePhotos.length) { %>
-        <p style="color:var(--ink-muted)">No photographs are live on the home page right now.</p>
+      <p style="font-size:0.9rem;color:var(--ink-muted);margin-bottom:0.75rem">Recent approved photos not yet in Special Memories.</p>
+      <% if (!candidates || !candidates.length) { %>
+        <p style="color:var(--ink-muted)">No additional archive candidates right now.</p>
       <% } else { %>
         <div class="table-wrap">
           <table>
@@ -141,12 +138,11 @@
               <tr>
                 <th>Photo</th>
                 <th>Details</th>
-                <th>Order</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <% livePhotos.forEach(function(p) { %>
+              <% candidates.forEach(function(p) { %>
                 <tr>
                   <td>
                     <% if (p.thumb_path || p.web_path) { %>
@@ -155,18 +151,13 @@
                   </td>
                   <td>
                     <strong><%= p.title || p.original_filename %></strong><br />
-                    <span class="badge badge-capoccia" style="background:rgba(47,93,58,0.12);color:var(--green)">Live</span><br />
-                    <span style="font-size:0.85rem;color:var(--ink-muted)"><%= p.submitted_at %></span>
+                    <span style="font-size:0.85rem;color:var(--ink-muted)">
+                      <%= p.reunion_year || 'Year TBD' %> · <%= p.submitted_at %>
+                    </span>
                   </td>
                   <td>
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/sort" class="inline-actions">
-                      <input type="number" name="home_sort" value="<%= p.home_sort || 0 %>" style="width:5rem" />
-                      <button class="btn btn-outline" type="submit">Save order</button>
-                    </form>
-                  </td>
-                  <td class="inline-actions">
-                    <form method="post" action="/admin/home-photos/<%= p.id %>/remove" onsubmit="return confirm('Remove this photo from the live home page?');">
-                      <button class="btn btn-outline" type="submit">Remove from home</button>
+                    <form method="post" action="/admin/special-memories/<%= p.id %>/add">
+                      <button class="btn btn-secondary" type="submit">Add to Special Memories</button>
                     </form>
                   </td>
                 </tr>

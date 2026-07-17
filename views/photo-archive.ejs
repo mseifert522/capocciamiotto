@@ -1,5 +1,78 @@
 <%- include('partials/header', { pageTitle: 'Photo Archive' }) %>
-<section class="section">
+
+<% if (typeof specialMemories !== 'undefined' && specialMemories && specialMemories.length && !isFiltering) { %>
+<section class="section special-memories-section" id="special-memories">
+  <div class="container">
+    <header class="section-header">
+      <p class="section-eyebrow">Treasured moments</p>
+      <h2 class="section-title">Special Memories</h2>
+      <div class="section-rule"></div>
+      <p class="section-lead">
+        Favorite photographs from Capoccia–Miotto reunions and family life — the heart of our living archive.
+      </p>
+    </header>
+
+    <% const hero = specialMemories[0]; %>
+    <% const rest = specialMemories.slice(1); %>
+    <% const heroSrc = hero.web_path || hero.original_path || hero.thumb_path; %>
+    <% const heroCap = [hero.reunion_year ? String(hero.reunion_year) : "", hero.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
+
+    <div class="special-memories-showcase">
+      <button
+        type="button"
+        class="special-memory-hero"
+        data-lightbox="<%= heroSrc %>"
+        data-lightbox-caption="<%= heroCap %>"
+        aria-label="View special memory<%= hero.reunion_year ? ' from ' + hero.reunion_year : '' %>"
+      >
+        <img
+          src="<%= hero.web_path || hero.thumb_path || hero.original_path %>"
+          alt="<%= hero.title || 'Special memory' %>"
+          loading="eager"
+        />
+        <div class="special-memory-hero-meta">
+          <span class="special-memory-badge">Special Memory</span>
+          <% if (hero.reunion_year || hero.title) { %>
+            <p class="special-memory-hero-cap">
+              <% if (hero.reunion_year) { %><strong><%= hero.reunion_year %></strong><% } %>
+              <% if (hero.reunion_year && hero.title) { %> · <% } %>
+              <% if (hero.title) { %><%= hero.title %><% } %>
+            </p>
+          <% } %>
+          <% if (hero.description) { %>
+            <p class="special-memory-hero-desc"><%= hero.description %></p>
+          <% } %>
+        </div>
+      </button>
+
+      <% if (rest.length) { %>
+        <div class="special-memories-grid" role="list">
+          <% rest.forEach(function(p) { %>
+            <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
+            <% const cap = [p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
+            <button
+              type="button"
+              class="special-memory-tile"
+              role="listitem"
+              data-lightbox="<%= fullSrc %>"
+              data-lightbox-caption="<%= cap %>"
+              aria-label="View special memory<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
+            >
+              <img src="<%= p.web_path || p.thumb_path || p.original_path %>" alt="<%= p.title || 'Special memory' %>" loading="lazy" />
+              <div class="special-memory-tile-cap">
+                <% if (p.reunion_year) { %><span class="special-memory-year"><%= p.reunion_year %></span><% } %>
+                <% if (p.title) { %><span class="special-memory-title"><%= p.title %></span><% } %>
+              </div>
+            </button>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<section class="section<%= (typeof specialMemories !== 'undefined' && specialMemories && specialMemories.length && !isFiltering) ? ' section-alt' : '' %>" id="full-archive">
   <div class="container">
     <header class="section-header">
       <p class="section-eyebrow">Search the album</p>
@@ -31,6 +104,9 @@
         </select>
       </div>
       <button class="btn btn-primary" type="submit">Search archive</button>
+      <% if (isFiltering) { %>
+        <a class="btn btn-outline" href="/photo-archive" style="margin-left:0.5rem">Clear filters</a>
+      <% } %>
     </form>
     <% if (year) { %>
       <p class="year-gallery-lead" style="text-align:center;margin:-0.5rem 0 1.25rem">
@@ -43,16 +119,17 @@
       <div class="photo-grid">
         <% photos.forEach(function(p) { %>
           <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
-          <% const cap = [p.featured ? "Cover" : "", p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Family photograph"; %>
+          <% const cap = [p.featured ? "Cover" : "", p.special_memory ? "Special Memory" : "", p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Family photograph"; %>
           <button
             type="button"
-            class="photo-tile photo-tile-btn<%= p.featured ? ' photo-tile--cover' : '' %>"
+            class="photo-tile photo-tile-btn<%= p.featured ? ' photo-tile--cover' : '' %><%= p.special_memory ? ' photo-tile--special' : '' %>"
             data-lightbox="<%= fullSrc %>"
             data-lightbox-caption="<%= cap %>"
             aria-label="View full photo<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
           >
             <img src="<%= p.thumb_path || p.web_path %>" alt="<%= p.title || 'Family photograph' %>" loading="lazy" />
             <div class="cap">
+              <% if (p.special_memory) { %><span class="photo-special-tag">Special</span> <% } %>
               <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
               <%= p.reunion_year || 'Year TBD' %><% if (p.title) { %> · <%= p.title %><% } %>
             </div>

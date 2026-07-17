@@ -4,6 +4,7 @@
     <aside class="admin-nav">
       <a href="/admin">Dashboard</a>
       <a href="/admin/home-photos">Home Photos</a>
+      <a href="/admin/special-memories">Special Memories</a>
       <a class="active" href="/admin/photos">Photos</a>
       <a href="/admin/stories">Stories</a>
       <a href="/admin/recordings">Voice Recordings</a>
@@ -42,7 +43,8 @@
               <span style="display:inline-block;margin-left:0.35rem;font-size:0.8rem;color:var(--ink-muted)">[<%= p.status %>]</span><br />
               By <%= p.contributor_name || '—' %> · <%= p.submitted_at %><br />
               Year: <%= p.reunion_year || 'TBD' %>
-              <% if (p.show_on_home || p.home_status) { %> · home: <%= p.home_status || (p.show_on_home ? 'live' : '—') %><% } %><br />
+              <% if (p.show_on_home || p.home_status) { %> · home: <%= p.home_status || (p.show_on_home ? 'live' : '—') %><% } %>
+              <% if (p.special_memory) { %> · <strong>Special Memory</strong><% } %><br />
               People: <%= (people[p.id] || []).map(x => x.person_name).join(', ') || '—' %>
             </td>
             <td>
@@ -61,6 +63,11 @@
                 <div class="form-row"><label>Description</label><textarea name="description"><%= p.description || '' %></textarea></div>
                 <div class="form-row"><label>Admin notes</label><textarea name="admin_notes"><%= p.admin_notes || '' %></textarea></div>
                 <label class="checkbox"><input type="checkbox" name="featured" value="1" <%= p.featured ? 'checked' : '' %> /> Featured (year cover preference)</label>
+                <label class="checkbox"><input type="checkbox" name="special_memory" value="1" <%= p.special_memory ? 'checked' : '' %> /> Special Memories (main showcase on Photo Archive)</label>
+                <div class="form-row" style="margin-top:0.35rem">
+                  <label>Special Memories sort order</label>
+                  <input type="number" name="special_sort" value="<%= p.special_sort || 0 %>" style="max-width:8rem" />
+                </div>
                 <label class="checkbox"><input type="checkbox" name="show_on_home" value="1" <%= (p.show_on_home || p.home_status === 'pending' || p.home_status === 'approved') ? 'checked' : '' %> /> Nominate for home page (still needs Approve under Home Photos)</label>
                 <div class="form-row" style="margin-top:0.35rem">
                   <label>Home page sort order</label>

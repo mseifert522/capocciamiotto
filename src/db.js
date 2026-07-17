@@ -391,6 +391,20 @@ function migrate() {
     console.warn("photos home columns note:", e.message);
   }
 
+  // Special Memories: featured showcase at top of Photo Archive
+  try {
+    const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
+    if (!cols.includes("special_memory")) {
+      db.exec("ALTER TABLE photos ADD COLUMN special_memory INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.includes("special_sort")) {
+      db.exec("ALTER TABLE photos ADD COLUMN special_sort INTEGER NOT NULL DEFAULT 0");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_photos_special ON photos(special_memory, special_sort)");
+  } catch (e) {
+    console.warn("photos special_memory columns note:", e.message);
+  }
+
   // Community board photo/video attachments
   try {
     db.exec(`

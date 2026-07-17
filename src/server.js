@@ -1216,6 +1216,45 @@ function isTestFamilyMember(m) {
   );
 }
 
+/**
+ * People already shown in the tree crown (Costanzo & Maddalena + Anna/Tony/George couples).
+ * Keep them out of the Family Members grid so they are not listed twice.
+ * Descendants stay in the grid even if their role text mentions a patriarch name.
+ */
+function isFeaturedInTreeCrown(m) {
+  const name = `${m.full_name || ""} ${m.preferred_name || ""} ${m.nickname || ""}`.toLowerCase();
+  const role = (m.role_in_family || "").toLowerCase();
+  const lineage = String(m.tree_lineage || "").toLowerCase();
+
+  // Foundational Capoccia parents (always crown-only — never under Family Members)
+  if (/foundational generation/.test(role) || lineage === "roots") return true;
+  if (/costanzo/.test(name) && /capoccia/.test(name)) return true;
+  if (/(maddalena|madeline|\blena\b)/.test(name) && /capoccia/.test(name) && !/christine|tony|fran|anna|george/.test(name)) {
+    return true;
+  }
+
+  // Descendants stay in the grid
+  if (/son of|daughter of|child of|spouse of|grandchild/i.test(role)) return false;
+
+  if (/anna/.test(name) && /miotto/.test(name)) return true;
+  if (/(mickey|amerigo)/.test(name) && /miotto/.test(name)) return true;
+  if (
+    /capoccia/.test(name) &&
+    (/tony/.test(name) || (/anthony/.test(name) && /joseph/.test(name)))
+  ) {
+    return true;
+  }
+  if (/^anthony “tony”|^anthony "tony"/i.test(String(m.full_name || "").trim())) return true;
+  if (/(fran|frances)/.test(name) && /capoccia/.test(name) && /matriarch|fran/.test(name + " " + role)) {
+    if (/^frances|^fran\b/i.test(String(m.full_name || m.preferred_name || "").trim())) return true;
+  }
+  if (/^george\b/.test(name.trim()) && /capoccia/.test(name)) return true;
+  if (/christine/.test(name) && /capoccia/.test(name) && /matriarch|christine/.test(name + " " + role)) {
+    if (/^christine/i.test(String(m.full_name || m.preferred_name || "").trim())) return true;
+  }
+  return false;
+}
+
 app.get("/", (req, res) => {
   const members = db.prepare(`
     SELECT * FROM family_members
@@ -1226,36 +1265,7 @@ app.get("/", (req, res) => {
   members.forEach((m) => {
     m.display_name = memberDisplayName(m);
   });
-  // Family Members grid: exclude only the patriarch/matriarch couples featured above
-  // (do NOT match descendants whose role text mentions Tony/Anna/George)
-  function isFeaturedInTree(m) {
-    const name = `${m.full_name || ""} ${m.preferred_name || ""}`.toLowerCase();
-    const role = (m.role_in_family || "").toLowerCase();
-    // Descendants stay in the grid
-    if (/son of|daughter of|child of|spouse of|grandchild/i.test(role)) return false;
-
-    if (/costanzo/.test(name) && /capoccia/.test(name)) return true;
-    if (/(maddalena|madeline)/.test(name) && /capoccia/.test(name)) return true;
-    if (/anna/.test(name) && /miotto/.test(name)) return true;
-    if (/(mickey|amerigo)/.test(name) && /miotto/.test(name)) return true;
-    if (
-      /capoccia/.test(name) &&
-      (/tony/.test(name) || (/anthony/.test(name) && /joseph/.test(name)))
-    ) {
-      return true;
-    }
-    if (/^anthony “tony”|^anthony "tony"/i.test(String(m.full_name || "").trim())) return true;
-    if (/(fran|frances)/.test(name) && /capoccia/.test(name) && /matriarch|fran/.test(name + " " + role)) {
-      // Fran Capoccia matriarch only — not random Fran
-      if (/^frances|^fran\b/i.test(String(m.full_name || m.preferred_name || "").trim())) return true;
-    }
-    if (/^george\b/.test(name.trim()) && /capoccia/.test(name)) return true;
-    if (/christine/.test(name) && /capoccia/.test(name) && /matriarch|christine/.test(name + " " + role)) {
-      if (/^christine/i.test(String(m.full_name || m.preferred_name || "").trim())) return true;
-    }
-    return false;
-  }
-  const allMembers = members.filter((m) => !isFeaturedInTree(m));
+  const allMembers = members.filter((m) => !isFeaturedInTreeCrown(m));
   // Home gallery: only photos you (admin) have explicitly approved for the home page
   ensureHomePhotoColumns();
   const recentPhotos = db.prepare(`
@@ -1670,20 +1680,8 @@ app.get("/family-members", (req, res) => {
   members.forEach((m) => {
     m.display_name = memberDisplayName(m);
   });
-  // Community family members = everyone not patriarch/matriarch leaders
-  function isLeader(m) {
-    if (m.is_patriarch || m.is_matriarch) return true;
-    const full = m.full_name || "";
-    const n = (full + " " + (m.preferred_name || "")).trim();
-    if (/George/i.test(n) && /Capoccia/i.test(n)) return true;
-    if (/Christine/i.test(n) && /Capoccia/i.test(n)) return true;
-    if (/Tony|Anthony/i.test(full) && /Capoccia/i.test(full)) return true;
-    if (/Frances|^Fran\b/i.test(full) && /Capoccia/i.test(full)) return true;
-    if (/Mickey|Amerigo/i.test(n)) return true;
-    if (/Anna/i.test(n) && /Miotto/i.test(n)) return true;
-    return false;
-  }
-  const communityMembers = members.filter((m) => !isLeader(m));
+  // Same crown people as home: Costanzo & Maddalena + Anna/Tony/George couples only at top
+  const communityMembers = members.filter((m) => !isFeaturedInTreeCrown(m));
   const data = localsBase(req);
   clearFlash(req);
   res.render("family-members", { ...data, members, communityMembers });

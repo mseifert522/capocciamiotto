@@ -2,16 +2,18 @@
   /* Shared family member card for home + family-members list */
   const role = String(m.role_in_family || "");
   const nameBlob = String(m.full_name || "") + " " + String(m.preferred_name || "");
+  // Only the six patriarch/matriarch leaders get "View full tribute"
+  // (exclude younger Anthony Capoccia, son of David, etc.)
   const isLeader = !!(
     m.is_patriarch ||
     m.is_matriarch ||
     /patriarch|matriarch/i.test(role) ||
     (/anna/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
     (/mickey|amerigo/i.test(nameBlob) && /miotto/i.test(nameBlob)) ||
-    (/(tony|anthony)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
+    (/(tony|anthony)/i.test(nameBlob) && /capoccia/i.test(nameBlob) && /joseph|tony|patriarch/i.test(nameBlob + " " + role)) ||
     (/(fran|frances)/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
-    (/george/i.test(nameBlob) && /capoccia/i.test(nameBlob)) ||
-    (/christine/i.test(nameBlob) && /capoccia/i.test(nameBlob))
+    (/^george\b/i.test(String(m.full_name || m.preferred_name || "").trim()) && /capoccia/i.test(nameBlob) && !/son of/i.test(role)) ||
+    (/christine/i.test(nameBlob) && /capoccia/i.test(nameBlob) && !/son of|daughter of/i.test(role))
   );
   const ctaLabel = isLeader ? "View full tribute" : "View Bio";
   const ctaHref = "/family-members/" + m.id;
@@ -26,7 +28,14 @@
         data-lightbox-caption="<%= m.display_name %>"
         aria-label="View full photo of <%= m.display_name %>"
       >
-        <img src="<%= m.portrait_path %>" alt="<%= m.display_name %>" loading="lazy" />
+        <%/* Empty alt: name is already shown in the card title (avoids "Anthony Capoccia" twice if image breaks) */%>
+        <img
+          src="<%= m.portrait_path %>"
+          alt=""
+          loading="lazy"
+          data-fallback-initial="<%= (m.display_name || '?').charAt(0) %>"
+          onerror="var w=this.closest('.member-card-photo'); if(w){ w.innerHTML='<div class=\'member-card-placeholder\' aria-hidden=\'true\'><span>'+(this.getAttribute('data-fallback-initial')||'?')+'</span></div>'; }"
+        />
       </button>
     <% } else { %>
       <div class="member-card-placeholder" aria-hidden="true">

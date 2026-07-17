@@ -1333,7 +1333,9 @@ main { overflow-x: clip; }
   max-width: 720px;
 }
 .couple-gallery--story .couple-photo {
-  height: 160px;
+  max-width: 200px;
+  height: auto;
+  aspect-ratio: 1 / 1;
 }
 
 /* Equal 6 cards — always same structure */

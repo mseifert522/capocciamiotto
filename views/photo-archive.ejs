@@ -1,6 +1,6 @@
 <%- include('partials/header', { pageTitle: 'Photo Archive' }) %>
 
-<% if (typeof specialMemories !== 'undefined' && specialMemories && specialMemories.length && !isFiltering) { %>
+<% if (!isFiltering) { %>
 <section class="section special-memories-section" id="special-memories">
   <div class="container">
     <header class="section-header">
@@ -12,67 +12,75 @@
       </p>
     </header>
 
-    <% const hero = specialMemories[0]; %>
-    <% const rest = specialMemories.slice(1); %>
-    <% const heroSrc = hero.web_path || hero.original_path || hero.thumb_path; %>
-    <% const heroCap = [hero.reunion_year ? String(hero.reunion_year) : "", hero.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
+    <% if (typeof specialMemories !== 'undefined' && specialMemories && specialMemories.length) { %>
+      <% const hero = specialMemories[0]; %>
+      <% const rest = specialMemories.slice(1); %>
+      <% const heroSrc = hero.web_path || hero.original_path || hero.thumb_path; %>
+      <% const heroCap = [hero.reunion_year ? String(hero.reunion_year) : "", hero.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
 
-    <div class="special-memories-showcase">
-      <button
-        type="button"
-        class="special-memory-hero"
-        data-lightbox="<%= heroSrc %>"
-        data-lightbox-caption="<%= heroCap %>"
-        aria-label="View special memory<%= hero.reunion_year ? ' from ' + hero.reunion_year : '' %>"
-      >
-        <img
-          src="<%= hero.web_path || hero.thumb_path || hero.original_path %>"
-          alt="<%= hero.title || 'Special memory' %>"
-          loading="eager"
-        />
-        <div class="special-memory-hero-meta">
-          <span class="special-memory-badge">Special Memory</span>
-          <% if (hero.reunion_year || hero.title) { %>
-            <p class="special-memory-hero-cap">
-              <% if (hero.reunion_year) { %><strong><%= hero.reunion_year %></strong><% } %>
-              <% if (hero.reunion_year && hero.title) { %> · <% } %>
-              <% if (hero.title) { %><%= hero.title %><% } %>
-            </p>
-          <% } %>
-          <% if (hero.description) { %>
-            <p class="special-memory-hero-desc"><%= hero.description %></p>
-          <% } %>
-        </div>
-      </button>
+      <div class="special-memories-showcase">
+        <button
+          type="button"
+          class="special-memory-hero"
+          data-lightbox="<%= heroSrc %>"
+          data-lightbox-caption="<%= heroCap %>"
+          aria-label="View special memory<%= hero.reunion_year ? ' from ' + hero.reunion_year : '' %>"
+        >
+          <img
+            src="<%= hero.web_path || hero.thumb_path || hero.original_path %>"
+            alt="<%= hero.title || 'Special memory' %>"
+            loading="eager"
+          />
+          <div class="special-memory-hero-meta">
+            <span class="special-memory-badge">Special Memory</span>
+            <% if (hero.reunion_year || hero.title) { %>
+              <p class="special-memory-hero-cap">
+                <% if (hero.reunion_year) { %><strong><%= hero.reunion_year %></strong><% } %>
+                <% if (hero.reunion_year && hero.title) { %> · <% } %>
+                <% if (hero.title) { %><%= hero.title %><% } %>
+              </p>
+            <% } %>
+            <% if (hero.description) { %>
+              <p class="special-memory-hero-desc"><%= hero.description %></p>
+            <% } %>
+          </div>
+        </button>
 
-      <% if (rest.length) { %>
-        <div class="special-memories-grid" role="list">
-          <% rest.forEach(function(p) { %>
-            <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
-            <% const cap = [p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
-            <button
-              type="button"
-              class="special-memory-tile"
-              role="listitem"
-              data-lightbox="<%= fullSrc %>"
-              data-lightbox-caption="<%= cap %>"
-              aria-label="View special memory<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
-            >
-              <img src="<%= p.web_path || p.thumb_path || p.original_path %>" alt="<%= p.title || 'Special memory' %>" loading="lazy" />
-              <div class="special-memory-tile-cap">
-                <% if (p.reunion_year) { %><span class="special-memory-year"><%= p.reunion_year %></span><% } %>
-                <% if (p.title) { %><span class="special-memory-title"><%= p.title %></span><% } %>
-              </div>
-            </button>
-          <% }) %>
-        </div>
-      <% } %>
-    </div>
+        <% if (rest.length) { %>
+          <div class="special-memories-grid" role="list">
+            <% rest.forEach(function(p) { %>
+              <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
+              <% const cap = [p.reunion_year ? String(p.reunion_year) : "", p.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
+              <button
+                type="button"
+                class="special-memory-tile"
+                role="listitem"
+                data-lightbox="<%= fullSrc %>"
+                data-lightbox-caption="<%= cap %>"
+                aria-label="View special memory<%= p.reunion_year ? ' from ' + p.reunion_year : '' %>"
+              >
+                <img src="<%= p.web_path || p.thumb_path || p.original_path %>" alt="<%= p.title || 'Special memory' %>" loading="lazy" />
+                <div class="special-memory-tile-cap">
+                  <% if (p.reunion_year) { %><span class="special-memory-year"><%= p.reunion_year %></span><% } %>
+                  <% if (p.title) { %><span class="special-memory-title"><%= p.title %></span><% } %>
+                </div>
+              </button>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="empty special-memories-empty">
+        <h3>Special memories will appear here</h3>
+        <p>Family photographs chosen for this showcase will display as the main gallery on this page.</p>
+        <a class="btn btn-primary" href="/contribute">Contribute Family Photos</a>
+      </div>
+    <% } %>
   </div>
 </section>
 <% } %>
 
-<section class="section<%= (typeof specialMemories !== 'undefined' && specialMemories && specialMemories.length && !isFiltering) ? ' section-alt' : '' %>" id="full-archive">
+<section class="section<%= !isFiltering ? ' section-alt' : '' %>" id="full-archive">
   <div class="container">
     <header class="section-header">
       <p class="section-eyebrow">Search the album</p>

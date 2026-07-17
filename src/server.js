@@ -746,6 +746,7 @@ function unlinkPublicUpload(publicPath) {
  * Used by family contribute, home uploads, portraits, and board images.
  */
 function ensurePhotoInArchive(fields) {
+  ensureRelatedMemberColumn();
   const web = fields.web_path || fields.original_path || null;
   const original = fields.original_path || fields.web_path || null;
   const thumb = fields.thumb_path || fields.web_path || null;
@@ -770,6 +771,7 @@ function ensurePhotoInArchive(fields) {
         title = COALESCE(?, title),
         description = COALESCE(?, description),
         contributor_name = COALESCE(?, contributor_name),
+        related_member_id = COALESCE(?, related_member_id),
         web_path = COALESCE(web_path, ?),
         thumb_path = COALESCE(thumb_path, ?),
         original_path = COALESCE(original_path, ?)
@@ -778,6 +780,7 @@ function ensurePhotoInArchive(fields) {
       fields.title || null,
       fields.description || null,
       fields.contributor_name || null,
+      fields.related_member_id || null,
       web,
       thumb,
       original,
@@ -791,8 +794,9 @@ function ensurePhotoInArchive(fields) {
       original_filename, original_path, web_path, thumb_path, title, description,
       reunion_year, family_branch, contributor_name, contributor_email,
       permission_confirmed, may_display_public, status, visibility,
-      file_size, mime_type, width, height, featured, show_on_home, home_sort, home_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'approved', 'public', ?, ?, ?, ?, 0, ?, ?, ?)
+      file_size, mime_type, width, height, featured, show_on_home, home_sort, home_status,
+      related_member_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'approved', 'public', ?, ?, ?, ?, 0, ?, ?, ?, ?)
   `).run(
     fields.original_filename || null,
     original,
@@ -810,7 +814,8 @@ function ensurePhotoInArchive(fields) {
     fields.height || null,
     fields.show_on_home ? 1 : 0,
     fields.home_sort || 0,
-    fields.home_status || null
+    fields.home_status || null,
+    fields.related_member_id || null
   );
   return info.lastInsertRowid;
 }
@@ -1241,6 +1246,36 @@ function ensureSpecialMemoryColumns() {
   }
 }
 
+/** Photos linked to a family member so the archive can group families together */
+function ensureRelatedMemberColumn() {
+  try {
+    const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
+    if (!cols.includes("related_member_id")) {
+      db.exec("ALTER TABLE photos ADD COLUMN related_member_id INTEGER");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_photos_related_member ON photos(related_member_id)");
+  } catch (e) {
+    console.warn("related_member_id column:", e.message);
+  }
+}
+
+function listFamilyMembersForSelect() {
+  return db
+    .prepare(
+      `
+    SELECT id, full_name, preferred_name, role_in_family, sort_order
+    FROM family_members
+    WHERE visibility = 'public' OR visibility IS NULL
+    ORDER BY sort_order ASC, full_name ASC
+  `
+    )
+    .all()
+    .map((m) => ({
+      ...m,
+      display_name: (m.full_name || m.preferred_name || "Family member").trim(),
+    }));
+}
+
 function ensureHomePhotoColumns() {
   try {
     const cols = db.prepare("PRAGMA table_info(photos)").all().map((c) => c.name);
@@ -1433,11 +1468,13 @@ app.get("/photo-archive", (req, res) => {
   } catch (_) { /* ignore */ }
 
   ensureSpecialMemoryColumns();
+  ensureRelatedMemberColumn();
 
   const q = (req.query.q || "").trim();
   const year = req.query.year ? parseInt(req.query.year, 10) : null;
   const branch = (req.query.branch || "").trim();
-  const isFiltering = !!(q || year || branch);
+  const related = req.query.related ? parseInt(req.query.related, 10) : null;
+  const isFiltering = !!(q || year || branch || related);
 
   // Featured Special Memories showcase (main display on this page)
   const specialMemories = filterPublicPhotos(db.prepare(`
@@ -1455,35 +1492,54 @@ app.get("/photo-archive", (req, res) => {
   `).all());
 
   // Show every approved family photo — never test/automation tiles
+  // Group by related family member so families stick together
   let sql = `
-    SELECT * FROM photos
-    WHERE status = 'approved'
-      AND COALESCE(may_display_public, 1) = 1
-      AND COALESCE(visibility, 'public') != 'private'
-      AND lower(coalesce(title,'')) NOT LIKE '%auto-approve%'
-      AND lower(coalesce(title,'')) NOT LIKE '%auto approve%'
-      AND lower(coalesce(title,'')) NOT LIKE '%bulk multi%'
-      AND lower(coalesce(title,'')) NOT LIKE '%second automated%'
-      AND lower(coalesce(title,'')) NOT LIKE '%automated functionality%'
-      AND lower(coalesce(title,'')) NOT LIKE '%cmfr test%'
-      AND lower(coalesce(contributor_name,'')) NOT LIKE '%automated health%'
-      AND lower(coalesce(contributor_name,'')) NOT LIKE '%auto approve test%'
-      AND lower(coalesce(contributor_email,'')) != 'healthcheck@example.com'
-      AND lower(coalesce(description,'')) NOT LIKE '%functionality test%'
-      AND lower(coalesce(description,'')) NOT LIKE '%safe to delete%'
+    SELECT p.*,
+      fm.full_name AS related_member_name,
+      fm.preferred_name AS related_member_preferred,
+      COALESCE(fm.sort_order, 99999) AS related_member_sort
+    FROM photos p
+    LEFT JOIN family_members fm ON fm.id = p.related_member_id
+    WHERE p.status = 'approved'
+      AND COALESCE(p.may_display_public, 1) = 1
+      AND COALESCE(p.visibility, 'public') != 'private'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%auto-approve%'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%auto approve%'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%bulk multi%'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%second automated%'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%automated functionality%'
+      AND lower(coalesce(p.title,'')) NOT LIKE '%cmfr test%'
+      AND lower(coalesce(p.contributor_name,'')) NOT LIKE '%automated health%'
+      AND lower(coalesce(p.contributor_name,'')) NOT LIKE '%auto approve test%'
+      AND lower(coalesce(p.contributor_email,'')) != 'healthcheck@example.com'
+      AND lower(coalesce(p.description,'')) NOT LIKE '%functionality test%'
+      AND lower(coalesce(p.description,'')) NOT LIKE '%safe to delete%'
   `;
   const params = [];
-  if (year) { sql += " AND reunion_year = ?"; params.push(year); }
-  if (branch) { sql += " AND (family_branch = ? OR family_branch = 'both')"; params.push(branch); }
+  if (year) { sql += " AND p.reunion_year = ?"; params.push(year); }
+  if (branch) { sql += " AND (p.family_branch = ? OR p.family_branch = 'both')"; params.push(branch); }
+  if (related && !Number.isNaN(related)) {
+    sql += " AND p.related_member_id = ?";
+    params.push(related);
+  }
   if (q) {
     sql += ` AND (
-      title LIKE ? OR description LIKE ? OR location LIKE ? OR contributor_name LIKE ?
-      OR id IN (SELECT photo_id FROM photo_people WHERE person_name LIKE ?)
+      p.title LIKE ? OR p.description LIKE ? OR p.location LIKE ? OR p.contributor_name LIKE ?
+      OR p.id IN (SELECT photo_id FROM photo_people WHERE person_name LIKE ?)
+      OR fm.full_name LIKE ? OR fm.preferred_name LIKE ?
     )`;
     const like = `%${q}%`;
-    params.push(like, like, like, like, like);
+    params.push(like, like, like, like, like, like, like);
   }
-  sql += " ORDER BY datetime(submitted_at) DESC, id DESC LIMIT 500";
+  sql += `
+    ORDER BY
+      CASE WHEN p.related_member_id IS NULL THEN 1 ELSE 0 END ASC,
+      related_member_sort ASC,
+      COALESCE(fm.full_name, '') ASC,
+      datetime(p.submitted_at) DESC,
+      p.id DESC
+    LIMIT 500
+  `;
   const photos = filterPublicPhotos(db.prepare(sql).all(...params));
   // Attach people names for captions; prefer full title when present
   photos.forEach((p) => {
@@ -1497,9 +1553,33 @@ app.get("/photo-archive", (req, res) => {
       if ((!p.title || !String(p.title).trim()) && p.person_names) {
         p.title = p.person_names;
       }
+      p.family_group_label =
+        (p.related_member_name || p.related_member_preferred || "").trim() ||
+        (p.person_names ? String(p.person_names).split(",")[0].trim() : "") ||
+        "Other family photographs";
     } catch (_) {
       p.person_names = "";
+      p.family_group_label = "Other family photographs";
     }
+  });
+  // Build grouped sections so families stick together on the page
+  const photoGroups = [];
+  const groupMap = new Map();
+  photos.forEach((p) => {
+    const key = p.related_member_id
+      ? `m:${p.related_member_id}`
+      : `g:${p.family_group_label || "other"}`;
+    if (!groupMap.has(key)) {
+      const g = {
+        key,
+        label: p.family_group_label || "Other family photographs",
+        relatedMemberId: p.related_member_id || null,
+        photos: [],
+      };
+      groupMap.set(key, g);
+      photoGroups.push(g);
+    }
+    groupMap.get(key).photos.push(p);
   });
   specialMemories.forEach((p) => {
     try {
@@ -1517,16 +1597,20 @@ app.get("/photo-archive", (req, res) => {
     }
   });
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
+  const familyMembers = listFamilyMembersForSelect();
   const data = localsBase(req);
   clearFlash(req);
   res.render("photo-archive", {
     ...data,
     photos,
+    photoGroups,
     specialMemories,
     years,
+    familyMembers,
     q,
     year,
     branch,
+    related: related && !Number.isNaN(related) ? related : "",
     isFiltering,
   });
 });
@@ -1616,13 +1700,14 @@ app.post(
         (req.session.contributorPin && req.session.contributorPin.assignedName) ||
         (req.session.user && (req.session.user.name || req.session.user.email)) ||
         "Family member";
-      // Also land in Photo Archive automatically (title = full name; no invented year)
+      // Also land in Photo Archive automatically, grouped with this family member
       ensurePhotoInArchive({
         ...processed,
         title: memberName,
         description: null,
         contributor_name: actor,
         family_branch: member.family_branch || "both",
+        related_member_id: memberId,
       });
       logSiteActivity(req, "portrait_upload", {
         actorName: actor,
@@ -2439,13 +2524,17 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/contribute", requireContributorPin, (req, res) => {
+  ensureRelatedMemberColumn();
   const years = db.prepare("SELECT year FROM reunions WHERE year <= ? ORDER BY year DESC").all(CURRENT_YEAR);
+  const familyMembers = listFamilyMembersForSelect();
   const data = localsBase(req);
   clearFlash(req);
   res.render("contribute", {
     ...data,
     years,
+    familyMembers,
     prefillYear: req.query.year || "",
+    prefillRelated: req.query.related || "",
     pinHolder: req.session.contributorPin || null,
   });
 });
@@ -2454,6 +2543,7 @@ app.get("/contribute/photos", (req, res) => res.redirect(`/contribute${req.query
 
 app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.array("photos", BULK_PHOTO_MAX), async (req, res) => {
   try {
+    ensureRelatedMemberColumn();
     const files = req.files || [];
     if (!files.length) {
       setFlash(req, "error", "Please choose at least one photograph to upload.");
@@ -2471,6 +2561,23 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
       || "";
     if (!contributor_name) {
       setFlash(req, "error", "Please include your name so we can credit the contribution.");
+      return redirectAfterPost(res, "/contribute");
+    }
+
+    let related_member_id = req.body.related_member_id
+      ? parseInt(req.body.related_member_id, 10)
+      : null;
+    if (related_member_id && Number.isNaN(related_member_id)) related_member_id = null;
+    if (related_member_id) {
+      const mem = db.prepare("SELECT id FROM family_members WHERE id = ?").get(related_member_id);
+      if (!mem) related_member_id = null;
+    }
+    if (!related_member_id) {
+      setFlash(
+        req,
+        "error",
+        "Please choose who this photograph is related to (the family member these photos belong with)."
+      );
       return redirectAfterPost(res, "/contribute");
     }
 
@@ -2493,35 +2600,38 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
       .map((n) => String(n).trim())
       .filter(Boolean);
 
+    const relatedMember = db
+      .prepare("SELECT id, full_name, preferred_name FROM family_members WHERE id = ?")
+      .get(related_member_id);
+    const relatedName = relatedMember
+      ? (relatedMember.full_name || relatedMember.preferred_name || "").trim()
+      : "";
+
     const insertPhoto = db.prepare(`
       INSERT INTO photos (
         original_filename, original_path, web_path, thumb_path, title, description,
         reunion_year, year_approximate, year_unknown, family_branch, location, photo_date,
         original_owner, photographer, contributor_name, contributor_email, contributor_phone,
-        permission_confirmed, may_display_public, status, file_size, mime_type, width, height
+        permission_confirmed, may_display_public, status, file_size, mime_type, width, height,
+        related_member_id
       ) VALUES (
         @original_filename, @original_path, @web_path, @thumb_path, @title, @description,
         @reunion_year, @year_approximate, @year_unknown, @family_branch, @location, @photo_date,
         @original_owner, @photographer, @contributor_name, @contributor_email, @contributor_phone,
-        1, @may_display_public, @status, @file_size, @mime_type, @width, @height
+        1, @may_display_public, @status, @file_size, @mime_type, @width, @height,
+        @related_member_id
       )
     `);
     const insertPerson = db.prepare(`
-      INSERT INTO photo_people (photo_id, person_name, is_identified, status)
-      VALUES (?, ?, 1, ?)
+      INSERT INTO photo_people (photo_id, person_name, family_member_id, is_identified, status)
+      VALUES (?, ?, ?, 1, ?)
     `);
-
-    const tx = db.transaction(() => {
-      for (const file of files) {
-        // processUpload is async - handle outside
-      }
-    });
 
     for (const file of files) {
       const processed = await processUpload(file);
       const info = insertPhoto.run({
         ...processed,
-        title: (req.body.title || "").trim() || null,
+        title: (req.body.title || "").trim() || relatedName || null,
         description: (req.body.description || "").trim() || null,
         reunion_year,
         year_approximate,
@@ -2537,8 +2647,16 @@ app.post("/contribute/photos", contributeLimiter, requireContributorPin, upload.
         // Family PIN uploads always enter the public Photo Archive immediately
         may_display_public: 1,
         status: "approved",
+        related_member_id,
       });
-      peopleNames.forEach((name) => insertPerson.run(info.lastInsertRowid, name, "approved"));
+      // Tag related family member as a person in the photo group
+      if (relatedName) {
+        insertPerson.run(info.lastInsertRowid, relatedName, related_member_id, "approved");
+      }
+      peopleNames.forEach((name) => {
+        if (relatedName && name.toLowerCase() === relatedName.toLowerCase()) return;
+        insertPerson.run(info.lastInsertRowid, name, null, "approved");
+      });
     }
 
     const actor =

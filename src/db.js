@@ -400,7 +400,11 @@ function migrate() {
     if (!cols.includes("special_sort")) {
       db.exec("ALTER TABLE photos ADD COLUMN special_sort INTEGER NOT NULL DEFAULT 0");
     }
+    if (!cols.includes("related_member_id")) {
+      db.exec("ALTER TABLE photos ADD COLUMN related_member_id INTEGER");
+    }
     db.exec("CREATE INDEX IF NOT EXISTS idx_photos_special ON photos(special_memory, special_sort)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_photos_related_member ON photos(related_member_id)");
   } catch (e) {
     console.warn("photos special_memory columns note:", e.message);
   }

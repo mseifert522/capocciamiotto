@@ -105,14 +105,25 @@
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <label for="branch">Family branch</label>
-        <select id="branch" name="branch">
-          <option value="">All</option>
-          <option value="Capoccia" <%= branch === 'Capoccia' ? 'selected' : '' %>>Capoccia</option>
-          <option value="Miotto" <%= branch === 'Miotto' ? 'selected' : '' %>>Miotto</option>
-          <option value="both" <%= branch === 'both' ? 'selected' : '' %>>Both</option>
-        </select>
+      <div class="form-row two">
+        <div>
+          <label for="branch">Family branch</label>
+          <select id="branch" name="branch">
+            <option value="">All</option>
+            <option value="Capoccia" <%= branch === 'Capoccia' ? 'selected' : '' %>>Capoccia</option>
+            <option value="Miotto" <%= branch === 'Miotto' ? 'selected' : '' %>>Miotto</option>
+            <option value="both" <%= branch === 'both' ? 'selected' : '' %>>Both</option>
+          </select>
+        </div>
+        <div>
+          <label for="related">Family member</label>
+          <select id="related" name="related">
+            <option value="">All family members</option>
+            <% (familyMembers || []).forEach(function(m) { %>
+              <option value="<%= m.id %>" <%= String(related || '') === String(m.id) ? 'selected' : '' %>><%= m.display_name %></option>
+            <% }) %>
+          </select>
+        </div>
       </div>
       <button class="btn btn-primary" type="submit">Search archive</button>
       <% if (isFiltering) { %>
@@ -126,7 +137,45 @@
         (cover photo first, then the year gallery).
       </p>
     <% } %>
-    <% if (photos.length) { %>
+    <% if (typeof photoGroups !== 'undefined' && photoGroups && photoGroups.length) { %>
+      <% photoGroups.forEach(function(group) { %>
+        <section class="archive-family-group" aria-label="<%= group.label %>">
+          <header class="archive-family-group-header">
+            <h3 class="archive-family-group-title"><%= group.label %></h3>
+            <% if (group.relatedMemberId) { %>
+              <a class="archive-family-group-link" href="/family-members/<%= group.relatedMemberId %>">View bio</a>
+            <% } %>
+          </header>
+          <div class="photo-grid">
+            <% group.photos.forEach(function(p) { %>
+              <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>
+              <% const displayName = (p.title || p.person_names || "").trim(); %>
+              <% const capParts = []; %>
+              <% if (p.reunion_year) capParts.push(String(p.reunion_year)); %>
+              <% if (displayName) capParts.push(displayName); %>
+              <% const cap = capParts.join(" · ") || "Family photograph"; %>
+              <% const hasCap = !!(p.reunion_year || displayName || p.special_memory || p.featured); %>
+              <button
+                type="button"
+                class="photo-tile photo-tile-btn<%= p.featured ? ' photo-tile--cover' : '' %><%= p.special_memory ? ' photo-tile--special' : '' %>"
+                data-lightbox="<%= fullSrc %>"
+                data-lightbox-caption="<%= cap %>"
+                aria-label="View full photo<%= displayName ? ': ' + displayName : (p.reunion_year ? ' from ' + p.reunion_year : '') %>"
+              >
+                <img src="<%= p.thumb_path || p.web_path %>" alt="<%= displayName || 'Family photograph' %>" loading="lazy" />
+                <% if (hasCap) { %>
+                  <div class="cap">
+                    <% if (p.special_memory) { %><span class="photo-special-tag">Special</span> <% } %>
+                    <% if (p.featured) { %><span class="photo-cover-tag">Cover</span> <% } %>
+                    <%= capParts.join(" · ") %>
+                  </div>
+                <% } %>
+              </button>
+            <% }) %>
+          </div>
+        </section>
+      <% }) %>
+    <% } else if (photos.length) { %>
       <div class="photo-grid">
         <% photos.forEach(function(p) { %>
           <% const fullSrc = p.web_path || p.original_path || p.thumb_path; %>

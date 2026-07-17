@@ -61,6 +61,22 @@
         </div>
       </div>
 
+      <div class="form-row">
+        <label for="related_member_id">Who is this photograph related to? *</label>
+        <select id="related_member_id" name="related_member_id" required>
+          <option value="">Select a family member…</option>
+          <% (familyMembers || []).forEach(function(m) { %>
+            <option value="<%= m.id %>" <%= String(prefillRelated || '') === String(m.id) ? 'selected' : '' %>>
+              <%= m.display_name %><% if (m.role_in_family) { %> — <%= m.role_in_family %><% } %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="hint">
+          Choose the person these photos belong with (for example Debbie Capoccia Fallucca).
+          Photos for the same person are kept together in the Photo Archive.
+        </p>
+      </div>
+
       <div class="form-row two">
         <div>
           <label for="reunion_year">Reunion year</label>

@@ -2504,6 +2504,42 @@ main { overflow-x: clip; }
   box-shadow: 0 0 0 2px rgba(196, 163, 90, 0.55);
 }
 
+/* Photo Archive family groupings */
+.archive-family-group {
+  margin: 0 0 2.25rem;
+  padding: 1.15rem 1rem 1.25rem;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.7), rgba(247, 239, 228, 0.45));
+  border: 1px solid rgba(196, 163, 90, 0.22);
+  border-radius: 14px;
+}
+.archive-family-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.9rem;
+  padding: 0 0.15rem 0.65rem;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.25);
+}
+.archive-family-group-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+  color: var(--burgundy);
+  margin: 0;
+  line-height: 1.25;
+}
+.archive-family-group-link {
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--green);
+  text-decoration: none;
+}
+.archive-family-group-link:hover {
+  text-decoration: underline;
+}
+
 /* Photo grid */
 .photo-grid {
   display: grid;

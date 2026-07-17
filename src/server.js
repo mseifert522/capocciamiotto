@@ -23,6 +23,7 @@ const {
   buildLivingTree,
   lineageFromMember,
   generationFromParent,
+  recomputeFamilyMemberSortOrders,
 } = require("./familyTree");
 const { sendFamilyPinEmail, sendActivityReportEmail, sendGenericEmail, CONTACT_EMAIL } = require("./mail");
 const {
@@ -718,6 +719,13 @@ function publishMemberSubmission(sub, reviewedByUserId) {
     WHERE kind = 'family_member' AND ref_id = ?
   `).run(sub.id);
 
+  // Keep whole roster ordered: Anna's family → Tony's family → George's family
+  try {
+    recomputeFamilyMemberSortOrders(db);
+  } catch (e) {
+    console.warn("recomputeFamilyMemberSortOrders:", e.message);
+  }
+
   return { ok: true, mainId, createdSpouseId, spouseFull };
 }
 
@@ -1152,6 +1160,12 @@ purgeAutomatedTestContent();
 // Re-run archive repair after purge so real portraits/board images remain cataloged
 repairPhotoArchiveVisibility();
 restoreCanonicalLeaderPortraits();
+// Keep family-member list ordered by patriarch/matriarch lines (Anna → Tony → George)
+try {
+  recomputeFamilyMemberSortOrders(db);
+} catch (e) {
+  console.warn("startup member sort:", e.message);
+}
 
 // Restore family PIN cookie, then enforce 45-minute absolute sign-out
 app.use(restorePinFromCookie);

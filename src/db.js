@@ -475,23 +475,67 @@ function migrate() {
   set.run("founded_year", "1977");
   set.run("matriarch_name_capoccia", "Christine Capoccia");
 
-  // Spelling corrections (Capocia → Capoccia) for existing data
+  // Spelling corrections for existing data (family name + common typos including memory/member)
   try {
-    db.prepare(`UPDATE family_members SET full_name = REPLACE(full_name, 'Capocia', 'Capoccia') WHERE full_name LIKE '%Capocia%'`).run();
-    db.prepare(`UPDATE family_members SET preferred_name = REPLACE(preferred_name, 'Capocia', 'Capoccia') WHERE preferred_name LIKE '%Capocia%'`).run();
+    const textFixes = [
+      ["Capocia", "Capoccia"],
+      ["memeber", "member"],
+      ["Memeber", "Member"],
+      ["memebr", "member"],
+      ["memebers", "members"],
+      ["Memebers", "Members"],
+      ["memroy", "memory"],
+      ["Memroy", "Memory"],
+      ["memeory", "memory"],
+      ["Memeory", "Memory"],
+      ["memery", "memory"],
+      ["Memery", "Memory"],
+      ["memmory", "memory"],
+      ["Memmory", "Memory"],
+      ["memoreis", "memories"],
+      ["Memoreis", "Memories"],
+      ["memeries", "memories"],
+      ["Memeries", "Memories"],
+      ["memmories", "memories"],
+      ["Memmories", "Memories"],
+      ["seperate", "separate"],
+      ["recieve", "receive"],
+      ["patriach", "patriarch"],
+      ["matriach", "matriarch"],
+      ["reuinion", "reunion"],
+      ["specail", "special"],
+      ["speical", "special"],
+    ];
+    const targets = [
+      ["family_members", ["full_name", "preferred_name", "role_in_family", "biography", "favorite_memories", "quotes"]],
+      ["photos", ["title", "description", "location", "admin_notes"]],
+      ["board_posts", ["title", "body"]],
+      ["stories", ["title", "body"]],
+      ["site_settings", ["value"]],
+      ["reunions", ["title", "summary", "notes"]],
+      ["memorials", ["full_name", "relationship", "biography", "favorite_memories"]],
+    ];
+    for (const [table, cols] of targets) {
+      for (const col of cols) {
+        for (const [bad, good] of textFixes) {
+          try {
+            db.prepare(
+              `UPDATE ${table} SET ${col} = REPLACE(${col}, ?, ?) WHERE ${col} LIKE ?`
+            ).run(bad, good, `%${bad}%`);
+          } catch (_) { /* column may not exist yet */ }
+        }
+      }
+    }
     db.prepare(`UPDATE family_members SET family_branch = 'Capoccia' WHERE family_branch = 'Capocia'`).run();
-    db.prepare(`UPDATE family_members SET role_in_family = REPLACE(role_in_family, 'Capocia', 'Capoccia') WHERE role_in_family LIKE '%Capocia%'`).run();
-    db.prepare(`UPDATE reunions SET title = REPLACE(title, 'Capocia', 'Capoccia') WHERE title LIKE '%Capocia%'`).run();
     db.prepare(`UPDATE photos SET family_branch = 'Capoccia' WHERE family_branch = 'Capocia'`).run();
-    db.prepare(`UPDATE board_posts SET body = REPLACE(body, 'Capocia', 'Capoccia') WHERE body LIKE '%Capocia%'`).run();
-    db.prepare(`UPDATE site_settings SET value = REPLACE(value, 'Capocia', 'Capoccia') WHERE value LIKE '%Capocia%'`).run();
-    // migrate old setting key
+    // migrate old setting key Capocia → Capoccia
     const oldKey = db.prepare("SELECT value FROM site_settings WHERE key = 'matriarch_name_capocia'").get();
     const midKey = db.prepare("SELECT value FROM site_settings WHERE key = 'matriarch_name_Capoccia'").get();
-    if (oldKey && !db.prepare("SELECT 1 FROM site_settings WHERE key = 'matriarch_name_capoccia'").get()) {
+    if (oldKey) {
       db.prepare("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', ?)").run(
         String(oldKey.value).replace(/Capocia/g, "Capoccia")
       );
+      db.prepare("DELETE FROM site_settings WHERE key = 'matriarch_name_capocia'").run();
     }
     if (midKey) {
       db.prepare("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('matriarch_name_capoccia', ?)").run(
@@ -499,7 +543,6 @@ function migrate() {
       );
       db.prepare("DELETE FROM site_settings WHERE key = 'matriarch_name_Capoccia'").run();
     }
-    db.prepare("UPDATE site_settings SET key = 'matriarch_name_capoccia' WHERE key = 'matriarch_name_capocia'").run();
   } catch (e) {
     console.warn("spelling migration note:", e.message);
   }

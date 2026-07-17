@@ -27,7 +27,7 @@
 
   const rootCouple = {
     key: "roots",
-    label: "Great-Grandparents · Capoccia Roots",
+    label: "Capoccia Patriarch & Matriarch",
     person: costanzo,
     spouse: maddalena,
     personShort: "Costanzo Capoccia",
@@ -92,13 +92,13 @@
               <% } %>
             </div>
             <h3><a href="/family-members/<%= c.person.id %>"><%= c.personShort %></a></h3>
-            <p><%= c.person.role_in_family || (c.isRoot ? "Great-grandfather" : "Family leader") %></p>
+            <p><%= c.person.role_in_family || (c.isRoot ? "Capoccia Patriarch" : "Family leader") %></p>
           </div>
         <% } else { %>
           <div class="couple-person">
             <div class="couple-photo"><div class="couple-ph" aria-hidden="true"><%= initial(c.personShort) %></div></div>
             <h3><%= c.personShort %></h3>
-            <p><%= c.isRoot ? "Great-grandfather" : "Family leader" %></p>
+            <p><%= c.isRoot ? "Capoccia Patriarch" : "Family leader" %></p>
           </div>
         <% } %>
 
@@ -124,13 +124,13 @@
               <% } %>
             </div>
             <h3><a href="/family-members/<%= c.spouse.id %>"><%= c.spouseShort %></a></h3>
-            <p><%= c.spouse.role_in_family || (c.isRoot ? "Great-grandmother" : "Family leader") %></p>
+            <p><%= c.spouse.role_in_family || (c.isRoot ? "Capoccia Matriarch" : "Family leader") %></p>
           </div>
         <% } else { %>
           <div class="couple-person">
             <div class="couple-photo"><div class="couple-ph" aria-hidden="true"><%= initial(c.spouseShort) %></div></div>
             <h3><%= c.spouseShort %></h3>
-            <p><%= c.isRoot ? "Great-grandmother" : "Family leader" %></p>
+            <p><%= c.isRoot ? "Capoccia Matriarch" : "Family leader" %></p>
           </div>
         <% } %>
       </div>
@@ -153,7 +153,7 @@
       <% renderCouple(rootCouple); %>
       <div class="family-tree-stem" aria-hidden="true">
         <span class="family-tree-stem-line"></span>
-        <span class="family-tree-stem-label">Parents of Tony, George &amp; Anna</span>
+        <span class="family-tree-stem-label">Tony · George · Anna</span>
         <span class="family-tree-stem-line"></span>
       </div>
     </div>

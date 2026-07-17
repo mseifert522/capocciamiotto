@@ -1160,9 +1160,13 @@ app.get("/", (req, res) => {
     ORDER BY sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
-    m.display_name = (m.full_name || m.preferred_name || "").trim() || "Family member";
+    // Prefer full legal name; fall back to preferred when full_name is a generic placeholder
+    const full = (m.full_name || "").trim();
+    const pref = (m.preferred_name || "").trim();
+    const generic = !full || /^capoccia/i.test(full) && /family/i.test(full) || /^healthcheck|test /i.test(full);
+    m.display_name = (generic ? pref || full : full || pref) || "Family member";
   });
-  // Everyone on the home page (leaders also appear in the tribute couples above)
+  // Everyone on the home page, already ordered by sort_order (leaders first, then family)
   const allMembers = members.slice();
   // Home gallery: only photos you (admin) have explicitly approved for the home page
   ensureHomePhotoColumns();
@@ -1496,7 +1500,10 @@ app.get("/family-members", (req, res) => {
     ORDER BY sort_order ASC, full_name ASC
   `).all();
   members.forEach((m) => {
-    m.display_name = m.preferred_name || m.full_name;
+    const full = (m.full_name || "").trim();
+    const pref = (m.preferred_name || "").trim();
+    const generic = !full || (/^capoccia/i.test(full) && /family/i.test(full)) || /^healthcheck|test /i.test(full);
+    m.display_name = (generic ? pref || full : full || pref) || "Family member";
   });
   // Community family members = everyone not in the six patriarch/matriarch leader set
   function isLeader(m) {

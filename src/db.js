@@ -565,7 +565,7 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 0,
       is_placeholder: 0,
-      sort_order: 1,
+      sort_order: 50,
       birth_date: "1933-01-25",
       birth_date_display: "January 25, 1933 · Michigan",
       death_date: null,
@@ -588,7 +588,7 @@ function seedFamilyTributes() {
       is_matriarch: 1,
       is_memorial: 0,
       is_placeholder: 0,
-      sort_order: 2,
+      sort_order: 60,
       birth_date: null,
       birth_date_display: null,
       death_date: null,
@@ -611,7 +611,7 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 5,
+      sort_order: 20,
       birth_date: "1923-09-27",
       birth_date_display: "September 27, 1923 (circa)",
       death_date: "2015-02-28",
@@ -635,7 +635,7 @@ function seedFamilyTributes() {
       is_matriarch: 1,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 6,
+      sort_order: 10,
       birth_date: "1928-06-30",
       birth_date_display: "June 30, 1928 · Michigan",
       death_date: "2017-01-08",
@@ -658,7 +658,7 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 3,
+      sort_order: 30,
       birth_date: "1931-07-18",
       birth_date_display: "July 18, 1931 · Detroit, Michigan",
       death_date: "2019-06-25",
@@ -682,7 +682,7 @@ function seedFamilyTributes() {
       is_matriarch: 0,
       is_memorial: 1,
       is_placeholder: 0,
-      sort_order: 4,
+      sort_order: 40,
       birth_date: "1932-10-23",
       birth_date_display: "October 23, 1932 · Dowell, Illinois",
       death_date: "2024-10-27",
@@ -949,7 +949,7 @@ function seedFamilyTributes() {
           "Debbie Capoccia Fallucca is a descendant of George Capoccia and Christine Capoccia. Additional stories, dates, and photographs are invited from family members.",
       },
       {
-        full_name: "Jeanette Seifert",
+        full_name: "Jeanette Capoccia Seifert",
         preferred_name: "Jeanette Capoccia Seifert",
         maiden_name: "Capoccia",
         role_in_family: "Daughter of George & Christine Capoccia",
@@ -958,7 +958,8 @@ function seedFamilyTributes() {
       },
     ];
 
-    let georgeSort = 150;
+    // After leaders (10–60): David, Debbie, Jeanette Capoccia Seifert, then Michael Seifert
+    let georgeSort = 90;
     for (const child of georgeChildren) {
       let existing = db.prepare(`
         SELECT id FROM family_members WHERE full_name = ? OR preferred_name = ?
@@ -999,6 +1000,7 @@ function seedFamilyTributes() {
             tree_lineage = 'george',
             generation = COALESCE(generation, 2),
             relation_type = COALESCE(relation_type, 'child_of'),
+            sort_order = ?,
             visibility = 'public',
             updated_at = datetime('now')
           WHERE id = ?
@@ -1009,6 +1011,7 @@ function seedFamilyTributes() {
           child.role_in_family,
           child.biography,
           georgeId,
+          georgeSort,
           existing.id
         );
       } else {
@@ -1021,18 +1024,70 @@ function seedFamilyTributes() {
           child.full_name,
           child.preferred_name,
           child.maiden_name,
-          georgeSort++,
+          georgeSort,
           child.role_in_family,
           child.biography,
           georgeId
         );
       }
+      georgeSort += 10;
+    }
+
+    // Michael Seifert — husband of Jeanette Capoccia Seifert
+    const jeanetteRow = db.prepare(`
+      SELECT id FROM family_members
+      WHERE full_name LIKE '%Jeanette%Capoccia%Seifert%'
+         OR preferred_name LIKE '%Jeanette%Capoccia%Seifert%'
+         OR full_name LIKE '%Jeanette%Seifert%'
+         OR preferred_name LIKE '%Jeanette%Seifert%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    let michaelSeifert = db.prepare(`
+      SELECT id FROM family_members
+      WHERE (full_name LIKE '%Michael%Seifert%' OR preferred_name LIKE '%Michael%Seifert%'
+             OR full_name LIKE '%Mike%Seifert%' OR preferred_name LIKE '%Mike%Seifert%')
+        AND full_name NOT LIKE '%Miotto%'
+        AND COALESCE(preferred_name,'') NOT LIKE '%Miotto%'
+      ORDER BY id ASC LIMIT 1
+    `).get();
+    if (!michaelSeifert) {
+      const ins = db.prepare(`
+        INSERT INTO family_members (
+          full_name, preferred_name, family_branch, is_patriarch, is_matriarch, is_memorial, is_placeholder,
+          sort_order, role_in_family, biography, visibility, tree_lineage, generation, relation_type
+        ) VALUES (
+          'Michael Seifert', 'Michael Seifert', 'Capoccia', 0, 0, 0, 0,
+          152, 'Spouse of Jeanette Capoccia Seifert',
+          'Michael Seifert is the husband of Jeanette Capoccia Seifert.',
+          'public', 'george', 2, 'spouse_of'
+        )
+      `).run();
+      michaelSeifert = { id: Number(ins.lastInsertRowid) };
+    } else {
+      db.prepare(`
+        UPDATE family_members SET
+          full_name = 'Michael Seifert',
+          preferred_name = 'Michael Seifert',
+          family_branch = 'Capoccia',
+          role_in_family = COALESCE(NULLIF(role_in_family, ''), 'Spouse of Jeanette Capoccia Seifert'),
+          visibility = 'public',
+          updated_at = datetime('now')
+        WHERE id = ?
+      `).run(michaelSeifert.id);
+    }
+    if (jeanetteRow && michaelSeifert) {
+      db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(michaelSeifert.id, jeanetteRow.id);
+      db.prepare("UPDATE family_members SET spouse_member_id = ? WHERE id = ?").run(jeanetteRow.id, michaelSeifert.id);
+      // Jeanette Capoccia Seifert then Michael Seifert (husband), after David & Debbie
+      db.prepare("UPDATE family_members SET sort_order = 110, updated_at = datetime('now') WHERE id = ?").run(jeanetteRow.id);
+      db.prepare("UPDATE family_members SET sort_order = 120, updated_at = datetime('now') WHERE id = ?").run(michaelSeifert.id);
     }
 
     // Link George & Christine, Tony & Fran if present
     const pairs = [
       ["%George%Capoccia%", "%Christine%Capoccia%"],
       ["%Tony%Capoccia%", "%Fran%Capoccia%"],
+      ["%Jeanette%Seifert%", "%Michael%Seifert%"],
     ];
     for (const [aLike, bLike] of pairs) {
       const a = db.prepare("SELECT id FROM family_members WHERE full_name LIKE ? OR preferred_name LIKE ? LIMIT 1").get(aLike, aLike);

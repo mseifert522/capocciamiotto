@@ -1018,26 +1018,29 @@ main { overflow-x: clip; }
   min-width: 0;
 }
 .member-card-photo {
-  /* Full photo visible by default (no hard crop) */
+  /* Same frame size on every card so names line up in the grid */
   width: 100%;
-  aspect-ratio: 4 / 5;
-  min-height: 200px;
-  max-height: 320px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   background: linear-gradient(160deg, var(--cream-deep), #e8d9c8);
   overflow: hidden;
   position: relative;
-  padding: 0.4rem;
+  padding: 0.35rem;
   margin: 0;
   border: 0;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 auto;
+  display: block;
+  box-sizing: border-box;
 }
 .member-card-photo > .member-card-photo-btn,
-.member-card-photo > .portrait-lightbox-btn {
-  width: 100%;
-  height: 100%;
+.member-card-photo > .portrait-lightbox-btn,
+.member-card-photo > .member-card-placeholder {
+  position: absolute;
+  inset: 0.35rem;
+  width: auto;
+  height: auto;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1062,37 +1065,24 @@ main { overflow-x: clip; }
   padding: 0;
   box-shadow: none;
 }
-/* Debbie only — keep edge-to-edge fill crop */
+/* Debbie only — edge-to-edge fill inside the same square frame */
 .member-card-photo--fill {
-  aspect-ratio: 1 / 1;
-  min-height: 180px;
-  max-height: none;
   padding: 0;
 }
 .member-card-photo--fill > .member-card-photo-btn,
 .member-card-photo--fill > .portrait-lightbox-btn {
-  position: absolute;
   inset: 0;
   border-radius: 0;
   display: block;
 }
 .member-card-photo--fill img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
   object-fit: cover;
   object-position: center 18%;
   border-radius: 0;
+  max-width: none;
+  max-height: none;
 }
 .member-card-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
 }
 .member-card-placeholder span {
@@ -4380,15 +4370,11 @@ th { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase;
     grid-template-columns: 1fr;
     gap: 0.9rem;
   }
-  .member-card-photo {
-    min-height: 220px;
-    max-height: 340px;
-    aspect-ratio: 4 / 5;
-  }
+  .member-card-photo,
   .member-card-photo--fill {
-    min-height: 180px;
-    max-height: none;
     aspect-ratio: 1 / 1;
+    min-height: 0;
+    max-height: none;
   }
 
   .special-memory-hero {

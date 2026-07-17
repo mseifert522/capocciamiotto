@@ -16,14 +16,15 @@
       <% const hero = specialMemories[0]; %>
       <% const rest = specialMemories.slice(1); %>
       <% const heroSrc = hero.web_path || hero.original_path || hero.thumb_path; %>
-      <% const heroCap = [hero.reunion_year ? String(hero.reunion_year) : "", hero.title || ""].filter(Boolean).join(" · ") || "Special memory"; %>
+      <% const heroCapParts = [hero.title || "", hero.reunion_year ? String(hero.reunion_year) : "", (hero.description && !/^Portrait of /i.test(String(hero.description))) ? hero.description : ""].filter(Boolean); %>
+      <% const heroCap = heroCapParts.join(" — ") || "Special memory"; %>
 
       <div class="special-memories-showcase">
         <button
           type="button"
           class="special-memory-hero"
           data-lightbox="<%= heroSrc %>"
-          data-lightbox-caption="<%= heroCap %>"
+          data-lightbox-caption="<%= heroCap.replace(/"/g, '&quot;') %>"
           aria-label="View special memory<%= hero.reunion_year ? ' from ' + hero.reunion_year : '' %>"
         >
           <img
